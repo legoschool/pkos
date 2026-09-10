@@ -10353,7 +10353,11 @@
      ⚠️ 코드를 고쳐 «새 배포» 를 하면 주소가 바뀔 수 있다. 바뀌면 여기도 같이 고친다.
      기기마다 다른 자리로 보내고 싶으면 설정 → 💬 의견 받기 에서 덮어쓴다. */
   var FEEDBACK_URL = "https://script.google.com/macros/s/AKfycbxpZ057fnnH3h7dokq1GL4IUV3pLgwgmVdlzfcm5hsFRU3fgTK6xUX4WHA2DWVXiKKv/exec";
-  var FEEDBACK_SHEET = "https://docs.google.com/spreadsheets/d/1VXvf_7Ki80cmeXeJjplX6ITA0v8n5a-0YK4yTpXGkM0/edit";
+  /* 모인 의견이 쌓이는 시트 주소.
+     ⚠️ 여기에 박아 두지 않는다. 이 저장소는 공개라 소스를 읽는 누구나 주소를 본다.
+        시트 공유가 조금이라도 열려 있으면 남이 보낸 의견이 그대로 노출된다.
+        운영하는 사람이 설정 → 고급 → 💬 의견 받기 에서 제 기기에만 넣어 둔다. */
+  var FEEDBACK_SHEET = "";
   var FB_KINDS = ["질문", "개선 의견", "오류"];
 
   function fbUrl() {
@@ -10364,6 +10368,16 @@
     try {
       if (u) localStorage.setItem("pkos.feedbackUrl.v1", String(u).trim());
       else localStorage.removeItem("pkos.feedbackUrl.v1");
+    } catch (e) {}
+  }
+  function fbSheet() {
+    try { return (localStorage.getItem("pkos.feedbackSheet.v1") || FEEDBACK_SHEET || "").trim(); }
+    catch (e) { return FEEDBACK_SHEET; }
+  }
+  function fbSetSheet(u) {
+    try {
+      if (u) localStorage.setItem("pkos.feedbackSheet.v1", String(u).trim());
+      else localStorage.removeItem("pkos.feedbackSheet.v1");
     } catch (e) {}
   }
   /* 이 기기를 가리키는 이름 없는 번호 하나.
@@ -13851,8 +13865,19 @@
           })
           .catch(function () { st.textContent = "못 보냈습니다. 주소와 «액세스 권한: 모든 사용자» 를 확인하세요."; });
       });
+      var inp2 = el("input", "inp");
+      inp2.type = "url";
+      inp2.style.marginTop = "8px";
+      inp2.placeholder = "모인 의견 시트 주소 (이 기기에만 저장됩니다)";
+      inp2.value = fbSheet();
+      f.appendChild(inp2);
       var open = el("button", "btn sm", "📊 모인 의견 시트 열기");
-      open.addEventListener("click", function () { window.open(FEEDBACK_SHEET, "_blank", "noopener"); });
+      open.addEventListener("click", function () {
+        fbSetSheet(inp2.value.trim());
+        var u = fbSheet();
+        if (!u) { st.textContent = "시트 주소를 위 칸에 먼저 넣어 주세요."; return; }
+        window.open(u, "_blank", "noopener");
+      });
       row.appendChild(save); row.appendChild(test); row.appendChild(open);
       f.appendChild(row);
       var st = el("p", "desc"); st.style.marginTop = "8px";
