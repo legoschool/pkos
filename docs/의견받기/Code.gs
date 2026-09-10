@@ -12,13 +12,13 @@
  *        ⚠️ [새 배포] 를 누르면 주소가 «바뀐다». 같은 주소를 지키려면 [배포 관리] 다.
  *        실행 계정   · 나
  *        액세스 권한 · 모든 사용자      ← 이걸 안 바꾸면 로그인한 사람만 보낼 수 있다
- *   5. /exec 주소를 브라우저로 열어 보면 지금 깔린 판이 보인다 ({"ok":true,"ver":4,…})
+ *   5. /exec 주소를 브라우저로 열어 보면 지금 깔린 판이 보인다 ({"ok":true,"ver":5,…})
  *
  * ⚠️ 코드를 고치고 «저장» 만 하면 웹 앱에는 반영되지 않는다. 반드시 4번을 다시 한다.
  */
 
 /** 이 파일의 판 번호. 배포가 먹혔는지 주소 한 번 열어서 확인할 때 쓴다. */
-var VER = 4;
+var VER = 5;
 
 /** 시트 이름. 없으면 만든다. */
 var SHEET_NAME = '의견';
@@ -172,7 +172,10 @@ function saveShot_(dataUrl, name, id) {
 
   var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmmss');
   var ext = mime.split('/')[1].replace('jpeg', 'jpg').replace(/[^a-z0-9]/gi, '') || 'png';
-  var safe = String(name || '').replace(/[\\\/:*?"<>|]/g, '').slice(0, 40);
+  /* ⚠️ 원래 이름에 이미 «.png» 이 붙어 있다. 그대로 두고 뒤에 또 붙이면
+     「캡처확인.png.png」 이 된다 · 실제로 그렇게 쌓였다. 꼬리를 떼고 쓴다. */
+  var safe = String(name || '').replace(/\.[a-z0-9]{2,5}$/i, '')
+                               .replace(/[\\\/:*?"<>|]/g, '').slice(0, 40);
   var fileName = stamp + '_' + (id || 'shot') + (safe ? '_' + safe : '') + '.' + ext;
 
   var blob = Utilities.newBlob(bytes, mime, fileName);
