@@ -2397,7 +2397,7 @@
         var now = LS[k];
         if (localStorage.getItem(now) !== null) return;
         for (var i = 0; i < OLD_KEY_PREFIXES.length; i++) {
-          var v = localStorage.getItem(now.replace(/^trace\./, OLD_KEY_PREFIXES[i]));
+          var v = localStorage.getItem(now.replace(/^pkos\./, OLD_KEY_PREFIXES[i]));
           if (v !== null) { localStorage.setItem(now, v); return; }
         }
       });
@@ -3519,7 +3519,7 @@
         사람이 드라이브에서 붙인 이름을 저장 한 번에 되돌려 놓지 않으려는 것이다. */
   function uploadFile(name, mimeType, payload, isBase64, fileId, parentId, mediaType) {
     var media = mediaType || mimeType;
-    var boundary = "trace" + Math.random().toString(36).slice(2);
+    var boundary = "pkos" + Math.random().toString(36).slice(2);
     var d = "\r\n--" + boundary + "\r\n", c = "\r\n--" + boundary + "--";
     var meta = fileId ? (name ? { name: name } : {}) : { name: name, mimeType: mimeType, parents: [parentId || folder.id] };
     var body = d + "Content-Type: application/json; charset=UTF-8\r\n\r\n" + JSON.stringify(meta) +
@@ -12374,7 +12374,7 @@
        ② 💻 즐겨찾기 한 줄(북마클릿) → 주소 뒤 #capture= 에 담겨 온다
      둘 다 «쓰던 글에 이어 붙인다». 덮어쓰지 않는다.
      ========================================================= */
-  var SHARE_CACHE = "trace-share-inbox";
+  var SHARE_CACHE = "pkos-share-inbox";   // sw.js 의 SHARE_CACHE 와 반드시 같아야 한다
 
   function urlHost(u) {
     try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return ""; }

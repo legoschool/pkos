@@ -1,4 +1,4 @@
-/* 이름을 PKEMS → PEER 로 바꾼 뒤, 옛 이름으로 쌓아 둔 것이 그대로 이어지는지 본다.
+/* 이름을 PKEMS → PEER → TRACE → PKOS 로 바꿔 온 뒤, 옛 이름으로 쌓아 둔 것이 그대로 이어지는지 본다.
    이게 깨지면 쓰던 사람의 기록이 «없는 것»이 된다. 가장 무거운 점검이다.
    실행:  node docs/점검도구/이름바꾸기.mjs [url] */
 import { spawn } from "node:child_process";
@@ -29,7 +29,7 @@ const EDGE = [
 if (!EDGE) { console.error("엣지도 크롬도 찾지 못했습니다."); process.exit(2); }
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const profile = mkdtempSync(join(tmpdir(), "trace-rename-"));
+const profile = mkdtempSync(join(tmpdir(), "pkos-rename-"));
 const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", "--no-first-run",
   `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`, URL_], { stdio: "ignore" });
 /* ⚠️ 끝에서만 edge.kill() 을 부르면 도중에 넘어졌을 때 브라우저가 살아 남는다.
@@ -115,10 +115,10 @@ const got = JSON.parse(await ev(`JSON.stringify({
   body: document.body.innerText,
   logo: (document.querySelector('.logo')||{}).textContent || '',
   docTitle: document.title,
-  newEntries: !!localStorage.getItem('trace.entries.v2'),
-  newFolder: localStorage.getItem('trace.folder') || '',
-  newSettings: localStorage.getItem('trace.settings.v1') || '',
-  newDraft: localStorage.getItem('trace.draft.v1') || '',
+  newEntries: !!localStorage.getItem('pkos.entries.v2'),
+  newFolder: localStorage.getItem('pkos.folder') || '',
+  newSettings: localStorage.getItem('pkos.settings.v1') || '',
+  newDraft: localStorage.getItem('pkos.draft.v1') || '',
   oldStillThere: !!localStorage.getItem('pkems.entries.v2'),
   draftTitle: (document.getElementById('title')||{}).value || ''
 })`));
@@ -130,15 +130,15 @@ check("설정도 따라온다 (폴더 방식·보기)", got.newSettings.includes
 check("쓰다 만 글도 되살아난다", got.draftTitle === "쓰다 만 옛 글", got.draftTitle);
 check("옛 키를 지우지 않는다 (되돌릴 수 있게)", got.oldStillThere);
 check("화면에 보이는 이름이 새 이름이다",
-  /TRACE/.test(got.logo) && /TRACE/.test(got.docTitle) && !/PEER|PKEMS/.test(got.logo),
+  /PKOS/.test(got.logo) && /PKOS/.test(got.docTitle) && !/PEER|PKEMS|TRACE/.test(got.logo),
   got.logo.slice(0, 50));
 
 /* ---------- 두 번째로 열어도 덮어쓰지 않는가 ---------- */
 await ev(`(() => {
-  const cur = JSON.parse(localStorage.getItem('trace.entries.v2'));
+  const cur = JSON.parse(localStorage.getItem('pkos.entries.v2'));
   cur.push({ id:'new1', type:'idea', title:'이름 바꾼 뒤 쓴 기록', tags:[], relations:[], pinned:false,
     blocks:[], createdAt:'2026-08-20T09:00:00.000Z', updatedAt:'2026-08-20T09:00:00.000Z' });
-  localStorage.setItem('trace.entries.v2', JSON.stringify(cur));
+  localStorage.setItem('pkos.entries.v2', JSON.stringify(cur));
   return true;
 })()`);
 await send("Page.navigate", { url: URL_ });
@@ -150,7 +150,7 @@ const after = JSON.parse(await ev(`JSON.stringify({
 })`));
 check("새로 쓴 것이 옛 것에 덮이지 않는다", after.hasNew && after.hasOld, `${after.cards}편`);
 
-/* ---------- 사슬의 가운데 고리도 본다: peer.* → trace.* ----------
+/* ---------- 사슬의 가운데 고리도 본다: peer.* → pkos.* ----------
    이름이 두 번 바뀌었으므로, «PEER 버전을 쓰던 사람» 도 이어져야 한다.
    가운데 고리가 끊기면 그 사람들만 기록을 잃는다. */
 await ev(`(() => {
@@ -170,8 +170,8 @@ await send("Page.navigate", { url: URL_ });
 await wait(2600);
 const mid = JSON.parse(await ev(`(() => {
   // 저장된 값을 «먼저» 읽는다. 아래에서 보기를 바꾸면 viewMode 가 덮여 쓴다
-  const folder = localStorage.getItem('trace.folder') || '';
-  const settings = localStorage.getItem('trace.settings.v1') || '';
+  const folder = localStorage.getItem('pkos.folder') || '';
+  const settings = localStorage.getItem('pkos.settings.v1') || '';
   /* 이어받은 설정이 «목록» 보기라 폴더가 접힌 채로 열린다.
      제목이 화면에 있는지 보려면 펼쳐지는 보기로 옮겨야 한다. */
   const v = Array.from(document.querySelectorAll('.vbtn')).find(x => (x.textContent||'').includes('나열'));

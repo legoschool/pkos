@@ -1,5 +1,5 @@
 ﻿param([int]$Port = 0)
-if ($Port -le 0) { if ($env:TRACE_PORT) { $Port = [int]$env:TRACE_PORT } else { $Port = 8000 } }
+if ($Port -le 0) { if ($env:PKOS_PORT) { $Port = [int]$env:PKOS_PORT } else { $Port = 8000 } }
 $ErrorActionPreference = "Stop"
 # 이 스크립트가 docs\점검도구\ 안에 있으므로, 두 단계 위가 저장소 뿌리다
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path

@@ -39,7 +39,7 @@ const EDGE = [
 if (!EDGE) { console.error("엣지도 크롬도 찾지 못했습니다."); process.exit(2); }
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const profile = mkdtempSync(join(tmpdir(), "trace-shard-"));
+const profile = mkdtempSync(join(tmpdir(), "pkos-shard-"));
 const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", "--no-first-run",
   `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`, "about:blank"], { stdio: "ignore" });
 /* ⚠️ 끝에서만 edge.kill() 을 부르면 도중에 넘어졌을 때 브라우저가 살아 남는다.
@@ -178,17 +178,17 @@ function seed(n, pad) {
       mdId: 'MD' + i, mdName: '기록 ' + i + '.md'
     });
   }
-  localStorage.setItem('trace.entries.v2', JSON.stringify(list));
+  localStorage.setItem('pkos.entries.v2', JSON.stringify(list));
   return list.length;
 })()`;
 }
 
 const BOOT = `(function () {
-  localStorage.setItem('trace.connected', '1');
-  localStorage.setItem('trace.clientId', 'FAKE.apps.googleusercontent.com');
-  localStorage.setItem('trace.folder', JSON.stringify({ id: 'ROOT', name: '내 폴더', link: '' }));
-  localStorage.setItem('trace.token.v1', JSON.stringify({ t: 'FAKE_TOKEN', exp: Date.now() + 3600000 }));
-  localStorage.setItem('trace.email', 'teacher@example.com');
+  localStorage.setItem('pkos.connected', '1');
+  localStorage.setItem('pkos.clientId', 'FAKE.apps.googleusercontent.com');
+  localStorage.setItem('pkos.folder', JSON.stringify({ id: 'ROOT', name: '내 폴더', link: '' }));
+  localStorage.setItem('pkos.token.v1', JSON.stringify({ t: 'FAKE_TOKEN', exp: Date.now() + 3600000 }));
+  localStorage.setItem('pkos.email', 'teacher@example.com');
   return true;
 })()`;
 
@@ -247,13 +247,13 @@ check("기록 3편이 화면에 떴다", (await ev(`document.querySelectorAll('.
 check("📌 을 누를 수 있다", (await pin()) === "CLICKED");
 await wait(1200);
 let files = await drive();
-const smallIdx = files.find(f => f.name === "TRACE-index.json");
-check("작은 색인은 한 파일에 그대로 둔다", !!smallIdx && !files.some(f => /^TRACE-index-/.test(f.name)),
+const smallIdx = files.find(f => f.name === "PKOS-index.json");
+check("작은 색인은 한 파일에 그대로 둔다", !!smallIdx && !files.some(f => /^PKOS-index-/.test(f.name)),
   files.map(f => f.name).join(" · ") || "빈 드라이브");
 check("옛 버전도 읽을 수 있는 모양이다 (entries 가 그 안에 있다)",
   (await ev(`(() => {
     const d = JSON.parse(sessionStorage.getItem('fakedrive')||'{}');
-    const f = Object.values(d).find(x => x.name === 'TRACE-index.json');
+    const f = Object.values(d).find(x => x.name === 'PKOS-index.json');
     const j = JSON.parse(f.body);
     return j.version === 3 && Array.isArray(j.entries) && j.entries.length === 3;
   })()`)) === true);
@@ -261,18 +261,18 @@ check("옛 버전도 읽을 수 있는 모양이다 (entries 가 그 안에 있�
 /* ═══ ② 커지면 조각으로 나뉜다 ═══ */
 await ev(`sessionStorage.removeItem('fakedrive')`);
 await open(seed(400, 1200));            // 400편 × 1200자 ≈ 500KB
-check("기록 400편을 심었다", (await ev(`JSON.parse(localStorage.getItem('trace.entries.v2')||'[]').length`)) === 400);
+check("기록 400편을 심었다", (await ev(`JSON.parse(localStorage.getItem('pkos.entries.v2')||'[]').length`)) === 400);
 check("📌 을 누를 수 있다 (큰 색인)", (await pin()) === "CLICKED");
 await wait(3000);
 files = await drive();
-const shards = files.filter(f => /^TRACE-index-[0-9a-f]{2}\.json$/.test(f.name));
+const shards = files.filter(f => /^PKOS-index-[0-9a-f]{2}\.json$/.test(f.name));
 check("색인이 커지면 조각으로 나뉜다", shards.length >= 2,
-  `조각 ${shards.length}개 · ${shards.map(s => s.name.replace("TRACE-index-", "")).join(",")}`);
+  `조각 ${shards.length}개 · ${shards.map(s => s.name.replace("PKOS-index-", "")).join(",")}`);
 check("조각 하나가 한 아름(256KB)을 넘지 않는다", shards.every(s => s.bytes <= 256 * 1024),
   `가장 큰 조각 ${Math.max(...shards.map(s => s.bytes))}바이트`);
 const man0 = await ev(`(() => {
   const d = JSON.parse(sessionStorage.getItem('fakedrive')||'{}');
-  const f = Object.values(d).find(x => x.name === 'TRACE-index.json');
+  const f = Object.values(d).find(x => x.name === 'PKOS-index.json');
   return f ? f.body : '';
 })()`);
 check("목차에는 조각의 자리만 적힌다", (() => {
@@ -285,8 +285,8 @@ await ev(`window.__up = []`);
 await pin();                             // 고정을 풀었다 = 기록 하나가 바뀌었다
 await wait(2500);
 const up = await uploads();
-const idxUp = up.filter(x => /^TRACE-index/.test(x.name));
-const shardUp = idxUp.filter(x => x.name !== "TRACE-index.json");
+const idxUp = up.filter(x => /^PKOS-index/.test(x.name));
+const shardUp = idxUp.filter(x => x.name !== "PKOS-index.json");
 const totalIdx = shards.reduce((a, s) => a + s.bytes, 0);
 const sentBytes = idxUp.reduce((a, x) => a + x.bytes, 0);
 check("고친 기록이 든 조각 하나만 다시 올린다", shardUp.length === 1,
@@ -301,10 +301,10 @@ await wait(200);
 await send("Page.navigate", { url: URL_ });
 await wait(600);
 await ev(BOOT);
-await ev(`localStorage.removeItem('trace.entries.v2')`);   // 이 기기에는 아무것도 없는 상태로
+await ev(`localStorage.removeItem('pkos.entries.v2')`);   // 이 기기에는 아무것도 없는 상태로
 await send("Page.navigate", { url: URL_ });
 await wait(4000);
-const back = await ev(`JSON.parse(localStorage.getItem('trace.entries.v2')||'[]').length`);
+const back = await ev(`JSON.parse(localStorage.getItem('pkos.entries.v2')||'[]').length`);
 check("빈 기기에서도 조각을 다 읽어 400편이 돌아온다", back === 400, `${back}편`);
 
 /* ═══ ⑤ 조각 하나를 못 읽으면 «덮어쓰지 않는다» · 가장 중요한 곳 ═══ */
@@ -315,19 +315,19 @@ await wait(200);
 await send("Page.navigate", { url: URL_ });
 await wait(600);
 await ev(BOOT);
-await ev(`localStorage.removeItem('trace.entries.v2')`);
+await ev(`localStorage.removeItem('pkos.entries.v2')`);
 await send("Page.navigate", { url: URL_ });
 await wait(4000);
 await ev(`window.__up = []`);
 await pin();                             // 이 상태에서 저장을 눌러 본다
 await wait(2500);
-const upBroken = (await uploads()).filter(x => /^TRACE-index/.test(x.name));
+const upBroken = (await uploads()).filter(x => /^PKOS-index/.test(x.name));
 check("조각을 못 읽으면 색인을 한 글자도 덮어쓰지 않는다", upBroken.length === 0,
   upBroken.map(x => x.name).join(",") || "덮어쓴 것 없음");
 const still = await drive();
 check("드라이브의 조각도 그대로 남아 있다",
-  still.filter(f => /^TRACE-index-[0-9a-f]{2}\.json$/.test(f.name)).length === shards.length,
-  `조각 ${still.filter(f => /^TRACE-index-/.test(f.name)).length}개`);
+  still.filter(f => /^PKOS-index-[0-9a-f]{2}\.json$/.test(f.name)).length === shards.length,
+  `조각 ${still.filter(f => /^PKOS-index-/.test(f.name)).length}개`);
 check("사람에게도 알린다", (await ev(`(document.body.textContent||'').includes('덮어쓰지 않습니다')`)) === true);
 
 /* ═══ ⑥ 옛 버전이 목차를 덮어써도, 남은 조각을 함께 읽는다 ═══ */
@@ -335,8 +335,8 @@ await ev(`sessionStorage.removeItem('break')`);
 // 옛 버전이 저장한 것처럼 · 목차 자리에 «기록 1편만 든 v3 색인» 을 밀어 넣는다
 await ev(`(() => {
   const d = JSON.parse(sessionStorage.getItem('fakedrive')||'{}');
-  const k = Object.keys(d).find(k => d[k].name === 'TRACE-index.json');
-  d[k].body = JSON.stringify({ version: 3, app: 'TRACE', entries: [{
+  const k = Object.keys(d).find(k => d[k].name === 'PKOS-index.json');
+  d[k].body = JSON.stringify({ version: 3, app: 'PKOS', entries: [{
     id: 'old1', type: 'experience', title: '옛 버전이 남긴 기록', tags: [], blocks: [],
     relations: [], pinned: false, createdAt: 1600000000000, updatedAt: 1600000000000
   }], deleted: [] });
@@ -348,11 +348,11 @@ await wait(200);
 await send("Page.navigate", { url: URL_ });
 await wait(600);
 await ev(BOOT);
-await ev(`localStorage.removeItem('trace.entries.v2')`);
+await ev(`localStorage.removeItem('pkos.entries.v2')`);
 await send("Page.navigate", { url: URL_ });
 await wait(5000);
 const mixed = JSON.parse(await ev(`(() => {
-  const L = JSON.parse(localStorage.getItem('trace.entries.v2')||'[]');
+  const L = JSON.parse(localStorage.getItem('pkos.entries.v2')||'[]');
   return JSON.stringify({ n: L.length, hasOld: L.some(e => e.id === 'old1') });
 })()`));
 check("옛 형식으로 덮여도 조각을 찾아 함께 읽는다", mixed.n >= 401 && mixed.hasOld,
@@ -363,10 +363,10 @@ await ev(`sessionStorage.removeItem('fakedrive')`);
 await open(seed(400, 1200));
 await pin();
 await wait(3000);
-const before7 = (await drive()).filter(f => /^TRACE-index-[0-9a-f]{2}\.json$/.test(f.name)).length;
+const before7 = (await drive()).filter(f => /^PKOS-index-[0-9a-f]{2}\.json$/.test(f.name)).length;
 // 400편을 더 얹는다. 조각 하나가 한 아름을 넘어 «다시 나누기» 가 일어나야 한다
 await ev(`(() => {
-  const L = JSON.parse(localStorage.getItem('trace.entries.v2') || '[]');
+  const L = JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]');
   const body = new Array(1201).join('나');
   for (let i = 400; i < 800; i++) L.push({
     id: 'n' + i, type: 'experience', title: '기록 ' + i, tags: ['시험'],
@@ -375,19 +375,19 @@ await ev(`(() => {
     createdAt: 1700000000000 - i * 1000, updatedAt: 1700000000000 - i * 1000,
     mdId: 'MD' + i, mdName: '기록 ' + i + '.md'
   });
-  localStorage.setItem('trace.entries.v2', JSON.stringify(L));
+  localStorage.setItem('pkos.entries.v2', JSON.stringify(L));
   return L.length;
 })()`);
 await send("Page.navigate", { url: URL_ });
 await wait(4000);
 await pin();
 await wait(6000);
-const after7 = (await drive()).filter(f => /^TRACE-index-[0-9a-f]{2}\.json$/.test(f.name)).length;
+const after7 = (await drive()).filter(f => /^PKOS-index-[0-9a-f]{2}\.json$/.test(f.name)).length;
 check("기록이 늘면 조각을 더 잘게 다시 나눈다", after7 > before7, `조각 ${before7}개 → ${after7}개`);
-await ev(`localStorage.removeItem('trace.entries.v2')`);
+await ev(`localStorage.removeItem('pkos.entries.v2')`);
 await send("Page.navigate", { url: URL_ });
 await wait(6000);
-const back7 = await ev(`JSON.parse(localStorage.getItem('trace.entries.v2')||'[]').length`);
+const back7 = await ev(`JSON.parse(localStorage.getItem('pkos.entries.v2')||'[]').length`);
 check("다시 나눈 뒤에도 800편이 하나도 안 빠진다", back7 === 800, `${back7}편`);
 
 /* ═══ ⑧ 지운 것은 조각에서도 빠지고, 다른 기기에서 되살아나지 않는다 ═══ */
@@ -426,10 +426,10 @@ const okRes = await ev(`(() => {
 })()`);
 await wait(5000);
 check("기록 하나를 지울 수 있다", delRes === "OPENED" && okRes === "CONFIRMED", delRes + "/" + okRes);
-await ev(`localStorage.removeItem('trace.entries.v2')`);
+await ev(`localStorage.removeItem('pkos.entries.v2')`);
 await send("Page.navigate", { url: URL_ });
 await wait(6000);
-const back8 = await ev(`JSON.parse(localStorage.getItem('trace.entries.v2')||'[]').length`);
+const back8 = await ev(`JSON.parse(localStorage.getItem('pkos.entries.v2')||'[]').length`);
 check("지운 기록은 조각에서도 빠진다 (되살아나지 않는다)", back8 === 799, `${back8}편`);
 
 /* ---- 마무리 ---- */

@@ -65,7 +65,7 @@ await send("Runtime.enable"); await send("Page.enable"); await wait(2500);
 
 const D = t => Date.parse(t);
 const SEED = `(() => {
-  localStorage.setItem('trace.entries.v2', JSON.stringify([
+  localStorage.setItem('pkos.entries.v2', JSON.stringify([
    {id:'a',type:'experience',title:'2단원 물의 상태변화 · 3차시 수업',tags:['2019','3학년','과학'],relations:[{to:'b',label:'이어서'}],
     blocks:[{id:'b1',kind:'text',text:'얼음이 녹는 동안 온도가 그대로라는 걸 아이들이 못 믿었다. 온도계를 직접 잡고 5분을 기다리게 했더니 그때야 «어?» 하는 소리가 나왔다.'}],
     createdAt:${D("2019-05-14")},updatedAt:${D("2019-05-14")},srcPath:['2019','3학년','과학'],srcId:'H0'},
@@ -139,7 +139,7 @@ for (const th of THEMES) {
   for (const dark of [false, true]) {
     await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: dark ? "dark" : "light" }] });
     await ev(SEED);
-    await ev(`localStorage.setItem('trace.settings.v1', JSON.stringify({version:1, theme:'${th}', viewMode:'stream', folderMode:'perEntry'})); true`);
+    await ev(`localStorage.setItem('pkos.settings.v1', JSON.stringify({version:1, theme:'${th}', viewMode:'stream', folderMode:'perEntry'})); true`);
     await send("Page.reload", { ignoreCache: true });
     await wait(2600);
     await ev(`(() => { const c=document.querySelector('.composer'); if(c) c.style.display='none'; return true; })()`);
@@ -196,7 +196,7 @@ for (const tn of TONES) {
     await send("Emulation.clearDeviceMetricsOverride");
     await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: dark ? "dark" : "light" }] });
     await ev(SEED);
-    await ev(`localStorage.setItem('trace.settings.v1', JSON.stringify({version:1, theme:'lego', tone:'${tn}', viewMode:'stream', folderMode:'perEntry'})); true`);
+    await ev(`localStorage.setItem('pkos.settings.v1', JSON.stringify({version:1, theme:'lego', tone:'${tn}', viewMode:'stream', folderMode:'perEntry'})); true`);
     await send("Page.reload", { ignoreCache: true });
     await wait(2400);
     await ev(`(() => { const c=document.querySelector('.composer'); if(c) c.style.display='none'; return true; })()`);
@@ -228,7 +228,7 @@ async function look(theme, mode, fontSize, deviceDark, phone) {
   if (phone) await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
   else await send("Emulation.clearDeviceMetricsOverride");
   await ev(SEED);
-  await ev(`localStorage.setItem('trace.settings.v1', JSON.stringify({version:1, theme:'${theme}', mode:'${mode}', fontSize:'${fontSize}', viewMode:'stream', folderMode:'perEntry'})); true`);
+  await ev(`localStorage.setItem('pkos.settings.v1', JSON.stringify({version:1, theme:'${theme}', mode:'${mode}', fontSize:'${fontSize}', viewMode:'stream', folderMode:'perEntry'})); true`);
   await send("Page.reload", { ignoreCache: true });
   await wait(2400);
   return JSON.parse(await ev(`(() => {

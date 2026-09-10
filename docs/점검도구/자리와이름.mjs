@@ -40,7 +40,7 @@ const EDGE = [
 if (!EDGE) { console.error("엣지도 크롬도 찾지 못했습니다."); process.exit(2); }
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const profile = mkdtempSync(join(tmpdir(), "trace-place-"));
+const profile = mkdtempSync(join(tmpdir(), "pkos-place-"));
 const edge = spawn(EDGE, [
   "--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
   `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`,
@@ -71,10 +71,10 @@ function check(name, ok, detail) {
    --------------------------------------------------------- */
 const FAKE = `(function () {
   if (!sessionStorage.getItem('keep')) localStorage.clear();
-  localStorage.setItem('trace.connected', '1');
-  localStorage.setItem('trace.folder', JSON.stringify({ id: 'ROOT', name: '내 폴더', link: '' }));
-  localStorage.setItem('trace.token.v1', JSON.stringify({ t: 'FAKE', exp: Date.now() + 3600000 }));
-  localStorage.setItem('trace.email', 'teacher@example.com');
+  localStorage.setItem('pkos.connected', '1');
+  localStorage.setItem('pkos.folder', JSON.stringify({ id: 'ROOT', name: '내 폴더', link: '' }));
+  localStorage.setItem('pkos.token.v1', JSON.stringify({ t: 'FAKE', exp: Date.now() + 3600000 }));
+  localStorage.setItem('pkos.email', 'teacher@example.com');
 
   var FOLDER = 'application/vnd.google-apps.folder';
   function f(id, name, mime) {
@@ -302,7 +302,7 @@ const pressSave = () => ev(`(() => {
   b.click(); return 'SAVED';
 })()`);
 const entryBy = (srcId) => ev(`(() => {
-  const L = JSON.parse(localStorage.getItem('trace.entries.v2') || '[]');
+  const L = JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]');
   const e = L.find(x => x.srcId === '${srcId}' || x.mdId === '${srcId}');
   return JSON.stringify(e ? { id: e.id, title: e.title, path: e.srcPath || [], mdId: e.mdId || '', mdName: e.mdName || '' } : null);
 })()`).then((s) => JSON.parse(s));
@@ -338,8 +338,8 @@ const md0 = await entryBy("MD1");
 /* 앱이 제 살림으로 쓰는 파일(색인·설정·색인 조각)이 «자료» 로 들어오면,
    폴더를 훑을 때마다 내가 안 넣은 기록이 목록에 하나씩 는다. */
 const mine = await ev(`(() => {
-  const L = JSON.parse(localStorage.getItem('trace.entries.v2') || '[]');
-  return L.filter(e => /TRACE-index|TRACE-settings/.test(e.title || '')).length;
+  const L = JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]');
+  return L.filter(e => /PKOS-index|PKOS-settings/.test(e.title || '')).length;
 })()`);
 check("① 앱이 만든 색인·설정은 기록으로 안 들어온다", mine === 0, mine + "편 들어옴");
 /* 왼쪽 기둥 · 접힘. 기본은 뿌리 바로 아래만 보이고, ▸ 를 눌러 편다.
@@ -410,7 +410,7 @@ await ev(`window.__drive.reset(); window.__drive.rename('MD1', '연수 정리본
 await runImport();
 // 그 기록을 한 번 고쳐 저장시킨다 · 저장이 이름을 되돌리는지 보는 자리다
 await ev(`(() => {
-  const L = JSON.parse(localStorage.getItem('trace.entries.v2') || '[]');
+  const L = JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]');
   return L.length;
 })()`);
 await setSearch('연수 다녀옴');
@@ -610,15 +610,15 @@ check("내내 앱이 제멋대로 버리지 않았다", finalTrashed === "[]", f
    ========================================================= */
 await ev(`(() => {
   sessionStorage.setItem('keep', '1');   // 가짜 드라이브가 다시 비우지 않게
-  var s = JSON.parse(localStorage.getItem('trace.settings.v1') || '{}');
+  var s = JSON.parse(localStorage.getItem('pkos.settings.v1') || '{}');
   s.folderMode = 'monthly';
-  localStorage.setItem('trace.settings.v1', JSON.stringify(s));
+  localStorage.setItem('pkos.settings.v1', JSON.stringify(s));
   return true;
 })()`);
 await send("Page.reload");
 await wait(3000);
 const kept = await ev(`(() => {
-  var s = JSON.parse(localStorage.getItem('trace.settings.v1') || '{}');
+  var s = JSON.parse(localStorage.getItem('pkos.settings.v1') || '{}');
   return s.folderMode || '';
 })()`);
 check("⑫ 옛 방식을 쓰던 설정이 그대로 남는다", kept === "monthly", `지금 방식: ${kept || "비어 있음"}`);
@@ -713,7 +713,7 @@ const nm1 = await ev(`(() => Array.from(document.querySelectorAll('.mbody .previ
 check("⑭ 조각을 끄면 미리보기에서 바로 빠진다", off === "CLICKED" && !/수업설계/.test(nm1), nm1.replace(/\s+/g, " ").slice(0, 70));
 check("⑭ 고른 것을 저장할 수 있다", (await saveSettings()) === "SAVED");
 const stored = await ev(`(() => {
-  const s = JSON.parse(localStorage.getItem('trace.settings.v1') || '{}');
+  const s = JSON.parse(localStorage.getItem('pkos.settings.v1') || '{}');
   return JSON.stringify({ md: s.mdPattern || '', file: s.filePattern || '' });
 })()`).then((x) => JSON.parse(x));
 check("⑭ 고른 것이 설정에 적힌다", stored.md.indexOf("{태그}") < 0 && stored.file.indexOf("{태그}") < 0,
@@ -747,10 +747,10 @@ await saveSettings();
    ========================================================= */
 await ev(`(() => {
   sessionStorage.setItem('keep', '1');
-  var s = JSON.parse(localStorage.getItem('trace.settings.v1') || '{}');
+  var s = JSON.parse(localStorage.getItem('pkos.settings.v1') || '{}');
   s.filePattern = '{폴더명}_{원본이름}';
   s.mdPattern = '{유형}_{제목}';
-  localStorage.setItem('trace.settings.v1', JSON.stringify(s));
+  localStorage.setItem('pkos.settings.v1', JSON.stringify(s));
   return true;
 })()`);
 await send("Page.reload");
@@ -783,10 +783,10 @@ await wait(300);
    ========================================================= */
 await ev(`(() => {
   sessionStorage.setItem('keep', '1');
-  var s = JSON.parse(localStorage.getItem('trace.settings.v1') || '{}');
+  var s = JSON.parse(localStorage.getItem('pkos.settings.v1') || '{}');
   s.mdPattern = '{날짜}_{태그}_{제목}';
   s.filePattern = '{날짜}_{태그}_{제목}_{자료제목}_{번호}';
-  localStorage.setItem('trace.settings.v1', JSON.stringify(s));
+  localStorage.setItem('pkos.settings.v1', JSON.stringify(s));
   return true;
 })()`);
 await send("Page.reload");
@@ -814,7 +814,7 @@ check("⑰ 저장하고 다시 열어도 끈 것이 몰래 켜지지 않는다",
   p3.on.indexOf("태그") < 0 && p3.on.indexOf("날짜") < 0 && p3.on.indexOf("번호") < 0,
   p3.on.join(" · ") || "하나도 안 남음");
 const named = await ev(`(() => {
-  var s = JSON.parse(localStorage.getItem('trace.settings.v1') || '{}');
+  var s = JSON.parse(localStorage.getItem('pkos.settings.v1') || '{}');
   return JSON.stringify({ md: s.mdPattern || '', file: s.filePattern || '' });
 })()`).then((x) => JSON.parse(x));
 check("⑰ 글 이름이 «무제» 로 무너지지 않는다", named.md === "{제목}", `글 ${named.md} · 자료 ${named.file}`);
@@ -874,7 +874,7 @@ check("⑱ 이름 정리 창이 열리고 대상을 찾아 준다", td.open && t
 /* 앱이 만든 색인·설정 파일과 이미 날짜로 시작하는 것은 대상이 아니다.
    여기에 색인이 끼면, 사람이 「전부 고르기」 한 번에 앱의 뼈대 파일 이름을 바꿔 버린다. */
 check("⑱ 앱이 만든 색인·설정은 대상이 아니다",
-  !td.names.some(n => /TRACE-index|TRACE-settings/.test(n)), td.names.join(", ").slice(0, 60));
+  !td.names.some(n => /PKOS-index|PKOS-settings/.test(n)), td.names.join(", ").slice(0, 60));
 
 const beforeNames = await ev(`JSON.stringify({
   H1: window.__drive.nameOf('H1'), P1: window.__drive.nameOf('P1')
@@ -927,7 +927,7 @@ check("⑱ 이름만 바꾸지, 옮기거나 버리지 않는다",
 await closeModals();
 await wait(400);
 const stillLinked = await ev(`(() => {
-  const L = JSON.parse(localStorage.getItem('trace.entries.v2') || '[]');
+  const L = JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]');
   return L.filter(e => e.srcId === 'H1' || e.srcId === 'P1').length;
 })()`);
 check("⑱ 이름이 바뀌어도 기록은 그 파일을 그대로 붙잡고 있다", stillLinked >= 1, `이어진 기록 ${stillLinked}편`);
@@ -950,7 +950,7 @@ await ev(`(() => { sessionStorage.setItem('keep', '1'); window.__drive.reset(); 
 await closeModals();
 // 지울 기록을 «제목» 이 아니라 «어느 파일에서 왔는가» 로 집는다. 제목은 앞 상황에서 바뀌었다
 const mdTitle = await ev(`(() => {
-  const L = JSON.parse(localStorage.getItem('trace.entries.v2') || '[]');
+  const L = JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]');
   const e = L.find(x => x.mdId === 'MD1');
   return e ? e.title : '';
 })()`);
@@ -991,8 +991,8 @@ await ev(`(() => {
 await wait(2000);
 await closeModals();
 const afterDel = await ev(`(() => {
-  const L = JSON.parse(localStorage.getItem('trace.entries.v2') || '[]');
-  const T = JSON.parse(localStorage.getItem('trace.tombstones.v1') || '[]');
+  const L = JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]');
+  const T = JSON.parse(localStorage.getItem('pkos.tombstones.v1') || '[]');
   return JSON.stringify({ has: L.some(e => e.mdId === 'MD1'), tombs: T.length,
     titles: L.map(e => e.title).join(", ").slice(0, 60) });
 })()`).then((x) => JSON.parse(x));
@@ -1005,7 +1005,7 @@ await setSearch('');
 await wait(300);
 await runImport();
 const back = await ev(`(() => {
-  const L = JSON.parse(localStorage.getItem('trace.entries.v2') || '[]');
+  const L = JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]');
   return JSON.stringify({ has: L.some(e => e.mdId === 'MD1') });
 })()`).then((x) => JSON.parse(x));
 check("⑲ 다시 훑으면 돌아온다", back.has, back.has ? "돌아옴" : "안 돌아옴");
@@ -1015,7 +1015,7 @@ check("⑲ 다시 훑으면 돌아온다", back.has, back.has ? "돌아옴" : "�
 await send("Page.reload");
 await wait(3200);
 const afterReload = await ev(`(() => {
-  const L = JSON.parse(localStorage.getItem('trace.entries.v2') || '[]');
+  const L = JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]');
   return JSON.stringify({ has: L.some(e => e.mdId === 'MD1'), n: L.length });
 })()`).then((x) => JSON.parse(x));
 check("⑲ 새로고침해도 도로 사라지지 않는다", afterReload.has,
@@ -1033,7 +1033,7 @@ await ev(`window.__drive.move('MD1', 'DSCI'); true`);   // 사람이 「과학�
 await runImport();                                        // 앱이 새 자리를 배운다
 await closeModals();
 const mdTitle2 = await ev(`(() => {
-  const L = JSON.parse(localStorage.getItem('trace.entries.v2') || '[]');
+  const L = JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]');
   const e = L.find(x => x.mdId === 'MD1');
   return e ? e.title : '';
 })()`);

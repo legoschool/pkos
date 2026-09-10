@@ -37,7 +37,7 @@ const EDGE = [
 if (!EDGE) { console.error("엣지도 크롬도 찾지 못했습니다."); process.exit(2); }
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const profile = mkdtempSync(join(tmpdir(), "trace-view-"));
+const profile = mkdtempSync(join(tmpdir(), "pkos-view-"));
 const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", "--no-first-run", "--hide-scrollbars",
   "--no-default-browser-check", "--disable-sync",
   `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`, "--window-size=900,1500",

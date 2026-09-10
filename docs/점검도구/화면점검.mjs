@@ -1,4 +1,4 @@
-/* PEER 화면 점검 · Edge 를 머리 없이 띄워 CDP 로 직접 눌러 본다.
+/* PKOS 화면 점검 · Edge 를 머리 없이 띄워 CDP 로 직접 눌러 본다.
    설치할 것 없음: 노드 24 에 들어 있는 WebSocket 만 쓴다.
    실행:  node smoke.mjs [url] */
 import { spawn } from "node:child_process";
@@ -33,7 +33,7 @@ if (!EDGE) { console.error("엣지도 크롬도 찾지 못했습니다."); proce
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const profile = mkdtempSync(join(tmpdir(), "trace-smoke-"));
+const profile = mkdtempSync(join(tmpdir(), "pkos-smoke-"));
 const edge = spawn(EDGE, [
   "--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
   `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`,
@@ -203,8 +203,8 @@ check("유형마다 다른 색이 붙는다", !!tn && new Set(tn).size >= 3, tn 
 
 // 다시 기본으로 돌려 놓는다. 뒤따르는 점검이 «지금 화면» 기준으로 짜여 있다.
 await evaluate(`(() => {
-  const s = JSON.parse(localStorage.getItem('trace.settings.v1') || '{}');
-  s.theme = 'base'; localStorage.setItem('trace.settings.v1', JSON.stringify(s));
+  const s = JSON.parse(localStorage.getItem('pkos.settings.v1') || '{}');
+  s.theme = 'base'; localStorage.setItem('pkos.settings.v1', JSON.stringify(s));
   document.documentElement.removeAttribute('data-theme');
   return true;
 })()`);
@@ -790,7 +790,7 @@ check("설정에서 «웹 캡처» 칸을 뺐다 (설정 화면)", !cu.found, cu
    ⚠️ 앞 시험들이 제목 칸을 채워 놓았다. 웹 캡처는 «제목이 비어 있을 때만» 채우므로
       먼저 쓰다 만 것을 비워야 이 시험이 제 뜻대로 돌아간다. */
 await evaluate(`(() => {
-  localStorage.removeItem('trace.draft.v1');
+  localStorage.removeItem('pkos.draft.v1');
   const t = document.getElementById('title'); if (t) { t.value = ''; t.dispatchEvent(new Event('input', {bubbles:true})); }
   return true;
 })()`);
@@ -830,7 +830,7 @@ if (swReady) {
     const blob = await new Promise(r => c.toBlob(r, 'image/png'));
     fd.append('files', new File([blob], '칠판사진.png', { type: 'image/png' }));
     await fetch('./share', { method: 'POST', body: fd });
-    const cache = await caches.open('trace-share-inbox');
+    const cache = await caches.open('pkos-share-inbox');
     const meta = await cache.match('/__share__/meta');
     const file = await cache.match('/__share__/file0');
     return JSON.stringify({
@@ -870,17 +870,17 @@ await evaluate(`(() => {
   for (let i = 12; i < 19; i++) list.push(mk(i, 'knowledge', ['평가']));
   for (let i = 19; i < 22; i++) list.push(mk(i, 'idea', ['연수', '수업설계']));
   list.push(mk(99, 'experience', []));
-  localStorage.setItem('trace.entries.v2', JSON.stringify(list));
-  localStorage.removeItem('trace.draft.v1');
+  localStorage.setItem('pkos.entries.v2', JSON.stringify(list));
+  localStorage.removeItem('pkos.draft.v1');
   return true;
 })()`);
 await send("Page.navigate", { url: URL_ });
 await wait(2500);
 // 태그가 곧 폴더인 상태로 맞춰 둔다. 트리가 태그별로 갈라지는지 보려고
 await evaluate(`(() => {
-  const s = JSON.parse(localStorage.getItem('trace.settings.v1') || '{}');
+  const s = JSON.parse(localStorage.getItem('pkos.settings.v1') || '{}');
   s.folderMode = 'tag';
-  localStorage.setItem('trace.settings.v1', JSON.stringify(s));
+  localStorage.setItem('pkos.settings.v1', JSON.stringify(s));
   return true;
 })()`);
 await send("Page.navigate", { url: URL_ });
@@ -1007,9 +1007,9 @@ await evaluate(`(() => { const v = document.querySelector('.viewer'); if (v) v.r
 await evaluate(`(() => { document.querySelectorAll('.modal-bg').forEach(b => b.remove()); return true; })()`);
 // 고른 프리셋이 «뽑아낸 파일» 까지 따라오는지 보려면 기본이 아닌 것으로 골라 둬야 한다
 await evaluate(`(() => {
-  const s = JSON.parse(localStorage.getItem('trace.settings.v1') || '{}');
+  const s = JSON.parse(localStorage.getItem('pkos.settings.v1') || '{}');
   s.theme = 'note';
-  localStorage.setItem('trace.settings.v1', JSON.stringify(s));
+  localStorage.setItem('pkos.settings.v1', JSON.stringify(s));
   return true;
 })()`);
 await send("Page.reload", { ignoreCache: true });
@@ -1312,8 +1312,8 @@ const deskPick = JSON.parse(await evaluate(`(() => {
     marked: !!now && now.className.indexOf('desk') >= 0,
     treeCount,
     shown: document.querySelectorAll('#list .entry').length,
-    total: JSON.parse(localStorage.getItem('trace.entries.v2') || '[]').length,
-    desk: localStorage.getItem('trace.desk.v1') || ''
+    total: JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]').length,
+    desk: localStorage.getItem('pkos.desk.v1') || ''
   });
 })()`));
 check("폴더를 누르면 작성칸이 접힌다", !deskPick.err && deskPick.collapsed && deskPick.height < 140,
@@ -1358,7 +1358,7 @@ check("쓰던 글이 있으면 접지 않는다", busy.stillOpen && busy.kept ==
 
 const savedDesk = JSON.parse(await evaluate(`(() => {
   document.getElementById('btnSave').click();
-  const list = JSON.parse(localStorage.getItem('trace.entries.v2') || '[]');
+  const list = JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]');
   const n = list[0] || {};
   return JSON.stringify({ title: n.title || '', deskPath: n.deskPath || [], folderId: n.folderId || null });
 })()`));
@@ -1397,7 +1397,7 @@ const deskHome = JSON.parse(await evaluate(`(() => {
   if (h) h.click();
   document.querySelectorAll('.menupop').forEach(p => p.remove());
   return JSON.stringify({
-    desk: localStorage.getItem('trace.desk.v1') || '',
+    desk: localStorage.getItem('pkos.desk.v1') || '',
     marked: Array.from(document.querySelectorAll('#sideNav .siderow')).filter(r => r.className.indexOf('desk') >= 0).length
   });
 })()`));
@@ -1422,13 +1422,13 @@ await evaluate(`(() => {
     relations: [], pinned: false, createdAt: 1755000000000, updatedAt: 1755000000000,
     srcPath: ['수업'], mdId: 'MD_' + id
   }, extra || {});
-  localStorage.setItem('trace.entries.v2', JSON.stringify([
+  localStorage.setItem('pkos.entries.v2', JSON.stringify([
     mk('w1', '밖으로 옮겨진 기록', { _away: true, _awayName: '수업_회고.md' }),
     mk('w2', '정말 사라진 기록', { _missing: true }),
     mk('w3', '멀쩡한 기록', {})
   ]));
-  localStorage.removeItem('trace.draft.v1');
-  localStorage.removeItem('trace.desk.v1');
+  localStorage.removeItem('pkos.draft.v1');
+  localStorage.removeItem('pkos.desk.v1');
   return true;
 })()`);
 await send("Page.navigate", { url: URL_ });
@@ -1470,16 +1470,16 @@ await evaluate(`(() => {
     id, type: '', title, tags, blocks: [{ id: 'b' + id, kind: 'text', text: title }],
     relations: [], pinned: false, createdAt: 1755000000000, updatedAt: 1755000000000
   });
-  localStorage.setItem('trace.entries.v2', JSON.stringify([
+  localStorage.setItem('pkos.entries.v2', JSON.stringify([
     mk('g1', '질문중심 수업 설계', ['수업', '질문']),
     mk('g2', '배움중심 평가 논의', ['수업', '평가']),
     mk('g3', '서논술형 문항', ['평가', '수업']),
     mk('g4', '연수 회고', ['연수', '수업'])
   ]));
-  const s = JSON.parse(localStorage.getItem('trace.settings.v1') || '{}');
+  const s = JSON.parse(localStorage.getItem('pkos.settings.v1') || '{}');
   s.folderMode = 'tag';
-  localStorage.setItem('trace.settings.v1', JSON.stringify(s));
-  ['trace.desk.v1','trace.deskList.v1','trace.sideOpen.v1','trace.draft.v1'].forEach(k => localStorage.removeItem(k));
+  localStorage.setItem('pkos.settings.v1', JSON.stringify(s));
+  ['pkos.desk.v1','pkos.deskList.v1','pkos.sideOpen.v1','pkos.draft.v1'].forEach(k => localStorage.removeItem(k));
   return true;
 })()`);
 await send("Page.navigate", { url: URL_ });
@@ -1530,8 +1530,8 @@ await evaluate(`(() => {
   });
   list.unshift({ id: 'fresh1', type: '', title: '오늘 쓴 배움 기록', tags: ['배움'],
     blocks: [], relations: [], pinned: false, createdAt: Date.now(), updatedAt: Date.now() });
-  localStorage.setItem('trace.entries.v2', JSON.stringify(list));
-  ['trace.desk.v1','trace.deskList.v1','trace.sideOpen.v1','trace.draft.v1'].forEach(k => localStorage.removeItem(k));
+  localStorage.setItem('pkos.entries.v2', JSON.stringify(list));
+  ['pkos.desk.v1','pkos.deskList.v1','pkos.sideOpen.v1','pkos.draft.v1'].forEach(k => localStorage.removeItem(k));
   return true;
 })()`);
 await send("Page.navigate", { url: URL_ });
@@ -1557,7 +1557,7 @@ const tagClean = JSON.parse(await evaluate(`(() => {
   g.value = ' 배움 , 배움,  수업/평가 , , 배움 ';
   g.dispatchEvent(new Event('input', { bubbles: true }));
   document.getElementById('btnSave').click();
-  const n = JSON.parse(localStorage.getItem('trace.entries.v2'))[0];
+  const n = JSON.parse(localStorage.getItem('pkos.entries.v2'))[0];
   return JSON.stringify({ tags: n.tags || [] });
 })()`));
 check("같은 태그를 두 번 적어도 하나로 든다", (tagClean.tags || []).filter(function (t) { return t === "배움"; }).length === 1,
@@ -1584,8 +1584,8 @@ check("폴더를 고르면 태그 칩도 그 폴더 기준으로 센다",
    ⚠️ 가장 중요한 것은 «목록에서 바로 체크된다» 는 것이다. 읽다가 한 일이 생각나면
       그 자리에서 누른다. 편집으로 들어갔다 나오는 순간 그 기능은 죽은 기능이 된다. */
 await evaluate(`(() => {
-  localStorage.setItem('trace.entries.v2', '[]');
-  ['trace.draft.v1','trace.desk.v1','trace.deskList.v1'].forEach(k => localStorage.removeItem(k));
+  localStorage.setItem('pkos.entries.v2', '[]');
+  ['pkos.draft.v1','pkos.desk.v1','pkos.deskList.v1'].forEach(k => localStorage.removeItem(k));
   return true;
 })()`);
 await send("Page.navigate", { url: URL_ });
@@ -1652,7 +1652,7 @@ const built = JSON.parse(await evaluate(`(() => {
   if (bar) bar.querySelectorAll('.fmtbtn')[0].click();
   const marked = fa.value;
   document.getElementById('btnSave').click();
-  const n = JSON.parse(localStorage.getItem('trace.entries.v2'))[0] || {};
+  const n = JSON.parse(localStorage.getItem('pkos.entries.v2'))[0] || {};
   return JSON.stringify({ hl, marked, kinds: (n.blocks || []).map(b => b.kind) });
 })()`));
 check("한 기록에 다섯 갈래가 함께 담긴다",
@@ -1688,7 +1688,7 @@ const ticked = JSON.parse(await evaluate(`(() => {
   if (!box) return JSON.stringify({ err: 'NO_BOX' });
   box.click();
   const after = (document.querySelector('#list .todocount') || {}).textContent || '';
-  const n = JSON.parse(localStorage.getItem('trace.entries.v2'))[0];
+  const n = JSON.parse(localStorage.getItem('pkos.entries.v2'))[0];
   const todo = (n.blocks || []).filter(b => b.kind === 'todo')[0] || {};
   return JSON.stringify({ before, after, saved: ((todo.items || [])[0] || {}).done === true });
 })()`));
@@ -1706,13 +1706,13 @@ await evaluate(`(() => {
                  : [{ id: 'b' + id, kind: 'text', text: title }],
     relations: [], pinned: !!pin, createdAt: 1755000000000, updatedAt: 1755000000000
   });
-  localStorage.setItem('trace.entries.v2', JSON.stringify([
+  localStorage.setItem('pkos.entries.v2', JSON.stringify([
     mk('v1', '수업 회고', ['수업'], false, false),
     mk('v2', '고정해 둔 기록', ['수업'], false, true),
     mk('v3', '할 일이 남은 기록', ['업무'], true, false),
     mk('v4', '태그 없는 기록', [], false, false)
   ]));
-  ['trace.desk.v1','trace.deskList.v1','trace.draft.v1','trace.sideOpen.v1'].forEach(k => localStorage.removeItem(k));
+  ['pkos.desk.v1','pkos.deskList.v1','pkos.draft.v1','pkos.sideOpen.v1'].forEach(k => localStorage.removeItem(k));
   return true;
 })()`);
 await send("Page.navigate", { url: URL_ });
@@ -1764,7 +1764,7 @@ const trashFlow = JSON.parse(await evaluate(`(() => {
   const del = Array.from(document.querySelectorAll('.menupop button')).find(b => /삭제/.test(b.textContent));
   del.click();
   const gone = !Array.from(document.querySelectorAll('#list .entry')).some(c => c.textContent.indexOf('수업 회고') >= 0);
-  const kept = JSON.parse(localStorage.getItem('trace.entries.v2')).filter(x => x.id === 'v1')[0];
+  const kept = JSON.parse(localStorage.getItem('pkos.entries.v2')).filter(x => x.id === 'v1')[0];
   const row = Array.from(document.querySelectorAll('#sideNav .smartrow')).find(b => b.textContent.indexOf('휴지통') >= 0);
   if (row) row.click();
   const inTrash = Array.from(document.querySelectorAll('#list .entry h3')).map(h => h.textContent);
@@ -1875,8 +1875,8 @@ await wait(500);
    교사 기록은 「수업 회고」·「연수 정리」처럼 되풀이되는 것이 대부분이다.
    그때마다 소제목을 다시 치게 하면 결국 아무것도 안 적게 된다. */
 await evaluate(`(() => {
-  localStorage.setItem('trace.entries.v2', '[]');
-  ['trace.draft.v1','trace.desk.v1','trace.deskList.v1'].forEach(k => localStorage.removeItem(k));
+  localStorage.setItem('pkos.entries.v2', '[]');
+  ['pkos.draft.v1','pkos.desk.v1','pkos.deskList.v1'].forEach(k => localStorage.removeItem(k));
   return true;
 })()`);
 await send("Page.navigate", { url: URL_ });
@@ -1937,7 +1937,7 @@ check("Esc 로 집중 모드에서 나온다", focusMode.off === true);
    백링크로 남고, 관계망에 점으로 뜨고, 태그 숫자에 섞이고, 드라이브에 계속 올라간다.
    ⚠️ 그리고 «비우는 길» 이 없으면 버린 것이 색인에 영영 쌓인다. */
 await evaluate(`(() => {
-  localStorage.setItem('trace.entries.v2', JSON.stringify([
+  localStorage.setItem('pkos.entries.v2', JSON.stringify([
     { id: 'z1', type: '', title: '살아있는 기록', tags: ['수업'],
       blocks: [{ id: 'b1', kind: 'text', text: '내용 [[사라질 기록]] 을 가리킴' }],
       relations: [], pinned: false, createdAt: 1755000000000, updatedAt: 1755000000000 },
@@ -1945,7 +1945,7 @@ await evaluate(`(() => {
       blocks: [{ id: 'b2', kind: 'text', text: '곧 버려질 내용' }],
       relations: [], pinned: false, createdAt: 1755000000000, updatedAt: 1755000000000 }
   ]));
-  ['trace.desk.v1','trace.deskList.v1','trace.draft.v1','trace.sideOpen.v1'].forEach(k => localStorage.removeItem(k));
+  ['pkos.desk.v1','pkos.deskList.v1','pkos.draft.v1','pkos.sideOpen.v1'].forEach(k => localStorage.removeItem(k));
   return true;
 })()`);
 await send("Page.navigate", { url: URL_ });
@@ -1996,7 +1996,7 @@ const emptied = JSON.parse(await evaluate(`(() => {
   const ask = dlg ? dlg.textContent.replace(/\s+/g, ' ').trim() : '';
   const yes = dlg && Array.from(dlg.querySelectorAll('button')).find(b => /모두 지우기/.test(b.textContent));
   if (yes) yes.click();
-  const left = JSON.parse(localStorage.getItem('trace.entries.v2')).map(n => n.title);
+  const left = JSON.parse(localStorage.getItem('pkos.entries.v2')).map(n => n.title);
   return JSON.stringify({ note, ask, left });
 })()`));
 check("휴지통이 «드라이브는 아직 그대로» 를 말해 준다", /드라이브의 파일은 아직/.test(emptied.note || ""),
@@ -2027,7 +2027,7 @@ const sect = JSON.parse(await evaluate(`(() => {
   let tBefore = tags(), tClosed = -1;
   if (t) { t.click(); tClosed = tags(); cap('태그').click(); }
   return JSON.stringify({ before, closed, opened, tBefore, tClosed,
-    saved: localStorage.getItem('trace.sideSec.v1') || '' });
+    saved: localStorage.getItem('pkos.sideSec.v1') || '' });
 })()`));
 check("폴더 구역이 통째로 접힌다", !sect.err && sect.before > 0 && sect.closed === 0,
   sect.err || (sect.before + " → " + sect.closed));
@@ -2038,7 +2038,7 @@ await twoPane(); await wait(500);
 /* 접힌 작성칸의 「＋ 새 기록」 을 «진짜 그 자리에서» 눌러 본다 ·
    프로그램으로 click() 을 부르면 덮개가 있어도 눌린다. 그래서 좌표로 확인한다. */
 /* 쓰던 글(블록까지)이 있으면 일부러 안 접는다 · 빈 화면에서 봐야 한다 */
-await evaluate(`(() => { localStorage.removeItem('trace.draft.v1'); return true; })()`);
+await evaluate(`(() => { localStorage.removeItem('pkos.draft.v1'); return true; })()`);
 await send("Page.navigate", { url: URL_ });
 await wait(2400);
 const unfoldable = JSON.parse(await evaluate(`(() => {
@@ -2071,10 +2071,10 @@ await evaluate(`(() => {
   const mk = (i, t) => ({ id: 'p' + i, type: '', title: t, tags: ['수업'],
     blocks: [{ id: 'b' + i, kind: 'text', text: t + ' 의 본문입니다. 두 줄까지만 미리 보입니다.' }],
     relations: [], pinned: false, createdAt: 1755000000000 - i * 8.64e7, updatedAt: 1755000000000 - i * 8.64e7 });
-  localStorage.setItem('trace.entries.v2', JSON.stringify([mk(0, '첫째 기록'), mk(1, '둘째 기록'), mk(2, '셋째 기록')]));
+  localStorage.setItem('pkos.entries.v2', JSON.stringify([mk(0, '첫째 기록'), mk(1, '둘째 기록'), mk(2, '셋째 기록')]));
   /* ⚠️ ☰ 로 접어 둔 단은 기기에 남는다. 안 지우면 앞 점검이 접어 둔 채로
      여기 와서 «세 칸이 아니라 한 칸» 이라고 말한다 · 실제로 그랬다. */
-  ['trace.draft.v1','trace.desk.v1','trace.sideSec.v1','trace.navStage.v1','trace.sideFolded.v1']
+  ['pkos.draft.v1','pkos.desk.v1','pkos.sideSec.v1','pkos.navStage.v1','pkos.sideFolded.v1']
     .forEach(k => localStorage.removeItem(k));
   return true;
 })()`);
@@ -2112,7 +2112,7 @@ await evaluate(`(() => {
   const mk = (i, t, blocks) => ({ id: 'e' + i, type: '', title: t, tags: ['수업'],
     blocks: blocks, relations: [], pinned: false,
     createdAt: 1755000000000 - i * 8.64e7, updatedAt: 1755000000000 - i * 8.64e7 });
-  localStorage.setItem('trace.entries.v2', JSON.stringify([
+  localStorage.setItem('pkos.entries.v2', JSON.stringify([
     /* ⚠️ 여기 안쪽은 «틀 문자열(template literal)» 안이다. 따옴표를 겹쳐 쓰면
        \' 가 그냥 ' 로 펴져서 넣는 순간 문법이 깨진다 · 겹따옴표를 아예 안 쓴다. */
     mk(0, '삽입이 붙은 기록', [{ id: 'x1', kind: 'embed', height: 360,
@@ -2120,7 +2120,7 @@ await evaluate(`(() => {
     mk(1, '아주 긴 제목을 가진 기록입니다 · 한 줄에 안 들어가면 어디서 끊기는지 보려고 일부러 이렇게 길게 적어 둔 제목입니다', [{ id: 'x2', kind: 'text', text: '짧은 본문' }]),
     mk(2, '보통 기록', [{ id: 'x3', kind: 'text', text: '보통 본문입니다.' }])
   ]));
-  ['trace.draft.v1','trace.desk.v1','trace.navStage.v1','trace.sideFolded.v1'].forEach(k => localStorage.removeItem(k));
+  ['pkos.draft.v1','pkos.desk.v1','pkos.navStage.v1','pkos.sideFolded.v1'].forEach(k => localStorage.removeItem(k));
   return true;
 })()`);
 await send("Page.navigate", { url: URL_ });
@@ -2199,7 +2199,7 @@ await wait(400);
 /* ---------- 10-15. 경계를 끄는 손잡이 · 글자 크기 ----------
    칸 너비는 사람마다 다르다. 끌 수 있게 해 두었으면 «끌린다·멈춘다·남는다·
    되돌아온다» 넷이 다 되어야 한다. 하나라도 빠지면 잘못 끈 사람이 갇힌다. */
-await evaluate(`(() => { localStorage.removeItem('trace.colW.v1'); localStorage.removeItem('trace.navStage.v1'); return true; })()`);
+await evaluate(`(() => { localStorage.removeItem('pkos.colW.v1'); localStorage.removeItem('pkos.navStage.v1'); return true; })()`);
 await send("Page.navigate", { url: URL_ });
 await wait(2500);
 const grip = JSON.parse(await evaluate(`(() => {
@@ -2219,7 +2219,7 @@ const grip = JSON.parse(await evaluate(`(() => {
   const 보임 = [seen(g), seen(g2)];
   drag(g, 120, 11);
   const 끈뒤 = cols();
-  const 남았나 = localStorage.getItem('trace.colW.v1');
+  const 남았나 = localStorage.getItem('pkos.colW.v1');
   drag(g, 2000, 12);
   const 최대 = cols();
   drag(g, -3000, 13);
@@ -2306,13 +2306,13 @@ await wait(400);
    ⚠️ 뿌리 줄에 hasKids 를 false 로 못 박아 두어서, 아래에 폴더가 열둘이나 매달려
       있어도 접기 손잡이가 안 붙었다. 구역만 접히고 폴더는 못 접었던 것이다. */
 await evaluate(`(() => {
-  const tags = ["부기","수업","질문","배움중심","바이브코딩","크롬 확장","자기관리","대학원","gpt","에듀테크","피캠스","pkems"];
+  const tags = ["부기","수업","질문","배움중심","바이브코딩","크롬 확장","자기관리","대학원","gpt","에듀테크","피캠스","pkos"];
   const list = tags.map((t, i) => ({ id: 'w' + i, type: '', title: t + ' 기록', tags: [t],
     blocks: [{ id: 'b' + i, kind: 'text', text: t }], relations: [], pinned: false,
     createdAt: 1755000000000, updatedAt: 1755000000000 }));
-  localStorage.setItem('trace.entries.v2', JSON.stringify(list));
-  localStorage.setItem('trace.settings.v1', JSON.stringify({ version: 1, folderMode: 'tag' }));
-  ['trace.desk.v1','trace.deskList.v1','trace.draft.v1','trace.sideOpen.v1','trace.sideSec.v1'].forEach(k => localStorage.removeItem(k));
+  localStorage.setItem('pkos.entries.v2', JSON.stringify(list));
+  localStorage.setItem('pkos.settings.v1', JSON.stringify({ version: 1, folderMode: 'tag' }));
+  ['pkos.desk.v1','pkos.deskList.v1','pkos.draft.v1','pkos.sideOpen.v1','pkos.sideSec.v1'].forEach(k => localStorage.removeItem(k));
   return true;
 })()`);
 await send("Page.navigate", { url: URL_ });
@@ -2377,10 +2377,10 @@ const dockView = JSON.parse(await evaluate(`(() => {
   document.getElementById('dockMore').click();
   const items = Array.from(document.querySelectorAll('.menupop button')).map(b => (b.firstChild || {}).textContent || '');
   const v = Array.from(document.querySelectorAll('.menupop button')).find(b => /보기 바꾸기/.test(b.textContent));
-  const before = JSON.parse(localStorage.getItem('trace.settings.v1')).viewMode || 'stream';
+  const before = JSON.parse(localStorage.getItem('pkos.settings.v1')).viewMode || 'stream';
   if (v) v.click();
   document.querySelectorAll('.menupop').forEach(p => p.remove());
-  return JSON.stringify({ items, before, after: JSON.parse(localStorage.getItem('trace.settings.v1')).viewMode });
+  return JSON.stringify({ items, before, after: JSON.parse(localStorage.getItem('pkos.settings.v1')).viewMode });
 })()`));
 check("아래 바 ⋯ 에서 보기를 바꿀 수 있다", dockView.before !== dockView.after,
   dockView.before + " → " + dockView.after);
@@ -2392,16 +2392,16 @@ await wait(400);
       제목부터 적게 해 두면 자리를 정하기 전에 이름부터 짓게 되어,
       「배움」 을 제목으로 「질문」 을 태그로 적고 나서 왜 폴더가 따로 생겼는지 모르게 된다. */
 await evaluate(`(() => {
-  localStorage.setItem('trace.entries.v2', JSON.stringify([
-    { id: 'n1', type: 'idea', title: '사라진 기록', tags: ['pkems'], mdId: 'MDX',
+  localStorage.setItem('pkos.entries.v2', JSON.stringify([
+    { id: 'n1', type: 'idea', title: '사라진 기록', tags: ['pkos'], mdId: 'MDX',
       blocks: [{ id: 'b1', kind: 'text', text: '내용' }], relations: [], pinned: false,
       createdAt: 1755000000000, updatedAt: 1755000000000, _missing: true },
     { id: 'n2', type: '', title: '멀쩡한 기록', tags: ['수업'],
       blocks: [{ id: 'b2', kind: 'text', text: '내용' }], relations: [], pinned: false,
       createdAt: 1755000000000, updatedAt: 1755000000000 }
   ]));
-  localStorage.setItem('trace.settings.v1', JSON.stringify({ version: 1, folderMode: 'tag' }));
-  ['trace.desk.v1','trace.draft.v1','trace.sideSec.v1','trace.sideOpen.v1'].forEach(k => localStorage.removeItem(k));
+  localStorage.setItem('pkos.settings.v1', JSON.stringify({ version: 1, folderMode: 'tag' }));
+  ['pkos.desk.v1','pkos.draft.v1','pkos.sideSec.v1','pkos.sideOpen.v1'].forEach(k => localStorage.removeItem(k));
   return true;
 })()`);
 await send("Page.navigate", { url: URL_ });
@@ -2431,7 +2431,7 @@ const goneMark = JSON.parse(await evaluate(`(() => {
   return JSON.stringify({ rows, btns });
 })()`));
 check("안 보이는 기록만 든 폴더는 흐리게 선다",
-  (goneMark.rows || []).some(function (r) { return r.n === "pkems" && r.gone; }),
+  (goneMark.rows || []).some(function (r) { return r.n === "pkos" && r.gone; }),
   (goneMark.rows || []).map(function (r) { return r.n + (r.gone ? "(흐림)" : ""); }).join(" · "));
 check("멀쩡한 폴더는 그대로 선다",
   (goneMark.rows || []).some(function (r) { return r.n === "수업" && !r.gone; }));

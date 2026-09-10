@@ -36,7 +36,7 @@ const EDGE = [
 if (!EDGE) { console.error("엣지도 크롬도 찾지 못했습니다."); process.exit(2); }
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const profile = mkdtempSync(join(tmpdir(), "trace-import-"));
+const profile = mkdtempSync(join(tmpdir(), "pkos-import-"));
 const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", "--no-first-run",
   `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`, "about:blank"], { stdio: "ignore" });
 /* ⚠️ 끝에서만 edge.kill() 을 부르면 도중에 넘어졌을 때 브라우저가 살아 남는다.
@@ -86,10 +86,10 @@ const FAKE_DRIVE = `(function () {
   /* 이 씨앗은 «쪽이 뜰 때마다» 돈다. 그래서 그냥 비우면 새로고침 한 번에
      점검이 심어 둔 것이 통째로 날아간다. 지켜야 할 때는 빗장(keep)을 걸어 둔다. */
   if (!sessionStorage.getItem('keep')) localStorage.clear();
-  localStorage.setItem('trace.connected', '1');
-  localStorage.setItem('trace.folder', JSON.stringify({ id: 'ROOT', name: '내 폴더', link: '' }));
-  localStorage.setItem('trace.token.v1', JSON.stringify({ t: 'FAKE_TOKEN', exp: Date.now() + 3600000 }));
-  localStorage.setItem('trace.email', 'teacher@example.com');
+  localStorage.setItem('pkos.connected', '1');
+  localStorage.setItem('pkos.folder', JSON.stringify({ id: 'ROOT', name: '내 폴더', link: '' }));
+  localStorage.setItem('pkos.token.v1', JSON.stringify({ t: 'FAKE_TOKEN', exp: Date.now() + 3600000 }));
+  localStorage.setItem('pkos.email', 'teacher@example.com');
 
   var FOLDER = 'application/vnd.google-apps.folder';
   function f(id, name, mime, extra) {
@@ -280,7 +280,7 @@ await ev(`(() => {
 await wait(1500);
 
 const afterNo = JSON.parse(await ev(`(() => {
-  const L = JSON.parse(localStorage.getItem('trace.entries.v2') || '[]');
+  const L = JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]');
   return JSON.stringify({ n: L.length, titles: L.map(e => e.title) });
 })()`));
 check("취소하면 자료는 안 들어온다", afterNo.n === 1, `기록 ${afterNo.n}편: ${afterNo.titles.join(", ")}`);
@@ -302,7 +302,7 @@ await ev(`(() => {
 await wait(6000);
 
 const got = JSON.parse(await ev(`(() => {
-  const L = JSON.parse(localStorage.getItem('trace.entries.v2') || '[]');
+  const L = JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]');
   const by = t => L.filter(e => e.title === t);
   const one = t => by(t)[0] || null;
   return JSON.stringify({
@@ -357,14 +357,14 @@ for (let i = 0; i < 40; i++) {
   await wait(500);
 }
 const asked = await ev(`Array.from(document.querySelectorAll('.card.modal')).some(x => (x.textContent||'').includes('자료도 함께'))`);
-const after = Number(await ev(`JSON.parse(localStorage.getItem('trace.entries.v2') || '[]').length`));
+const after = Number(await ev(`JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]').length`));
 check("또 눌러도 물어보지 않는다 (남은 자료가 없다)", !asked, asked ? "또 물어봄" : "안 물어봄");
 check("또 눌러도 목록이 불어나지 않는다", after === before, `${before} → ${after}`);
 check("«.md 바로가기» 를 글로 착각하지 않는다",
   pressed3 === "CLICKED" && !/글 \d+편을 읽는 중/.test(again) && /없습니다/.test(again),
   again.slice(0, 46));
 check("구글 문서도 두 번 들어오지 않는다",
-  Number(await ev(`JSON.parse(localStorage.getItem('trace.entries.v2')||'[]').filter(e => e.title === '2020 학급운영계획').length`)) === 1);
+  Number(await ev(`JSON.parse(localStorage.getItem('pkos.entries.v2')||'[]').filter(e => e.title === '2020 학급운영계획').length`)) === 1);
 
 /* =========================================================
    가져온 «뒤» · 여기서부터가 진짜 위험한 자리다
@@ -430,7 +430,7 @@ await ev(`(() => {
 await wait(4000);
 
 const afterEdit = JSON.parse(await ev(`(() => {
-  const L = JSON.parse(localStorage.getItem('trace.entries.v2') || '[]');
+  const L = JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]');
   const n = L.find(e => /3차시용/.test(e.title || ''));
   return JSON.stringify({
     saved: !!n, tags: n ? n.tags : [], srcId: n ? n.srcId : null,
@@ -499,7 +499,7 @@ await ev(`(() => { window.__fake.trashed = []; return true; })()`);
 const ownIds = JSON.parse(await ev(`(() => {
   const card = document.querySelector('.card.entry');
   const id = card && card.getAttribute('data-eid');
-  const n = (JSON.parse(localStorage.getItem('trace.entries.v2')||'[]')).filter(x => x.id === id)[0] || {};
+  const n = (JSON.parse(localStorage.getItem('pkos.entries.v2')||'[]')).filter(x => x.id === id)[0] || {};
   const ids = [n.mdId, n.docId, n.htmlId, n.folderId, n.srcId]
     .concat((n.blocks||[]).map(b => b.fileId)).filter(Boolean);
   return JSON.stringify(ids);
@@ -544,7 +544,7 @@ await ev(`(() => {
 })()`);
 await wait(2500);
 const afterDel = JSON.parse(await ev(`(() => {
-  const L = JSON.parse(localStorage.getItem('trace.entries.v2') || '[]');
+  const L = JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]');
   return JSON.stringify({ gone: !L.some(e => e.title === '수업사진'), f: window.__fake });
 })()`));
 check("완전히 지우면 색인에서도 빠진다", afterDel.gone);
@@ -748,7 +748,7 @@ await ev(`(() => { document.querySelectorAll('.modal-bg').forEach(b => b.remove(
 await wait(300);
 // 링크를 이미 만들어 둔 것처럼 꾸며 놓는다 (실제 만들기는 드라이브가 필요하다)
 const faked = await ev(`(() => {
-  const L = JSON.parse(localStorage.getItem('trace.entries.v2') || '[]');
+  const L = JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]');
   const n = L.find(e => /물의 상태변화 학습지/.test(e.title || ''));
   if (!n) return 'NO_ENTRY';
   n.shareWebUrl = location.origin + '/view.html#d=FAKE';
@@ -758,12 +758,12 @@ const faked = await ev(`(() => {
      ⚠️ 여기에 색감 이름을 못 박으면 안 된다. 태어날 때의 색이 바뀌는 날 이 점검이 빨개진다.
         지금 서 있는 색을 읽어 쓴다. */
   n.shareWebTone = document.documentElement.getAttribute('data-tone') || '';
-  localStorage.setItem('trace.entries.v2', JSON.stringify(L));
+  localStorage.setItem('pkos.entries.v2', JSON.stringify(L));
   sessionStorage.setItem('keep', '1');   // 아래 새로고침에서 씨앗이 안 날아가게
   // ⚠️ 앞 점검이 보기 방식을 «목록» 으로 바꿔 놓았다. 목록에는 .card.entry 가 없다.
-  const st = JSON.parse(localStorage.getItem('trace.settings.v1') || '{}');
+  const st = JSON.parse(localStorage.getItem('pkos.settings.v1') || '{}');
   st.viewMode = 'stream';   // 모양은 이제 레고 하나라 따로 세울 것이 없다
-  localStorage.setItem('trace.settings.v1', JSON.stringify(st));
+  localStorage.setItem('pkos.settings.v1', JSON.stringify(st));
   return n.title;
 })()`);
 await send("Page.reload", { ignoreCache: true });
@@ -808,8 +808,8 @@ check("갓 만든 링크에는 «낡음» 경고가 없다",
 await ev(`(() => { document.querySelectorAll('.modal-bg').forEach(b => b.remove()); return true; })()`);
 await wait(300);
 await ev(`(() => {
-  const s = JSON.parse(localStorage.getItem('trace.settings.v1') || '{}');
-  s.tone = 'blue'; localStorage.setItem('trace.settings.v1', JSON.stringify(s));
+  const s = JSON.parse(localStorage.getItem('pkos.settings.v1') || '{}');
+  s.tone = 'blue'; localStorage.setItem('pkos.settings.v1', JSON.stringify(s));
   return true;
 })()`);
 await send("Page.reload", { ignoreCache: true });
@@ -959,7 +959,7 @@ await ev(`(() => { document.querySelectorAll('.modal-bg').forEach(b => b.remove(
 await wait(400);
 
 const pick = JSON.parse(await ev(`(() => {
-  const L = JSON.parse(localStorage.getItem('trace.entries.v2') || '[]');
+  const L = JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]');
   const e = L.find(x => (x.srcPath || []).join('/') === '2019/3학년/과학' && x.srcId);
   return JSON.stringify(e ? { id: e.srcId, title: e.title, path: e.srcPath } : { id: '', title: '', path: [] });
 })()`));
@@ -973,7 +973,7 @@ const only = async (title) => {
   await wait(700);
 };
 const readPlace = () => ev(`(() => {
-  const L = JSON.parse(localStorage.getItem('trace.entries.v2') || '[]');
+  const L = JSON.parse(localStorage.getItem('pkos.entries.v2') || '[]');
   const e = L.find(x => x.srcId === '${pick.id}');
   return JSON.stringify({
     path: (e && e.srcPath) || [],
