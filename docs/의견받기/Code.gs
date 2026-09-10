@@ -8,14 +8,17 @@
  *   1. 의견을 모을 구글 시트를 연다
  *   2. [확장 프로그램] → [Apps Script]
  *   3. 이 파일 내용을 그대로 붙여 넣고 저장
- *   4. [배포] → [새 배포] → 유형 «웹 앱»
+ *   4. [배포] → [배포 관리] → 연필 → 버전 «새 버전» → [배포]
+ *        ⚠️ [새 배포] 를 누르면 주소가 «바뀐다». 같은 주소를 지키려면 [배포 관리] 다.
  *        실행 계정   · 나
  *        액세스 권한 · 모든 사용자      ← 이걸 안 바꾸면 로그인한 사람만 보낼 수 있다
- *   5. 나온 /exec 주소를 앱의 [설정] → [💬 의견 받기] 에 붙여 넣는다
+ *   5. /exec 주소를 브라우저로 열어 보면 지금 깔린 판이 보인다 ({"ok":true,"ver":3,…})
  *
- * ⚠️ 코드를 고친 뒤에는 «새 배포» 를 다시 해야 바뀐 것이 적용된다.
- *    (같은 주소를 쓰려면 [배포 관리] → 연필 → 버전 «새 버전» → 배포)
+ * ⚠️ 코드를 고치고 «저장» 만 하면 웹 앱에는 반영되지 않는다. 반드시 4번을 다시 한다.
  */
+
+/** 이 파일의 판 번호. 배포가 먹혔는지 주소 한 번 열어서 확인할 때 쓴다. */
+var VER = 3;
 
 /** 시트 이름. 없으면 만든다. */
 var SHEET_NAME = '의견';
@@ -26,12 +29,18 @@ var SHOT_FOLDER = '의견 캡처';
 /** 받아 줄 캡처의 최대 크기 (내려받은 실제 바이트 기준) */
 var MAX_SHOT_BYTES = 6 * 1024 * 1024;
 
-/** 열 차례. 이 순서가 곧 시트의 머리줄이다. */
+/**
+ * 열 차례. 이 순서가 곧 시트의 머리줄이다.
+ *
+ * ⚠️ 한때 열일곱 칸이었다. 언어·기록 수·쪽·브라우저 원문·보낸 기기·앱 갱신일을
+ *    저마다 한 칸씩 차지하게 두었더니, 정작 읽어야 할 「내용」 이 화면 밖으로 밀렸다.
+ *    표는 «읽으라고» 만드는 것이다.
+ *    앞 일곱 칸이 읽고 처리하는 칸, 뒤 두 칸이 고칠 자리를 좁히는 칸이다.
+ *    버린 것이 아니라 「자세히」 한 칸에 접어 넣었다 · 필요할 때 칸을 넓혀 보면 된다.
+ */
 var HEADERS = [
-  '접수시각', '종류', '내용', '캡처', '답 받을 곳',
-  '지금 화면', '창 크기', '드라이브', '기록 수',
-  '쪽', '브라우저', '언어', '앱 갱신일',
-  '보낸 기기', '접수번호', '상태', '처리 메모'
+  '접수시각', '종류', '내용', '캡처', '답 받을 곳', '상태', '처리 메모',
+  '어디서', '자세히'
 ];
 
 function doPost(e) {
@@ -62,23 +71,15 @@ function doPost(e) {
       text,
       shotUrl,
       String(d.contact || '').slice(0, 200),
-      String(d.where || '').slice(0, 200),
-      String(d.screen || '').slice(0, 40),
-      String(d.connected || '').slice(0, 20),
-      Number(d.entries || 0),
-      String(d.page || '').slice(0, 60),
-      String(d.ua || '').slice(0, 400),
-      String(d.lang || '').slice(0, 20),
-      String(d.built || '').slice(0, 60),
-      String(d.clientId || '').slice(0, 40),
-      String(d.id || '').slice(0, 40),
       '새로 들어옴',
-      ''
+      '',
+      String(d.where || '').slice(0, 200),
+      detail_(d)
     ]);
     /* 캡처를 어디에 담았는지 돌려준다.
        ⚠️ 보낸 쪽은 이 답을 보고 «그림까지 갔는지» 를 안다. 안 돌려주면 옛 판 스크립트와
           구별이 안 되어, 그림을 버렸는데도 「보냈습니다」 라고 말하게 된다. */
-    return reply({ ok: true, shot: shotUrl, shotOk: !!d.shot });
+    return reply({ ok: true, ver: VER, shot: shotUrl, shotOk: !!d.shot });
   } catch (err) {
     // 실패해도 사람에게는 조용히 · 대신 실행 로그에 남긴다
     console.error(err);
@@ -87,9 +88,56 @@ function doPost(e) {
 }
 
 /**
+ * 「자세히」 한 칸 · 고칠 자리를 좁히는 데 쓰는 것들을 한 줄로 접는다.
+ * 평소에는 칸이 좁아 안 보이고, 필요할 때 넓혀서 읽으면 된다.
+ */
+function detail_(d) {
+  var bits = [];
+  if (d.screen) bits.push('창 ' + d.screen);
+  bits.push(browser_(d.ua));
+  if (d.connected) bits.push('드라이브 ' + d.connected);
+  if (d.entries) bits.push('기록 ' + d.entries + '편');
+  if (d.built) bits.push('앱 ' + String(d.built).slice(0, 10));
+  if (d.page && d.page !== 'index.html') bits.push('쪽 ' + d.page);
+  if (d.lang && d.lang.indexOf('ko') !== 0) bits.push('언어 ' + d.lang);
+  if (d.clientId) bits.push('기기 ' + d.clientId);
+  if (d.id) bits.push('#' + d.id);
+  return bits.join(' · ');
+}
+
+/**
+ * 긴 UA 문자열을 「Chrome 148 · Windows」 정도로 줄인다.
+ * ⚠️ 원문 400자를 그대로 칸에 넣어 두었더니, 그 칸 하나가 표를 다 밀어냈다.
+ *    읽고 싶은 것은 «무슨 브라우저 · 무슨 기기» 이지 문자열이 아니다.
+ */
+function browser_(ua) {
+  ua = String(ua || '');
+  if (!ua) return '브라우저 모름';
+  var name = 'Unknown', m = null;
+  if (/Edg\//.test(ua))               { name = 'Edge';    m = /Edg\/(\d+)/.exec(ua); }
+  else if (/SamsungBrowser/.test(ua)) { name = 'Samsung'; m = /SamsungBrowser\/(\d+)/.exec(ua); }
+  else if (/Whale/.test(ua))          { name = 'Whale';   m = /Whale\/(\d+)/.exec(ua); }
+  else if (/OPR\//.test(ua))          { name = 'Opera';   m = /OPR\/(\d+)/.exec(ua); }
+  else if (/Firefox\//.test(ua))      { name = 'Firefox'; m = /Firefox\/(\d+)/.exec(ua); }
+  else if (/Chrome\//.test(ua))       { name = 'Chrome';  m = /Chrome\/(\d+)/.exec(ua); }
+  else if (/Safari\//.test(ua))       { name = 'Safari';  m = /Version\/(\d+)/.exec(ua); }
+
+  var os = '기기 모름';
+  if (/Windows/.test(ua))               os = 'Windows';
+  else if (/Android/.test(ua))          os = 'Android';
+  else if (/iPhone|iPad|iPod/.test(ua)) os = 'iOS';
+  else if (/Mac OS X/.test(ua))         os = 'Mac';
+  else if (/Linux/.test(ua))            os = 'Linux';
+
+  return name + (m ? ' ' + m[1] : '') + ' · ' + os;
+}
+
+/**
  * 캡처 한 장을 드라이브에 담고 주소를 돌려준다.
  * 받는 꼴은 data URL (data:image/png;base64,…) 이다.
- * 시트가 든 폴더 «옆» 에 「의견 캡처」 폴더를 두어, 시트와 그림이 같이 다니게 한다.
+ *
+ * ⚠️ 담을 자리는 «시트가 든 폴더» 안이다. 사람이 폴더 주소를 어디에 붙여 넣을 일이 없다 ·
+ *    시트를 어디로 옮기든 캡처 폴더가 따라간다.
  */
 function saveShot_(dataUrl, name, id) {
   var m = /^data:([\w.+-]+\/[\w.+-]+);base64,([\s\S]+)$/.exec(String(dataUrl));
@@ -102,7 +150,7 @@ function saveShot_(dataUrl, name, id) {
 
   var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmmss');
   var ext = mime.split('/')[1].replace('jpeg', 'jpg').replace(/[^a-z0-9]/gi, '') || 'png';
-  var safe = String(name || '').replace(/[\/:*?"<>|]/g, '').slice(0, 40);
+  var safe = String(name || '').replace(/[\\\/:*?"<>|]/g, '').slice(0, 40);
   var fileName = stamp + '_' + (id || 'shot') + (safe ? '_' + safe : '') + '.' + ext;
 
   var blob = Utilities.newBlob(bytes, mime, fileName);
@@ -119,9 +167,13 @@ function shotFolder_() {
   return found.hasNext() ? found.next() : home.createFolder(SHOT_FOLDER);
 }
 
-/** 브라우저가 주소를 그냥 열어 봤을 때 · 살아 있는지만 알려 준다 */
+/**
+ * 브라우저가 주소를 그냥 열어 봤을 때 · 살아 있는지와 «지금 깔린 판» 을 알려 준다.
+ * ⚠️ 판 번호가 여기 보여야, 배포가 먹혔는지를 주소 한 번 열어서 확인할 수 있다.
+ *    이게 없으면 「저장은 했는데 배포를 안 했다」 를 가려낼 길이 없다.
+ */
 function doGet() {
-  return reply({ ok: true, note: '개인지식운영체제 · PKOS 의견 받는 자리입니다.' });
+  return reply({ ok: true, ver: VER, note: '개인지식운영체제 · PKOS 의견 받는 자리입니다.' });
 }
 
 function getSheet_() {
@@ -141,16 +193,24 @@ function getSheet_() {
  * 시트를 새로 만들었거나 머리줄을 지웠을 때만 손으로 부른다.
  */
 function dressHeader_(sh) {
-  sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]).setFontWeight('bold');
+  var n = HEADERS.length;
+  sh.getRange(1, 1, 1, n).setValues([HEADERS]).setFontWeight('bold').setBackground('#e8f2ee');
+  // 칸을 줄인 판으로 갈아탈 때 옛 머리줄 글자가 오른쪽에 남지 않게
+  var wide = sh.getMaxColumns();
+  if (wide > n) sh.getRange(1, n + 1, 1, wide - n).clearContent();
+
   sh.setFrozenRows(1);
   sh.setColumnWidth(1, 150);   // 접수시각
   sh.setColumnWidth(2, 90);    // 종류
-  sh.setColumnWidth(3, 420);   // 내용
+  sh.setColumnWidth(3, 460);   // 내용
   sh.setColumnWidth(4, 210);   // 캡처
-  sh.setColumnWidth(5, 160);   // 답 받을 곳
-  sh.setColumnWidth(6, 180);   // 지금 화면
+  sh.setColumnWidth(5, 150);   // 답 받을 곳
+  sh.setColumnWidth(6, 100);   // 상태
+  sh.setColumnWidth(7, 200);   // 처리 메모
+  sh.setColumnWidth(8, 170);   // 어디서
+  sh.setColumnWidth(9, 120);   // 자세히 · 좁게 둔다. 볼 일이 있으면 그때 넓힌다
   sh.getRange(1, 3, sh.getMaxRows(), 1).setWrap(true);
-  sh.getRange(1, 1, 1, HEADERS.length).setBackground('#e8f2ee');
+  sh.getRange(1, 7, sh.getMaxRows(), 1).setWrap(true);
 }
 
 /**
@@ -165,11 +225,30 @@ function 머리줄세우기() {
   SpreadsheetApp.getActive().toast('머리줄을 세웠습니다. 쌓인 의견은 그대로입니다.', '의견 받기', 5);
 }
 
+/**
+ * 시트 메뉴 → 「의견 받기」 → 「시험 줄 지우기」.
+ * 붙이면서 시험 삼아 보낸 줄들을 한 번에 치운다.
+ * ⚠️ 「내용」 이 대괄호로 시작하는 줄만 지운다 (예 · [연결 확인] · [캡처 시험]).
+ *    사람이 보낸 진짜 의견은 그렇게 시작하지 않는다.
+ */
+function 시험줄지우기() {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  if (!sh || sh.getLastRow() < 2) return;
+  var n = sh.getLastRow() - 1;
+  var vals = sh.getRange(2, 3, n, 1).getValues();   // 「내용」 칸
+  var gone = 0;
+  for (var i = n - 1; i >= 0; i--) {                // 아래에서 위로 · 지우면 줄 번호가 밀린다
+    if (/^\s*\[/.test(String(vals[i][0] || ''))) { sh.deleteRow(i + 2); gone++; }
+  }
+  SpreadsheetApp.getActive().toast(gone + '줄을 지웠습니다.', '의견 받기', 5);
+}
+
 /** 시트를 열면 메뉴 하나가 붙는다 */
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('의견 받기')
     .addItem('머리줄 세우기', '머리줄세우기')
+    .addItem('시험 줄 지우기', '시험줄지우기')
     .addToUi();
 }
 

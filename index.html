@@ -10425,13 +10425,14 @@
           try { j = JSON.parse(t); } catch (err) {}
           if (j && j.ok === false) { var e2 = new Error(j.error || "받는 쪽이 거절했습니다"); e2.http = true; throw e2; }
           /* 확인됨 · 캡처를 어디에 담았는지도 같이 온다 (옛 판 스크립트는 안 준다) */
-          return { sure: true, shot: (j && j.shot) || "", shotOk: !!(j && j.shotOk) };
+          return { sure: true, shot: (j && j.shot) || "", shotOk: !!(j && j.shotOk),
+                   ver: (j && j.ver) || 0 };
         });
       })
       .catch(function (err) {
         if (err && err.http) throw err;      // 받는 쪽이 또렷이 «안 된다» 고 한 것
         return fetch(url, { method: "POST", mode: "no-cors", headers: head, body: body })
-          .then(function () { return { sure: false, shot: "", shotOk: false }; });
+          .then(function () { return { sure: false, shot: "", shotOk: false, ver: 0 }; });
       });
   }
   function fbQueue() { return safeParse(localStorage.getItem("pkos.feedbackQ.v1")) || []; }
@@ -13823,7 +13824,17 @@
                  lang: navigator.language || "", built: document.lastModified || "",
                  connected: connected ? "연결됨" : "연결 안 됨", entries: 0,
                  sentAt: new Date().toISOString(), clientId: fbClientId() })
-          .then(function () { st.textContent = "던졌습니다. 시트에 한 줄이 늘었는지 보세요."; })
+          .then(function (how) {
+            /* ⚠️ 「보냈다」 로만 끝내면 «저장은 했는데 배포를 안 한» 경우를 못 가려낸다.
+               받는 쪽이 제 판 번호를 돌려주므로, 그걸 그대로 보여 준다. */
+            if (!how || !how.sure) {
+              st.textContent = "던졌습니다 · 다만 이 브라우저가 답을 못 읽어 도착은 확인 못 했습니다.";
+              return;
+            }
+            st.textContent = how.ver
+              ? "이어졌습니다 · 받는 쪽 판 " + how.ver + (how.ver >= 3 ? " (캡처까지 받습니다)" : " (캡처는 못 받는 판입니다 · 다시 배포하세요)")
+              : "이어졌습니다 · 다만 판 번호를 안 돌려주는 옛 판입니다. 새 Code.gs 로 다시 배포하세요.";
+          })
           .catch(function () { st.textContent = "못 보냈습니다. 주소와 «액세스 권한: 모든 사용자» 를 확인하세요."; });
       });
       var open = el("button", "btn sm", "📊 모인 의견 시트 열기");
