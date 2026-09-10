@@ -7445,7 +7445,7 @@
     body.appendChild(stage);
 
     var hint = el("p", "crophint",
-      "얼굴 위를 톡 누르세요. 쓸면 줄줄이 지워집니다.");
+      "가릴 자리를 누르세요. 문지르면 이어서 가려집니다.");
     body.appendChild(hint);
     m.appendChild(body);
 
@@ -7536,7 +7536,7 @@
       loadBlockImage(b).then(function (im) {
         work[b.id] = work[b.id] || { stamps: [] };
         work[b.id].img = im;
-        hint.textContent = "얼굴 위를 톡 누르면 그 자리가 동그랗게 지워집니다. 손가락으로 쓸면 줄줄이 지워집니다.";
+        hint.textContent = "가릴 자리를 누르면 그 부분이 동그랗게 가려집니다. 손가락으로 문지르면 이어서 가려집니다.";
         redraw(); syncAll();
       }).catch(function (e) {
         hint.textContent = "";
@@ -11021,8 +11021,8 @@
     } else {
       b.className = "banner warn";
       var g2 = el("div", "grow");
-      g2.appendChild(el("b", null, "지금 쓰는 기록은 이 브라우저에만 저장됩니다."));
-      g2.appendChild(el("div", null, "구글 로그인 후 저장할 드라이브 폴더를 한 번만 지정하면, 이후로는 자동으로 올라갑니다."));
+      g2.appendChild(el("b", null, "지금은 이 브라우저에만 저장됩니다."));
+      g2.appendChild(el("div", null, "구글 로그인 후 저장할 드라이브 폴더를 한 번 정해 두면, 「기록 저장」 을 누를 때마다 그 폴더에 올라갑니다."));
       b.appendChild(g2);
       var c2 = el("button", "btn sm primary", "드라이브 연결하기");
       c2.addEventListener("click", function () { openSettings("storage"); });
@@ -11863,7 +11863,7 @@
         block("백링크 = 나를 가리킨 기록", [
           "연결에는 방향이 있습니다. A에서 B로 실을 매면,",
           example("A →  나가는 연결  (A가 B를 가리킴)\nB ←  들어오는 연결 = 백링크  (B 입장에서)"),
-          "중요한 건 이겁니다. B에서는 아무것도 안 했는데, B를 열면 「A가 나를 가리키고 있다」가 저절로 보입니다."
+          "B에서는 아무것도 하지 않아도, B를 열면 「A가 나를 가리키고 있다」가 함께 표시됩니다."
         ]);
         block("어디서 보나요?", [
           "각 기록 카드 아래에 이런 줄이 붙습니다.",
@@ -13460,7 +13460,7 @@
          말해 두지 않으면 «가져오기가 고장 났다» 로 읽는다. */
       fImp.appendChild(el("p", "desc",
         "밖에서 만들어 넣은 파일은 먼저 「드라이브에서 파일 고르기」로 한 번 골라 주세요. " +
-        "한 번 고른 파일은 그 뒤로는 저절로 잡힙니다."));
+        "한 번 고른 파일은 그 뒤로 계속 보입니다."));
       fImp.appendChild(el("p", "desc",
         SCAN_DEPTH + "단계·폴더 " + SCAN_FOLDER_MAX + "곳까지 훑습니다. 큰 폴더는 몇 분 걸리니 창을 닫지 마세요."));
       var rImp = el("div", "row");
