@@ -553,9 +553,8 @@ localStorage 키는 `pkos.entries.v2` · `pkos.settings.v1` · `pkos.tombstones.
 저장소는 공개되어 있고, 학교와 연수에서 사본을 만들어 쓰기를 바라며 만들었습니다.
 쓰는 사람이 직접 이해하고 고칠 수 있는 크기를 지향하며, 교실과 학교가 감당할 수 있는 만큼만 키우려 합니다.
 
-이용 조건은 **[CC BY-NC 4.0](LICENSE)** (저작자표시 · 비영리) 입니다.
+이용 조건은 **[CC BY-NC 4.0](LICENSE)** (저작자표시 · 비영리) 입니다. 쉬운 설명은 [LICENSE.ko.md](LICENSE.ko.md) 에 있습니다.
 만든이(레고학교 미스터리)와 이 저장소를 밝히면 복제 · 수정 · 재배포할 수 있고, 고친 것이 있으면 고쳤다고 적어 주세요.
 학교 · 연수처럼 비영리로 쓰는 자리는 자유롭게 쓰시면 됩니다. 영리를 주된 목적으로 하는 데에는 쓸 수 없습니다.
-전문은 [LICENSE](LICENSE) 파일과 [크리에이티브 커먼즈](https://creativecommons.org/licenses/by-nc/4.0/deed.ko) 에 있습니다.
 
 사본을 운영하는 사람은 `index.html` 의 `OWNER_CLIENT_ID` · `OWNER_API_KEY` 를 반드시 자기 것으로 바꿔야 합니다 ([SETUP.md](SETUP.md)).
