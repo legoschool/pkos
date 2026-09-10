@@ -12,13 +12,13 @@
  *        ⚠️ [새 배포] 를 누르면 주소가 «바뀐다». 같은 주소를 지키려면 [배포 관리] 다.
  *        실행 계정   · 나
  *        액세스 권한 · 모든 사용자      ← 이걸 안 바꾸면 로그인한 사람만 보낼 수 있다
- *   5. /exec 주소를 브라우저로 열어 보면 지금 깔린 판이 보인다 ({"ok":true,"ver":3,…})
+ *   5. /exec 주소를 브라우저로 열어 보면 지금 깔린 판이 보인다 ({"ok":true,"ver":4,…})
  *
  * ⚠️ 코드를 고치고 «저장» 만 하면 웹 앱에는 반영되지 않는다. 반드시 4번을 다시 한다.
  */
 
 /** 이 파일의 판 번호. 배포가 먹혔는지 주소 한 번 열어서 확인할 때 쓴다. */
-var VER = 3;
+var VER = 4;
 
 /** 시트 이름. 없으면 만든다. */
 var SHEET_NAME = '의견';
@@ -59,9 +59,15 @@ function doPost(e) {
        ⚠️ 공유 설정은 건드리지 않는다 · 캡처에는 보낸 사람의 화면이 찍혀 있다.
           주인만 열 수 있게 두는 것이 맞다. */
     var shotUrl = '';
+    var shotOk = false;
     if (d.shot) {
-      try { shotUrl = saveShot_(d.shot, d.shotName, d.id); }
-      catch (err2) { console.error(err2); shotUrl = '(캡처 저장 실패: ' + err2 + ')'; }
+      try { shotUrl = saveShot_(d.shot, d.shotName, d.id); shotOk = true; }
+      catch (err2) {
+        console.error(err2);
+        /* ⚠️ 예외 원문을 그대로 칸에 넣으면 한 칸에 300자가 들어가 표를 밀어낸다.
+           그리고 「무엇을 해야 하는지」 가 안 적혀 있다 · 사람이 읽을 말로 바꾼다. */
+        shotUrl = shotError_(err2);
+      }
     }
 
     var sh = getSheet_();
@@ -79,12 +85,28 @@ function doPost(e) {
     /* 캡처를 어디에 담았는지 돌려준다.
        ⚠️ 보낸 쪽은 이 답을 보고 «그림까지 갔는지» 를 안다. 안 돌려주면 옛 판 스크립트와
           구별이 안 되어, 그림을 버렸는데도 「보냈습니다」 라고 말하게 된다. */
-    return reply({ ok: true, ver: VER, shot: shotUrl, shotOk: !!d.shot });
+    /* ⚠️ shotOk 는 «그림이 왔나» 가 아니라 «담는 데 성공했나» 다.
+       왔다는 것만으로 참을 주면, 권한이 없어 못 담았을 때도 「캡처까지 갔다」 고 말하게 된다. */
+    return reply({ ok: true, ver: VER, shot: shotUrl, shotOk: shotOk });
   } catch (err) {
     // 실패해도 사람에게는 조용히 · 대신 실행 로그에 남긴다
     console.error(err);
     return reply({ ok: false, error: String(err) });
   }
+}
+
+/**
+ * 캡처를 못 담았을 때 시트에 적을 말.
+ * 예외 원문 대신 «무엇을 해야 하는지» 를 적는다.
+ */
+function shotError_(err) {
+  var t = String(err || '');
+  if (/권한|permission|Authorization|drive/i.test(t)) {
+    return '⚠️ 캡처 못 담음 · 드라이브 권한 없음 (스크립트 편집기에서 메뉴 「의견 받기 → 권한 주기」 를 한 번 실행하세요)';
+  }
+  if (/너무 큽니다|too large/i.test(t)) return '⚠️ 캡처 못 담음 · 그림이 너무 큽니다';
+  if (/그림/.test(t)) return '⚠️ 캡처 못 담음 · 그림 꼴이 아닙니다';
+  return '⚠️ 캡처 못 담음 · ' + t.slice(0, 90);
 }
 
 /**
@@ -243,10 +265,27 @@ function 시험줄지우기() {
   SpreadsheetApp.getActive().toast(gone + '줄을 지웠습니다.', '의견 받기', 5);
 }
 
+/**
+ * 시트 메뉴 → 「의견 받기」 → 「권한 주기」.
+ *
+ * ⚠️ 앱스 스크립트는 «코드가 무엇을 쓰는지» 를 보고 권한을 받는다. 캡처를 담는 코드가
+ *    없던 판으로 승인해 두었다면, 새 판을 배포해도 드라이브 권한은 여전히 없다.
+ *    그러면 글은 들어가는데 그림만 조용히 안 담긴다 · 실제로 그랬다.
+ * 이걸 한 번 실행하면 승인 창이 뜬다. 허용하고 나면 그다음부터 캡처가 담긴다.
+ * 하는 일은 «캡처 폴더를 만들어 두는 것» 뿐이라, 여러 번 눌러도 탈이 없다.
+ */
+function 권한주기() {
+  var f = shotFolder_();
+  SpreadsheetApp.getActive().toast(
+    '드라이브 권한을 받았습니다. 캡처는 「' + f.getName() + '」 폴더에 담깁니다.', '의견 받기', 6);
+}
+
 /** 시트를 열면 메뉴 하나가 붙는다 */
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('의견 받기')
+    .addItem('권한 주기 (캡처를 담으려면 한 번)', '권한주기')
+    .addSeparator()
     .addItem('머리줄 세우기', '머리줄세우기')
     .addItem('시험 줄 지우기', '시험줄지우기')
     .addToUi();

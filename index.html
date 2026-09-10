@@ -10345,7 +10345,7 @@
   /* 배포한 앱스 스크립트 웹 앱 주소 · 이 사본을 쓰는 모든 사람의 의견이 여기로 간다.
      ⚠️ 코드를 고쳐 «새 배포» 를 하면 주소가 바뀔 수 있다. 바뀌면 여기도 같이 고친다.
      기기마다 다른 자리로 보내고 싶으면 설정 → 💬 의견 받기 에서 덮어쓴다. */
-  var FEEDBACK_URL = "https://script.google.com/macros/s/AKfycbyM9sXaHOhaCSj1AsYmdhI8sURPHiyfRYkJpA8AVFYHIU8LVmQz4zIo_ZtyScBAH3I2/exec";
+  var FEEDBACK_URL = "https://script.google.com/macros/s/AKfycbxs2d0-FqM4-ReT0u9bYYMte4ZHdXhoGjqPJyUjSDiKMukxDB9A1Hj9AWvmKJKC3oV_/exec";
   var FEEDBACK_SHEET = "https://docs.google.com/spreadsheets/d/1VXvf_7Ki80cmeXeJjplX6ITA0v8n5a-0YK4yTpXGkM0/edit";
   var FB_KINDS = ["질문", "개선 의견", "오류"];
 
@@ -10731,8 +10731,12 @@
           toast("보냈습니다 · 다만 도착했는지까지는 확인하지 못했습니다.");
           toast2("이 브라우저가 답을 못 읽게 막았습니다. 안 왔으면 다시 한 번 보내 주세요.");
         } else if (shotLost) {
+          /* ⚠️ 이유를 뭉뚱그리면 안 된다. «옛 판이라 버렸다» 와 «권한이 없어 못 담았다» 는
+             할 일이 다르다. 받는 쪽이 까닭을 적어 보내면 그 말을 그대로 옮긴다. */
           toast("글은 보냈습니다 · 다만 캡처는 저장되지 않았습니다.");
-          toast2("받는 쪽 스크립트가 아직 캡처를 받을 수 있는 판이 아닙니다.");
+          toast2(/^⚠️/.test(how.shot || "")
+            ? String(how.shot).replace(/^⚠️\s*캡처 못 담음 · /, "")
+            : "받는 쪽 스크립트가 아직 캡처를 받을 수 있는 판이 아닙니다.");
         } else {
           toast("보냈습니다. 읽고 반영하겠습니다.");
           toast2("답을 받을 곳을 적으셨으면 그리로 연락드립니다.");
