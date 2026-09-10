@@ -10313,7 +10313,10 @@
        · 못 보낸 것은 이 기기에 남겨 두었다가 다음에 열 때 다시 보낸다
      ⚠️ 기록 내용은 절대 딸려 보내지 않는다. 사람이 적은 글과 화면 정보만 간다.
      ========================================================= */
-  var FEEDBACK_URL = "";      // ← 배포한 앱스 스크립트 웹 앱 주소 (docs/의견받기/README.md 참고)
+  /* 배포한 앱스 스크립트 웹 앱 주소 · 이 사본을 쓰는 모든 사람의 의견이 여기로 간다.
+     ⚠️ 코드를 고쳐 «새 배포» 를 하면 주소가 바뀔 수 있다. 바뀌면 여기도 같이 고친다.
+     기기마다 다른 자리로 보내고 싶으면 설정 → 💬 의견 받기 에서 덮어쓴다. */
+  var FEEDBACK_URL = "https://script.google.com/macros/s/AKfycbyM9sXaHOhaCSj1AsYmdhI8sURPHiyfRYkJpA8AVFYHIU8LVmQz4zIo_ZtyScBAH3I2/exec";
   var FEEDBACK_SHEET = "https://docs.google.com/spreadsheets/d/1VXvf_7Ki80cmeXeJjplX6ITA0v8n5a-0YK4yTpXGkM0/edit";
   var FB_KINDS = ["질문", "개선 의견", "오류"];
 
@@ -10345,7 +10348,12 @@
   /* 지금 무엇을 보고 있었나 · 「어느 화면에서 그랬는지」 가 없으면 고칠 자리를 못 찾는다 */
   function fbWhere() {
     var w = [];
-    if (document.querySelector(".modal-bg")) w.push("설정·창 열림");
+    /* ⚠️ 의견 창도 «뜬 창» 이다. 보내는 순간에 세면 어느 기록에나 「설정·창 열림」 이 붙어서,
+       정작 어디서 막혔는지를 못 읽는다 · 의견 창 자신은 빼고 센다. */
+    var lays = Array.prototype.filter.call(document.querySelectorAll(".modal-bg"), function (b) {
+      return !b.getAttribute("data-fb");
+    });
+    if (lays.length) w.push("설정·창 열림");
     if (viewerEl) w.push("전체 보기");
     if (!composerFolded) w.push(editingId ? "기록 편집" : "새 기록 쓰기");
     if (smartView) w.push("목록 · " + smartView);
@@ -10355,7 +10363,10 @@
   }
   function fbContext() {
     return {
-      screen: window.innerWidth + "x" + window.innerHeight +
+      /* ⚠️ 창이 화면에 안 떠 있는 순간에는 innerWidth 가 0 으로 나온다. 시트에 «0x0» 이
+         찍히면 「어느 크기에서 그랬는지」 를 못 읽는다 · 그때는 화면 해상도로 대신한다. */
+      screen: (window.innerWidth || (window.screen && window.screen.width) || 0) + "x" +
+              (window.innerHeight || (window.screen && window.screen.height) || 0) +
               (window.devicePixelRatio ? " @" + window.devicePixelRatio + "x" : ""),
       ua: navigator.userAgent || "",
       lang: navigator.language || "",
@@ -10416,6 +10427,7 @@
     var withCtx = true;
 
     var bg = el("div", "modal-bg");
+    bg.setAttribute("data-fb", "1");        // 「지금 화면」 을 셀 때 이 창은 빼려고
     var m = el("div", "card modal"); m.style.maxWidth = "520px";
 
     var head = el("div", "mhead");
@@ -10468,7 +10480,9 @@
     cf.appendChild(who);
     body.appendChild(cf);
 
-    /* ---- 함께 가는 것 · 무엇이 가는지 먼저 보여 준다 ---- */
+    /* ---- 함께 가는 것 · 무엇이 가는지 먼저 보여 준다 ----
+       ⚠️ 이 한 장을 «열 때» 찍어 두고 보낼 때도 그대로 쓴다. 보내는 순간에 다시 찍으면
+          창을 여는 사이에 바뀐 것이 찍힌다 · 사람이 말하려던 화면은 열기 직전의 그것이다. */
     var ctx = fbContext();
     var box = el("div", "field");
     var ck = el("label", "checkline");
@@ -10522,7 +10536,7 @@
         return;
       }
       try { localStorage.setItem("pkos.feedbackWho.v1", who.value.trim()); } catch (e) {}
-      var c = withCtx ? fbContext() : { where: "", screen: "", ua: "", lang: "", built: "", connected: "", entries: 0 };
+      var c = withCtx ? ctx : { where: "", screen: "", ua: "", lang: "", built: "", connected: "", entries: 0 };
       var rec = {
         v: 1,
         id: "f" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),

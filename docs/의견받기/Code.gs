@@ -76,16 +76,46 @@ function getSheet_() {
   if (!sh) {
     sh = ss.insertSheet(SHEET_NAME);
   }
-  // 머리줄이 없으면 세운다 · 처음 한 번만 걸린다
-  if (sh.getLastRow() === 0) {
-    sh.appendRow(HEADERS);
-    sh.getRange(1, 1, 1, HEADERS.length).setFontWeight('bold');
-    sh.setFrozenRows(1);
-    sh.setColumnWidth(1, 150);   // 접수시각
-    sh.setColumnWidth(3, 420);   // 내용
-    sh.getRange(1, 3, sh.getMaxRows(), 1).setWrap(true);
-  }
+  // 머리줄이 없으면 세운다 · 처음 한 통이 들어올 때 저절로 걸린다
+  if (sh.getLastRow() === 0) dressHeader_(sh);
   return sh;
+}
+
+/**
+ * 머리줄을 세우고 보기 좋게 다듬는다.
+ * 첫 의견이 들어올 때 저절로 불리므로, 보통은 사람이 부를 일이 없다.
+ * 시트를 새로 만들었거나 머리줄을 지웠을 때만 손으로 부른다.
+ */
+function dressHeader_(sh) {
+  sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]).setFontWeight('bold');
+  sh.setFrozenRows(1);
+  sh.setColumnWidth(1, 150);   // 접수시각
+  sh.setColumnWidth(2, 90);    // 종류
+  sh.setColumnWidth(3, 420);   // 내용
+  sh.setColumnWidth(4, 160);   // 답 받을 곳
+  sh.setColumnWidth(5, 180);   // 지금 화면
+  sh.getRange(1, 3, sh.getMaxRows(), 1).setWrap(true);
+  sh.getRange(1, 1, 1, HEADERS.length).setBackground('#e8f2ee');
+}
+
+/**
+ * 시트 메뉴 → 「의견 받기」 → 「머리줄 세우기」.
+ * 머리줄을 잘못 지웠거나 시트를 새로 팠을 때 이걸 한 번 누르면 된다.
+ * ⚠️ 1행만 다시 쓴다 · 아래에 쌓인 의견은 건드리지 않는다.
+ */
+function 머리줄세우기() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
+  dressHeader_(sh);
+  SpreadsheetApp.getActive().toast('머리줄을 세웠습니다. 쌓인 의견은 그대로입니다.', '의견 받기', 5);
+}
+
+/** 시트를 열면 메뉴 하나가 붙는다 */
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('의견 받기')
+    .addItem('머리줄 세우기', '머리줄세우기')
+    .addToUi();
 }
 
 function reply(obj) {
