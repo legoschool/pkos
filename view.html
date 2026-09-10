@@ -330,6 +330,13 @@
   .foldbody { padding: 2px 14px 12px; white-space: pre-wrap; line-height: 1.75; }
   blockquote { margin: 0 0 16px; padding: 8px 16px; border-left: 3px solid var(--brand);
                background: var(--bg); border-radius: 0 10px 10px 0; color: var(--ink-soft); white-space: pre-wrap; }
+  /* 출처 갈래 · 내 생각 / 자료 인용 / AI 답변(접힘) */
+  .qtag { display: block; font-size: 12px; font-weight: 700; color: var(--soft, var(--ink-soft)); margin-bottom: 2px; }
+  blockquote.rmine { border-left-color: var(--brand); color: var(--ink); }
+  blockquote.rmine .qtag { color: var(--brand); }
+  .aibox { border: 1px dashed var(--line); border-radius: 10px; margin: 0 0 16px; background: var(--bg); }
+  .aibox > summary { cursor: pointer; padding: 8px 12px; font-weight: 700; font-size: 13px; }
+  .aibox > blockquote { margin: 0 12px 10px; border-left-style: dashed; }
   a { color: var(--brand); }
   figure { margin: 0 0 18px; }
   figure img { width: 100%; height: auto; border-radius: 10px; border: var(--bw) solid var(--line); display: block; }
@@ -615,7 +622,19 @@
       var node = null;
       if (b.k === "text") node = el("p", null, b.x || "");
       else if (b.k === "heading") node = el("h2", null, b.x || "");
-      else if (b.k === "quote") { node = el("blockquote"); node.textContent = b.x || ""; }
+      else if (b.k === "quote") {
+        // r · 출처 갈래(mine·source·ai) · s · 출처. AI 답변은 접혀서 열린다
+        var QR = { mine: "💭 내 생각", source: "📚 자료 인용", ai: "🤖 AI 답변" };
+        if (b.r === "ai") {
+          node = el("details", "aibox");
+          node.appendChild(el("summary", null, "🤖 AI 답변" + (b.s ? " · " + b.s : "") + " · 눌러서 펼치기"));
+          var qb = el("blockquote"); qb.textContent = b.x || ""; node.appendChild(qb);
+        } else {
+          node = el("blockquote", b.r ? "r" + b.r : null);
+          if (b.r && QR[b.r]) node.appendChild(el("span", "qtag", QR[b.r] + (b.s ? " · " + b.s : "")));
+          node.appendChild(document.createTextNode(b.x || ""));
+        }
+      }
       else if (b.k === "todo") node = todoBlock(b);
       else if (b.k === "list") node = listBlock(b);
       else if (b.k === "code") node = codeBlock(b);
