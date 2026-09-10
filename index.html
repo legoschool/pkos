@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="description" content="글·사진·링크·파일을 블로그처럼 이어 쓰고, 내 구글 드라이브 폴더에 마크다운으로 쌓는 개인 지식 운영 체계 PKOS (Personal Knowledge Operation System) 의 기록 도구" />
+<meta name="description" content="글·사진·링크·파일을 블로그처럼 이어 쓰고, 내 구글 드라이브 폴더에 마크다운으로 쌓는 개인지식운영체제 PKOS (Personal Knowledge Operation System) 의 기록 도구" />
 <meta name="theme-color" content="#2f5fd6" />
 <!-- 글꼴 · 프리텐다드. 업노트가 서 있는 «군더더기 없는 고딕» 자리다.
      ⚠️ 지금까지는 이름만 적어 두어서, 이 글꼴이 «깔려 있는 기기» 에서만 떴고
@@ -17,7 +17,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="기록장" />
-<title>구글 기록장 · PKOS 개인 지식 운영 체계</title>
+<title>개인지식운영체제 · PKOS</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <!-- 폴더·파일 고르기 창(구글 Picker). 좁은 권한에서 «밖에 있는 파일» 을 집어 오는 유일한 통로다. -->
 <script src="https://apis.google.com/js/api.js" async defer></script>
@@ -242,8 +242,11 @@
        진짜 페이지는 오른쪽 칸(전체 보기)에서 그대로 뜬다. */
     .listcol .entry .content .embedbox { display: none; }
     .listcol .entry .content .embedline { display: block; }
-    .listcol .entry .dots { opacity: 0; }
-    .listcol .entry:hover .dots { opacity: 1; }
+    /* ⚠️ 예전에는 ⋯ 를 숨겨 두고 마우스를 얹어야 나타나게 했다. 깔끔하긴 했는데
+       «지우는 길이 어디 있냐» 는 말을 들었다. 손가락으로 쓰는 기기에는 «얹기» 가 없다.
+       늘 세워 두되 흐리게 · 얹으면 진해진다. */
+    .listcol .entry .dots { opacity: .55; }
+    .listcol .entry:hover .dots, .listcol .entry .dots:focus-visible { opacity: 1; }
     /* 지금 오른쪽에서 보고 있는 줄 · 어디를 열어 두었는지 눈에 보여야 한다 */
     .listcol .entry.sel { background: var(--brand-soft); border-color: var(--brand); }
     .listcol .entry.sel .head h3 { color: var(--brand-dark); font-weight: 700; }
@@ -413,6 +416,82 @@
       left: calc(var(--col-nav, 248px) + var(--col-list, 352px)); }
     .layout[data-nav="1"] > #gripList { display: block; left: var(--col-list, 352px); }
   }
+  /* ---------- 가운데 칸만 접기 ----------
+     ☰ 는 «기둥 → 목록» 순서로 한 겹씩 걷는다. 그래서 「폴더 나무는 두고 목록만 치우고 싶다」
+     는 자리가 없었다. 이건 그 자리다 · 목록 머리줄의 ‹ 로 접고, 남는 세로 띠로 편다.
+     접은 것은 기기에 남는다 · 늘 접어 두는 사람에게 매번 다시 접게 하면 안 된다. */
+  .listfold { display: none; background: none; border: 0; padding: 2px 6px; cursor: pointer;
+              color: var(--ink-soft); font-size: calc(17px * var(--fs)); line-height: 1; border-radius: 6px; }
+  .listfold:hover { background: var(--brand-soft); color: var(--brand-dark); }
+  .listrail { display: none; background: var(--panel); border: 0; border-right: 1px solid var(--line);
+              cursor: pointer; color: var(--ink-soft); padding: 12px 0; align-items: center;
+              flex-direction: column; gap: 10px; font-family: inherit; }
+  .listrail:hover { background: var(--brand-soft); color: var(--brand-dark); }
+  .listrail .lr-ar { font-size: calc(17px * var(--fs)); line-height: 1; }
+  .listrail .lr-t { writing-mode: vertical-rl; font-size: calc(12px * var(--fs)); letter-spacing: 1px; }
+  @media (min-width: 1180px) {
+    .listfold { display: inline-flex; }
+    /* 접힌 자리 · 목록이 있던 칸을 34px 짜리 띠로 갈아 끼운다 */
+    .layout[data-listcol="off"] .listcol { display: none; }
+    .layout[data-listcol="off"] > #gripList { display: none; }
+    .layout[data-listcol="off"] > #listRail { display: flex; grid-column: 2; grid-row: 1;
+      position: sticky; top: var(--top-h, 66px); align-self: start; height: calc(100vh - var(--top-h, 66px)); }
+    .layout[data-nav="0"][data-listcol="off"] { grid-template-columns: var(--col-nav, 248px) 34px minmax(0, 1fr); }
+    .layout[data-nav="1"][data-listcol="off"] { grid-template-columns: 34px minmax(0, 1fr); }
+    .layout[data-nav="1"][data-listcol="off"] > #listRail { grid-column: 1; }
+  }
+  /* 3단이 안 되는 너비 · 목록은 쓰는 자리 «아래» 에 있다. 접으면 한 줄짜리 띠만 남는다 */
+  @media (max-width: 1179px) {
+    .layout[data-listcol="off"] .listcol { display: none; }
+    .layout[data-listcol="off"] > #listRail { display: flex; flex-direction: row; justify-content: center;
+      grid-column: 2; grid-row: 2; border-right: 0; border-top: 1px solid var(--line);
+      padding: 10px 0; margin: 0 clamp(16px, 2.6vw, 40px) 40px; border-radius: 10px; gap: 8px; }
+    .layout[data-listcol="off"] > #listRail .lr-ar { transform: rotate(90deg); }
+    .layout[data-listcol="off"] > #listRail .lr-t { writing-mode: horizontal-tb; letter-spacing: 0; }
+  }
+  @media (max-width: 1020px) {
+    .layout[data-listcol="off"] > #listRail { margin: 0 16px 40px; }
+  }
+
+  /* ---------- 의견 보내기 · 오른쪽 아래 ----------
+     ⚠️ 만든 사람은 「어디가 불편한지」 를 모른다. 쓰는 사람은 「어디에 말해야 하는지」 를 모른다.
+        그 사이를 한 단추로 잇는다 · 쓰다가 그 자리에서 바로 적어 보낼 수 있어야 한다.
+     보낸 것은 만든 사람의 구글 시트 한 장에 쌓인다 (설정 → 의견 받기 에서 주소를 넣는다). */
+  .fbbtn { position: fixed; right: 18px; bottom: 18px; z-index: 56;
+           display: inline-flex; align-items: center; gap: 7px;
+           background: var(--brand); color: #fff; border: 0; cursor: pointer;
+           padding: 11px 16px; border-radius: 999px; font-family: var(--font-title);
+           font-size: calc(13.5px * var(--fs)); font-weight: 600; letter-spacing: var(--title-spacing);
+           box-shadow: 0 6px 20px rgba(15,20,35,.22); transition: .15s; }
+  .fbbtn:hover { background: var(--brand-dark); box-shadow: 0 8px 26px rgba(15,20,35,.3); }
+  .fbbtn .fbi { font-size: calc(15px * var(--fs)); line-height: 1; }
+  /* 집중해서 쓰는 동안에는 비켜 준다 */
+  body.focusing .fbbtn { display: none; }
+  @media (max-width: 1020px) {
+    /* 아래 바를 가리면 안 된다 · 바 높이는 --dockh 한 곳에만 적혀 있다 */
+    .fbbtn { right: 12px; bottom: calc(var(--dockh, 74px) + 12px + env(safe-area-inset-bottom, 0px));
+             padding: 10px 13px; }
+    .fbbtn .fbl { display: none; }        /* 좁으면 아이콘만 · 자리를 뺏지 않는다 */
+  }
+  .fbkinds { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+  .fbkind { border: var(--bw) solid var(--line); background: var(--panel); color: var(--ink);
+            padding: 7px 13px; border-radius: 999px; cursor: pointer; font-family: inherit;
+            font-size: calc(13.5px * var(--fs)); }
+  .fbkind:hover { border-color: var(--brand); color: var(--brand); }
+  .fbkind.on { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-dark); font-weight: 600; }
+  .fbmeta { font-size: calc(12px * var(--fs)); color: var(--ink-soft); line-height: 1.6;
+            background: var(--bg); border-radius: 8px; padding: 9px 11px; margin-top: 2px; }
+  .fbsent { margin-top: 14px; border-top: 1px solid var(--line-soft); padding-top: 12px; }
+  .fbsent h4 { margin: 0 0 7px; font-size: calc(13px * var(--fs)); color: var(--ink-soft); font-weight: 600; }
+  .fbrow { display: flex; gap: 8px; align-items: baseline; padding: 5px 0;
+           border-bottom: 1px solid var(--line-soft); font-size: calc(12.5px * var(--fs)); }
+  .fbrow:last-child { border-bottom: 0; }
+  .fbrow .fbk { flex: 0 0 auto; color: var(--brand-dark); font-weight: 600; }
+  .fbrow .fbt { flex: 1 1 auto; min-width: 0; color: var(--ink);
+                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fbrow .fbw { flex: 0 0 auto; color: var(--ink-soft); }
+  .fbrow .fbq { flex: 0 0 auto; color: var(--warn-ink); }
+
   #drawerScrim { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 59; }
   #drawerScrim.hidden { display: none; }
 
@@ -816,6 +895,12 @@
   .logo { font-weight: 800; font-size: calc(16.5px * var(--fs)); letter-spacing: var(--title-spacing); display: flex; align-items: center; gap: 7px;
           font-family: var(--font-title); }
   .logo small { font-weight: 500; font-size: calc(12px * var(--fs)); color: var(--ink-soft); letter-spacing: 0; }
+  /* 이름표가 «홈으로» 단추가 됐다 · 단추처럼 보이면 안 된다. 누를 수 있다는 것만 알려 준다 */
+  button.logo { background: none; border: 0; padding: 0; margin: 0; cursor: pointer;
+                color: inherit; font-family: inherit; text-align: left; }
+  button.logo:hover { color: var(--brand-dark); }
+  button.logo:hover .logomark { color: var(--brand); }
+  button.logo:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: 6px; }
   /* 좁은 화면에서는 머리줄 단추를 그림글자만 남긴다. 한 줄에 들어가야 목록이 위로 올라온다. */
   @media (max-width: 560px) {
     .logo small { display: none; }
@@ -855,16 +940,27 @@
   .chead h2 { margin: 0; }
 
   /* ---------- 집중 모드 · 적는 칸만 남긴다 ---------- */
+  /* ⚠️ 예전에는 «가운데 칸» 을 안 감췄다. 안의 것(머리줄·거르개·목록·꼬리)만 감추니
+     빈 칸 하나가 화면 높이만큼 그대로 서 있었고, 적는 칸은 그 아래로 밀려
+     집중을 켜면 흰 화면만 보였다. 칸째로 감춘다 · 손잡이와 가림막도 같이. */
   body.focusing header.top,
   body.focusing #sideNav,
+  body.focusing #drawerScrim,
+  body.focusing .colgrip,
+  body.focusing .listcol,
   body.focusing #banner,
   body.focusing .toolbar,
   body.focusing .filters,
   body.focusing #list,
   body.focusing footer.site,
   body.focusing .dock { display: none !important; }
-  body.focusing .layout { grid-template-columns: minmax(0, 1fr); }
-  body.focusing .wrap { max-width: 760px; margin: 0 auto; padding-top: 28px; }
+  body.focusing .layout { grid-template-columns: minmax(0, 1fr); max-width: none; margin: 0; }
+  /* ⚠️ 넓은 화면에서 오른쪽 칸은 «화면에 붙어 스스로 구르는 칸» 이다 (position: sticky ·
+     height: 100vh - 머리띠). 머리띠를 감춘 채로 그 값을 그대로 두면 66px 만큼 빈 자리가
+     생기고 칸이 화면보다 길어진다. 집중일 때는 그냥 보통 쪽으로 되돌린다. */
+  body.focusing .layout > .wrap,
+  body.focusing .wrap { position: static; height: auto; max-height: none; overflow: visible;
+                        max-width: 820px; margin: 0 auto; padding: 28px 20px 96px; }
   body.focusing .composer { border: none; box-shadow: none; background: transparent; }
   body.focusing #btnFocus { border-color: var(--brand); color: var(--brand); }
 
@@ -905,6 +1001,12 @@
   .btn.primary:hover { background: var(--brand-dark); border-color: var(--brand-dark); color: #fff; }
   .btn.ghost { background: transparent; }
   .btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+  /* 되돌릴 수 없는 단추 · 평소에도 빨갛게 서 있어야 한다.
+     확인 창에서 «완전히 삭제» 가 다른 단추와 같은 얼굴이면 손이 먼저 간다. */
+  .btn.dangerbtn { color: var(--danger); border-color: var(--danger); background: transparent; }
+  .btn.dangerbtn:hover { background: var(--warn-bg); color: var(--danger); border-color: var(--danger); }
+  #btnDeleteEntry { color: var(--danger); }
+  #btnDeleteEntry:hover { border-color: var(--danger); color: var(--danger); background: var(--warn-bg); }
   .btn.sm { padding: 5px 10px; font-size: calc(13px * var(--fs)); border-radius: var(--r-btn-sm); }
   .btn.xs { padding: 2px 7px; font-size: calc(12px * var(--fs)); border-radius: var(--r-btn-sm); font-weight: 500; }
   .btn:disabled { opacity: .45; cursor: not-allowed; }
@@ -1766,6 +1868,12 @@
               box-shadow: 0 -6px 18px rgba(20,30,60,.08); }
     body.writing .dock { display: none; }
     body.writing .wrap { padding-bottom: 24px; }
+    /* ⚠️ 아래 바가 물러난 자리를 «넣기 줄» 이 가져간다 (sticky · 같은 층 56).
+       그 위에 동그란 의견 단추를 얹으면 사진·캡처 단추를 가린다.
+       지금 급한 일은 쓰는 것이다 · 의견은 다 쓰고 접은 뒤에 남겨도 늦지 않다.
+       ⚠️ 이 규칙은 «넣기 줄이 바닥을 갖는 너비» 에만 걸어야 한다. 1020px 에 걸면
+          아래 바가 그대로 서 있는 태블릿에서도 단추가 통째로 사라진다. */
+    body.writing .fbbtn { display: none; }
     .addbar .btn { flex: 1 1 30%; text-align: center; }
     .addhint { font-size: calc(12px * var(--fs)); }
     .bhead .btn.xs { min-width: 40px; }
@@ -1803,7 +1911,7 @@
     <!-- 줄 셋 · 폰에서만 보인다. 누르면 폴더 구조 서랍이 왼쪽에서 나온다 -->
     <button id="btnDrawer" class="burgerbtn" aria-label="폴더 구조 열기"><i></i><i></i><i></i></button>
     <!-- 로고도 그림글자 대신 브릭 한 조각 · 이 도구의 정체성이다 -->
-    <div class="logo"><svg class="logomark" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="9.5" width="18" height="10" rx="2.5"/><path d="M7 9.5V6.8h4v2.7M13 9.5V6.8h4v2.7"/></svg> 구글 기록장 <small>PKOS · Personal Knowledge Operation System</small></div>
+    <button type="button" id="btnHome" class="logo" title="홈으로 · 좁혀 본 것과 검색을 풀고 모든 기록을 봅니다"><svg class="logomark" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="9.5" width="18" height="10" rx="2.5"/><path d="M7 9.5V6.8h4v2.7M13 9.5V6.8h4v2.7"/></svg> 개인지식운영체제 <small>PKOS · Personal Knowledge Operation System</small></button>
     <div class="spacer"></div>
     <!-- 검색은 매일 쓴다. 목록 줄에 묻어 두면 «어디 있더라» 가 된다 -->
     <input id="search" class="inp topsearch" type="search" placeholder="🔍 제목·내용·태그 검색" />
@@ -1835,6 +1943,11 @@
 <button type="button" id="gripNav" class="colgrip" aria-label="폴더 구조 칸 너비 · 끌어서 조절, 두 번 누르면 되돌림"></button>
 <button type="button" id="gripList" class="colgrip" aria-label="기록 목록 칸 너비 · 끌어서 조절, 두 번 누르면 되돌림"></button>
 
+<!-- 접었을 때 남는 세로 띠 · 펴는 길이 눈에 보여야 접어도 무섭지 않다 -->
+<button type="button" id="listRail" class="listrail" title="기록 목록 펴기" aria-label="기록 목록 펴기">
+  <span class="lr-ar">›</span><span class="lr-t">기록 목록</span>
+</button>
+
 <!-- 가운데 칸 · 기록 목록. 업노트의 «노트 목록» 자리다 -->
 <div id="listcol" class="listcol">
   <div class="toolbar">
@@ -1843,13 +1956,13 @@
     <span class="spacer"></span>
     <div class="viewswitch" id="viewSwitch"></div>
     <button id="btnCompile" class="btn sm" title="고른 기록을 한 권으로 묶어 내려받습니다">📚 엮어내기</button>
-    <button id="btnAi" class="btn sm" title="고른 기록을 AI 에 붙여넣을 한 덩어리로 만듭니다 · AI 를 부르지는 않습니다">🤖 AI에 건네기</button>
+    <button type="button" id="btnListFold" class="listfold" title="기록 목록 접기" aria-label="기록 목록 접기">‹</button>
   </div>
   <div class="chips filters" id="typeFilters"></div>
   <div class="chips filters tagfilters" id="tagFilters"></div>
   <div id="list"></div>
   <footer class="site">
-    구글 기록장 · PKOS &nbsp;|&nbsp; <a href="privacy.html">개인정보처리방침</a>
+    개인지식운영체제 · PKOS &nbsp;|&nbsp; <a href="privacy.html">개인정보처리방침</a>
   </footer>
 </div>
 
@@ -1869,6 +1982,8 @@
     <div class="chead">
       <h2 id="composerTitle">✍️ 새 기록</h2>
       <span class="spacer"></span>
+      <!-- 고치는 중일 때만 선다 · 새로 쓰는 중에는 지울 것이 없다 -->
+      <button id="btnDeleteEntry" class="btn sm ghost danger hidden" title="이 기록을 지웁니다">🗑️ 삭제</button>
       <button id="btnFocus" class="btn sm ghost" title="쓰는 데만 집중합니다 (Esc 로 나오기)">🎯 집중</button>
     </div>
     <!-- 이 기록이 갈 자리. 쓰기 전에 보여야 한다 · 쓰고 나서 알면 늦다 -->
@@ -1883,10 +1998,10 @@
          자리를 먼저 정하고 이름을 붙이는 순서로 놓는다. -->
     <div class="grid2">
       <div class="field" style="margin-bottom:12px;">
-        <label for="tags">① 태그 <span style="font-weight:400;color:var(--ink-soft)">(쉼표로 구분 · 첫 태그가 폴더가 됩니다)</span></label>
+        <label for="tags">① 태그</label>
         <input id="tags" class="inp" placeholder="수업, 에듀테크, 회고" />
         <p class="taghint" id="tagHint">
-          같은 태그끼리 모아 보고, 관계망에서 한 덩어리로 묶입니다.
+          같은 태그 끼리 모아 볼 수 있습니다.
         </p>
         <!-- 급할 때는 분류 없이 남긴다. 태그가 없거나 이 칸을 켜 두면 «미정리함» 에 모인다 -->
         <label class="checkline inboxline"><input type="checkbox" id="inboxChk" /> <span>📥 나중에 정리 · 미정리함에 둡니다</span></label>
@@ -1908,6 +2023,9 @@
            ⚠️ 자주 안 쓰는 것은 addx 로 접어 둔다 · 폰에서 넣기 줄이 벽이 되면 안 된다. -->
       <div class="edbar" id="addbar">
         <div class="edgrp">
+          <!-- 사진·녹음처럼 «코드가 넣은 것» 도 함께 되돌린다 (브라우저 기본 되돌리기는 못 한다) -->
+          <button id="btnUndo" type="button" class="btn sm fb noico" title="되돌리기 (Ctrl+Z)" disabled>↶</button>
+          <button id="btnRedo" type="button" class="btn sm fb noico" title="다시 하기 (Ctrl+Shift+Z)" disabled>↷</button>
           <button class="btn sm fb noico" data-fmt="b" title="굵게 (Ctrl+B)"><b>가</b></button>
           <button class="btn sm fb noico" data-fmt="i" title="기울임 (Ctrl+I)"><i>가</i></button>
           <button class="btn sm fb noico addx" data-fmt="s" title="취소선"><s>가</s></button>
@@ -1975,6 +2093,9 @@
 <div id="dropOverlay" class="dropoverlay hidden">
   <div class="dropcard">📥<br />여기에 놓으면 기록에 추가됩니다</div>
 </div>
+
+<!-- 오른쪽 아래 · 쓰다가 막힌 그 자리에서 바로 적어 보낸다 -->
+<button type="button" id="btnFeedback" class="fbbtn" title="질문 · 개선 의견 · 오류를 만든 사람에게 보냅니다"><span class="fbi">💬</span><span class="fbl">의견 보내기</span></button>
 
 <div id="toast"></div>
 <div id="modalHost"></div>
@@ -2268,6 +2389,15 @@
   function uid(p) { return (p || "b_") + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   function pad2(n) { return n < 10 ? "0" + n : "" + n; }
   function safeParse(s) { try { return JSON.parse(s); } catch (e) { return null; } }
+  /* 이름 뒤에 붙는 조사 하나 · 「첫 시험 기록」 «를» 지울까요 는 사람이 쓰는 말이 아니다.
+     받침이 있으면 앞엣것, 없으면 뒤엣것. 한글이 아닌 이름(파일명·영문)은 뒤엣것으로 둔다. */
+  function josa(word, withBatchim, without) {
+    var w = String(word == null ? "" : word).trim();
+    var c = w.charCodeAt(w.length - 1);
+    if (!(c >= 0xAC00 && c <= 0xD7A3)) return without;   // 한글 음절이 아니면 그냥 «를·가·는»
+    return ((c - 0xAC00) % 28) ? withBatchim : without;
+  }
+
 
   function dateStamp(ts) {
     var d = new Date(ts || Date.now());
@@ -2825,7 +2955,7 @@
     toast("폴더를 만드는 중…");
     createFolder(safeName(name, 60), "root")
       .then(function (f) {
-        toast("「" + f.name + "」 을 만들었습니다.");
+        toast("「" + f.name + "」" + josa(f.name, "을", "를") + " 만들었습니다.");
         onPick({ id: f.id, name: f.name });
       })
       .catch(function (e) { toast("폴더를 못 만들었습니다: " + errText(e)); });
@@ -5012,7 +5142,7 @@
                   })
                   .catch(function (e) {
                     console.warn("가린 사진 덮어쓰기 실패", b.name, e);
-                    toast("「" + (b.name || "사진") + "」 을 다시 올리지 못했습니다: " + errText(e));
+                    toast("「" + (b.name || "사진") + "」" + josa(b.name || "사진", "을", "를") + " 다시 올리지 못했습니다: " + errText(e));
                     toast2("드라이브에는 아직 «가리기 전» 사진이 있습니다. [동기화] 를 다시 눌러 주세요.");
                   });
               });
@@ -5855,8 +5985,19 @@
     if (paper) blocks = paperToBlocks();
     return blocks;
   }
+  /* 종이가 «비었나» · 안내 글자를 띄울지 말지를 이 하나로 정한다.
+     ⚠️ 예전에는 «글자가 있나 · 덩어리(atom)나 구분선이 있나» 만 봤다. 그래서 인용·목록·
+        소제목처럼 «틀만 먼저 서고 글자는 나중에 들어오는» 것을 넣으면 여전히 «비었다» 가
+        되어, 방금 넣은 인용 칸 위에 안내 글자가 그대로 겹쳐 찍혔다. 실제로 그렇게 보였다.
+        빈 글줄(p) 말고 뭐라도 서 있으면 그 종이는 이미 «쓰기 시작한» 종이다. */
   function hasPaperContent() {
-    return !!(paper && (paper.textContent.trim() || paper.querySelector(".atom, hr")));
+    if (!paper) return false;
+    if (paper.textContent.trim()) return true;
+    var kids = paper.children;
+    for (var i = 0; i < kids.length; i++) {
+      if (kids[i].tagName !== "P") return true;   // 인용·목록·소제목·표·덩어리·구분선…
+    }
+    return false;
   }
 
   /* ---------- 커서 ---------- */
@@ -5977,6 +6118,7 @@
     ensureTail();
     touchDraft();
     syncMaskBar();
+    histCommit();
   }
   /* 밖에서 만든 블록(사진·녹음·손 메모·공유)을 «지금 커서 자리» 에 넣는다.
      afterBlock 이 있으면 그 블록 뒤에 넣는다. */
@@ -5996,6 +6138,7 @@
     node.scrollIntoView({ block: "nearest" });
     refreshAtomNames();      // 차례가 바뀌면 «_01·_02» 번호도 따라간다
     touchDraft();
+    histCommit();
   }
   function removeTop(node) {
     var bid = node.getAttribute("data-bid");
@@ -6007,6 +6150,7 @@
     refreshAtomNames();
     touchDraft();
     syncMaskBar();
+    histCommit();
   }
   function topFromPoint(x, y) {
     var n = document.elementFromPoint(x, y);
@@ -6041,7 +6185,9 @@
       var q = quoteNode(b);
       paper.replaceChild(q, top);
       placeCaret(q, true);
+      ensureTail();          // ⚠️ 이 줄이 없으면 «안내 글자» 가 인용 칸 위에 겹쳐 남는다
       touchDraft();
+      histCommit();
       var si = q.querySelector(".qsrc");
       if (si && !b.text) si.focus();
       return;
@@ -6064,7 +6210,9 @@
       var nn = nodesOf(b)[0];
       paper.replaceChild(nn, top);
       placeCaret(nn, true);
+      ensureTail();
       touchDraft();
+      histCommit();
       return;
     }
     if (top && isTextTop(top)) {
@@ -6074,7 +6222,9 @@
       var ln = nodesOf(b)[0];
       paper.replaceChild(ln, top);
       placeCaret(ln, true);
+      ensureTail();
       touchDraft();
+      histCommit();
       return;
     }
     insertTopNodes(nodesOf(b));
@@ -6422,6 +6572,7 @@
     paper.addEventListener("keydown", onPaperKey);
     paper.addEventListener("paste", onPaperPaste);
     paper.addEventListener("input", function (e) {
+      histTouch();
       if (e.target !== paper && e.target.closest && e.target.closest(".atom, .qlabel")) return;
       normalizePaper();
       updateSlash();
@@ -6482,6 +6633,99 @@
         document.addEventListener("click", function () { hl.parentNode.classList.remove("open"); });
       }
     }
+    /* ⚠️ 첫 장을 여기서 찍어 둬야 «맨 처음 상태» 로도 되돌아갈 수 있다.
+       안 찍어 두면 첫 번째로 넣은 것이 되돌리기의 바닥이 되어, 그것 하나가 안 지워진다. */
+    histReset();
+  }
+
+  /* =========================================================
+     되돌리기 · 다시 하기 (Ctrl+Z · Ctrl+Shift+Z)
+     ---------------------------------------------------------
+     ⚠️ 브라우저가 스스로 해 주는 되돌리기는 «사람이 친 글자» 만 센다. 사진·녹음·손 메모·
+        표처럼 우리가 코드로 넣은 덩어리는 그 셈에 안 들어간다. 그래서 사진을 넣고 Ctrl+Z 를
+        누르면 사진은 그대로 있고 엉뚱한 글자만 지워졌다 · 실제로 그랬다.
+     그래서 종이의 상태를 우리가 직접 «한 장씩» 찍어 둔다. 진실은 blocks 배열이고
+     renderBlocks() 가 그것으로 종이를 다시 세우므로, 찍는 것도 되돌리는 것도 그 배열이다.
+       · 글자는 0.45초 쉴 때마다 한 장 · 한 글자마다 찍으면 되돌리기가 너무 잘다
+       · 사진·삭제·자리 옮김처럼 «한 번에 크게 바뀌는 일» 은 그 자리에서 바로 한 장
+       · 새 기록을 열거나 편집으로 불러오면 그때까지의 기록은 버린다 (다른 문서다)
+     ========================================================= */
+  var histPast = [], histFuture = [], histBase = null, histTimer = null, histBusy = false;
+  var HIST_MAX = 80;
+  function histSnap() {
+    if (!paper) return null;
+    return paperToBlocks().map(cloneBlock);
+  }
+  /* 같은 상태인지 · 덩어리는 id 로, 글은 글자로 견준다.
+     blob 같은 것은 JSON 으로 못 찍으므로 견주는 데 쓰지 않는다. */
+  function histKey(list) {
+    if (!list) return "";
+    return list.map(function (b) {
+      var o = { k: b.kind, id: b.id };
+      ["text", "title", "src", "role", "name", "url", "html", "ordered", "level", "fileId", "mime"].forEach(function (f) {
+        if (b[f] != null) o[f] = b[f];
+      });
+      if (Array.isArray(b.items)) o.i = b.items.map(function (it) { return [it.t, it.done ? 1 : 0, it.d || 0]; });
+      if (Array.isArray(b.head)) o.h = b.head;
+      if (Array.isArray(b.rows)) o.r = b.rows;
+      if (Array.isArray(b.marks)) o.m = b.marks.length;
+      try { return JSON.stringify(o); } catch (e) { return String(b.id); }
+    }).join("|");
+  }
+  function histReset() {
+    histPast = []; histFuture = [];
+    if (histTimer) { clearTimeout(histTimer); histTimer = null; }
+    histBase = histSnap();
+    syncUndoBtns();
+  }
+  function histCommit() {
+    if (histBusy || !paper) return;
+    if (histTimer) { clearTimeout(histTimer); histTimer = null; }
+    var now = histSnap();
+    if (!histBase) { histBase = now; syncUndoBtns(); return; }
+    if (histKey(now) === histKey(histBase)) return;
+    histPast.push(histBase);
+    if (histPast.length > HIST_MAX) histPast.shift();
+    histBase = now;
+    histFuture = [];
+    syncUndoBtns();
+  }
+  // 글자를 치는 중 · 손이 멈추면 한 장 찍는다
+  function histTouch() {
+    if (histBusy || !paper) return;
+    if (histTimer) clearTimeout(histTimer);
+    histTimer = setTimeout(function () { histTimer = null; histCommit(); }, 450);
+  }
+  function histApply(list) {
+    histBusy = true;
+    try {
+      blocks = list.map(cloneBlock);
+      renderBlocks();
+      if (paper && paper.lastElementChild) placeCaret(paper.lastElementChild, true);
+    } finally { histBusy = false; }
+    touchDraft();
+    syncUndoBtns();
+  }
+  function undoPaper() {
+    histCommit();                       // 치던 중이면 그 상태부터 한 장 남긴다
+    if (!histPast.length) { toast("더 되돌릴 것이 없습니다."); return; }
+    histFuture.push(histBase);
+    histBase = histPast.pop();
+    histApply(histBase);
+    toast("되돌렸습니다 · Ctrl+Shift+Z 로 다시 합니다.");
+  }
+  function redoPaper() {
+    if (histTimer) { clearTimeout(histTimer); histTimer = null; }
+    if (!histFuture.length) { toast("다시 할 것이 없습니다."); return; }
+    histPast.push(histBase);
+    histBase = histFuture.pop();
+    histApply(histBase);
+    toast("다시 했습니다.");
+  }
+  function syncUndoBtns() {
+    var u = $("btnUndo"), r = $("btnRedo");
+    if (u) u.disabled = !histPast.length;
+    if (r) r.disabled = !histFuture.length;
   }
 
   function renderBlocks() {
@@ -6889,7 +7133,7 @@
       pick.value = "";
       if (!f) return;
       if (f.size > MAX_FILE_MB * 1024 * 1024) {
-        toast("「" + f.name + "」 는 " + MAX_FILE_MB + "MB 를 넘습니다.");
+        toast("「" + f.name + "」" + josa(f.name, "은", "는") + " " + MAX_FILE_MB + "MB 를 넘습니다.");
         return;
       }
       stopAll();
@@ -7988,7 +8232,7 @@
     var made = [];
     files.forEach(function (f) {
       if (f.size > MAX_FILE_MB * 1024 * 1024) {
-        toast("「" + f.name + "」 은 " + MAX_FILE_MB + "MB 를 넘어 건너뜁니다. (" + humanSize(f.size) + ")");
+        toast("「" + f.name + "」" + josa(f.name, "은", "는") + " " + MAX_FILE_MB + "MB 를 넘어 건너뜁니다. (" + humanSize(f.size) + ")");
         if (/^video\//.test(f.type || "")) {
           toast2("긴 영상은 유튜브에 «일부공개» 로 올리고 «코드 삽입» 에 주소를 넣는 편이 낫습니다.");
         }
@@ -8068,8 +8312,9 @@
       $("composerTitle").textContent = "✏️ 기록 편집 (이어 쓰는 중)";
       $("btnSave").textContent = "수정 저장";
       $("btnCancelEdit").classList.remove("hidden");
+      syncDeleteBtn();
     }
-    renderTypeChips(); renderBlocks();
+    renderTypeChips(); renderBlocks(); histReset();
     // 파일 본문 되살리기
     idbAll().then(function (map) {
       var changed = false;
@@ -8122,10 +8367,11 @@
     $("title").value = ""; $("tags").value = "";
     if ($("inboxChk")) $("inboxChk").checked = false;
     blocks = [];
-    renderTypeChips(); renderBlocks();
+    renderTypeChips(); renderBlocks(); histReset();
     $("composerTitle").textContent = "✍️ 새 기록";
     $("btnSave").textContent = "기록 저장";
     $("btnCancelEdit").classList.add("hidden");
+    syncDeleteBtn();
     renderDeskLine();   // 자리는 그대로 · 이어서 같은 폴더에 한 편 더 쓰는 것이 보통이다
   }
 
@@ -8136,10 +8382,11 @@
     $("tags").value = (n.tags || []).join(", ");
     if ($("inboxChk")) $("inboxChk").checked = !!n.inbox;
     blocks = (n.blocks || []).map(cloneBlock);
-    renderTypeChips(); renderBlocks();
+    renderTypeChips(); renderBlocks(); histReset();
     $("composerTitle").textContent = "✏️ 기록 편집";
     $("btnSave").textContent = "수정 저장";
     $("btnCancelEdit").classList.remove("hidden");
+    syncDeleteBtn();
     // 고치러 왔는데 작성칸이 접혀 있으면 아무 데도 못 쓴다
     composerFolded = false;
     applyComposerFold();
@@ -8260,8 +8507,33 @@
     saveLocal(); render();
     if (connected) saveIndex().catch(function () {});
     toast2("휴지통에서 되돌릴 수 있습니다.");
-    toast("「" + safeName(n.title || "", 20) + "」 를 휴지통으로 보냈습니다.");
+    var nm = safeName(n.title || "", 20);
+    toast("「" + nm + "」" + josa(nm, "을", "를") + " 휴지통으로 보냈습니다.");
   }
+  /* 작성칸의 «🗑️ 삭제» · 고치는 중일 때만 선다.
+     ⚠️ 지우는 길이 카드의 ⋯ 안에만 있었다. 고치러 들어온 사람은 그 카드를 안 보고 있어서
+        「삭제 기능이 없다」 가 됐다. 지금 열어 둔 그 기록을 바로 지울 수 있어야 한다. */
+  function syncDeleteBtn() {
+    var b = $("btnDeleteEntry");
+    if (!b) return;
+    b.classList.toggle("hidden", !editingId);
+  }
+  function deleteEditing() {
+    if (!editingId) return;
+    var n = entries.filter(function (x) { return x.id === editingId; })[0];
+    if (!n) return;
+    var id = n.id, imported = !!n.srcId;
+    /* 두 갈래를 한 창에서 고르게 한다 · 「휴지통으로」 와 「파일까지 지우기」.
+       무엇이 지워지는지 먼저 적고, 되돌릴 수 있는 쪽을 기본 단추로 둔다. */
+    confirmModal("「" + (n.title || "제목 없음") + "」" + josa(n.title || "제목 없음", "을", "를") + " 지울까요?",
+      "휴지통으로 보내면 나중에 되돌릴 수 있습니다.\n드라이브의 파일도 그대로 남습니다.\n\n바로 다 지우려면 아래 «완전히 삭제» 를 누르세요." +
+      (!connected ? "\n드라이브에 연결되어 있지 않아 이 기기에서만 지워집니다." : imported ? "\n\n이 기록은 폴더에서 끌어온 것이라, 완전히 삭제해도 드라이브의 원본 파일은 그대로 남습니다." : "\n\n완전히 삭제하면 드라이브의 .md 파일과 첨부 자료도 함께 휴지통으로 이동합니다."),
+      function () { removeEntry(id); },
+      "🗑️ 휴지통으로",
+      null,
+      { label: "🗑️ 완전히 삭제", danger: true, run: function () { purgeEntry(id); } });
+  }
+
   function restoreEntry(id) {
     var n = entries.filter(function (x) { return x.id === id; })[0];
     if (!n) return;
@@ -8574,7 +8846,7 @@
     var pool = q ? names.filter(function (t) { return t.toLowerCase().indexOf(q) >= 0; }) : names;
     var shown = tagsExpanded ? pool : pool.slice(0, TAGS_SHOWN);
     if (tagsExpanded && q && !shown.length) {
-      host.appendChild(el("span", "flabel", "「" + tagQuery.trim() + "」 이 든 태그가 없습니다"));
+      host.appendChild(el("span", "flabel", "「" + tagQuery.trim() + "」" + josa(tagQuery.trim(), "이", "가") + " 든 태그가 없습니다"));
     }
     shown.forEach(function (t) {
       var on = filterTags.indexOf(t) >= 0;
@@ -9745,199 +10017,6 @@
     });
   }
 
-  /* =========================================================
-     10-3. AI 에 건네기 · 고른 기록을 «한 덩어리» 로 만들어 복사한다
-     ---------------------------------------------------------
-     이 앱은 AI 를 부르지 않는다 (API 키도, 돈도 없다). 대신 내가 쓰는 AI 에 «잘 건네는 일» 을 돕는다.
-       · 기록마다 id 를 붙여, 답변이 어느 기록을 두고 한 말인지 되짚을 수 있게 한다
-       · AI 답변 인용은 기본으로 뺀다 · AI 가 제 말을 다시 읽고 굳히는 일이 없게
-       · 사진·파일은 못 실린다 · 목록만 적고, 필요한 것은 따로 붙이라고 알린다
-     ========================================================= */
-  function bundleMarkdown(list, opt) {
-    var L = [], files = [];
-    var bid = "ab_" + Date.now().toString(36);
-    L.push("# AI 에 건네는 기록 묶음");
-    L.push("- 만든 날: " + formatDate(Date.now()) + " · 기록 " + list.length + "편 · 묶음 ID: " + bid);
-    L.push("- 만든 곳: 구글 기록장 · PKOS");
-    L.push("");
-    if (opt.prompt && opt.prompt.trim()) { L.push("## 요청"); L.push(""); L.push(opt.prompt.trim()); L.push(""); }
-    L.push("---"); L.push("");
-    list.forEach(function (n, i) {
-      var t = typeOf(n.type);
-      L.push("## [" + (i + 1) + "] " + (n.title || "(제목 없음)"));
-      L.push("- id: " + n.id + " · " + t.label +
-        ((n.tags || []).length ? " · " + n.tags.map(function (x) { return "#" + x; }).join(" ") : "") + " · " + formatDate(n.createdAt));
-      L.push("");
-      var keep = (n.blocks || []).filter(function (b) {
-        return !(opt.dropAi && b.kind === "quote" && b.role === "ai");
-      }).map(function (b) {
-        if (b.kind === "image" || b.kind === "file") {
-          files.push({ n: i + 1, b: b });
-          return newBlock("text", { text: (b.kind === "image" ? "🖼️ 사진" : "📎 파일") + ": " + (b.caption || b.name || b.original || "") +
-            (b.fileId ? " · " + driveLink(b.fileId) : " · 아직 드라이브에 없음") + " (이 묶음에는 안 실려 있음)" });
-        }
-        if (b.kind === "embed") return newBlock("text", { text: "🧩 삽입 코드 (생략)" });
-        return b;
-      });
-      blocksToMarkdown({ blocks: keep }, 3, "").forEach(function (x) { L.push(x); });
-      var rels = (n.relations || []).map(function (r) {
-        var tt = null; entries.forEach(function (x) { if (x.id === r.to) tt = x; });
-        return tt ? "[[" + tt.title + "]]" + (r.label ? " · " + r.label : "") : null;
-      }).filter(Boolean);
-      if (rels.length) { L.push("연결: " + rels.join(", ")); L.push(""); }
-      L.push("---"); L.push("");
-    });
-    if (files.length) {
-      L.push("## 따로 붙여야 하는 자료 (" + files.length + ")");
-      files.forEach(function (f) { L.push("- [" + f.n + "] " + (f.b.name || f.b.original || "") + (f.b.fileId ? " · " + driveLink(f.b.fileId) : "")); });
-      L.push("");
-    }
-    var text = L.join("\n").replace(/\n{3,}/g, "\n\n");
-    return { text: text, files: files.length, chars: text.length };
-  }
-  function openAiBundle() {
-    closeModal();
-    var pool = entries.filter(matches);            // 지금 필터를 통과한 것에서 고른다
-    if (!pool.length) { toast("건넬 기록이 없습니다."); return; }
-    var picked = {};
-    pool.forEach(function (n) { picked[n.id] = true; });
-
-    var bg = el("div", "modal-bg");
-    var m = el("div", "card modal"); m.style.maxWidth = "720px";
-    var head = el("div", "mhead");
-    head.appendChild(el("h3", null, "🤖 AI 에 건네기 · 골라서 한 덩어리로"));
-    head.appendChild(el("span", "spacer"));
-    var x = el("button", "btn sm ghost", "✕"); x.addEventListener("click", closeModal);
-    head.appendChild(x);
-    m.appendChild(head);
-
-    var body = el("div", "mbody");
-    body.appendChild(el("p", "desc",
-      "이 앱은 AI 를 부르지 않습니다. 고른 기록을 «요청문 + 기록 id 가 붙은 본문» 한 덩어리로 만들어 드리니, " +
-      "쓰시는 AI(ChatGPT·Claude·Gemini…)에 붙여넣으세요. 답이 오면 기록을 열어 «🤖 AI 답변» 으로 넣어 두면 됩니다."));
-
-    var f2 = el("div", "field");
-    f2.appendChild(el("label", null, "건넬 기록"));
-    var tools = el("div", "row"); tools.style.marginBottom = "6px";
-    var allBtn = el("button", "btn sm", "전체 선택"); allBtn.type = "button";
-    var noneBtn = el("button", "btn sm", "전체 해제"); noneBtn.type = "button";
-    var cnt = el("span", "desc"); cnt.style.margin = "0";
-    tools.appendChild(allBtn); tools.appendChild(noneBtn); tools.appendChild(cnt);
-    f2.appendChild(tools);
-    var listBox = el("div", "picklist");
-    pool.forEach(function (n) {
-      var t = typeOf(n.type);
-      var row = el("label", "pickrow");
-      var cb = el("input"); cb.type = "checkbox"; cb.checked = true;
-      cb.addEventListener("change", function () { picked[n.id] = cb.checked; paintCount(); });
-      row.appendChild(cb);
-      row.appendChild(el("span", "pico", t.icon));
-      row.appendChild(el("span", "pttl", n.title || "(제목 없음)"));
-      var ai = (n.blocks || []).filter(function (b) { return b.kind === "quote" && b.role === "ai"; }).length;
-      if (ai) row.appendChild(el("span", "pmeta", "🤖 " + ai));
-      row.appendChild(el("span", "pmeta", localDay(n.createdAt)));
-      row.__cb = cb;
-      listBox.appendChild(row);
-    });
-    f2.appendChild(listBox);
-    body.appendChild(f2);
-
-    var f3 = el("div", "field");
-    f3.appendChild(el("label", null, "어떻게"));
-    function optRow(checked, text, hint) {
-      var r = el("label", "optrow");
-      var c = el("input"); c.type = "checkbox"; c.checked = checked;
-      r.appendChild(c);
-      var w = el("span");
-      w.appendChild(el("b", null, text));
-      if (hint) w.appendChild(el("small", null, hint));
-      r.appendChild(w);
-      f3.appendChild(r);
-      return c;
-    }
-    var cAi = optRow(true, "AI 답변 인용은 빼기", "AI 가 전에 한 말을 다시 읽고 굳히지 않게 · 내 글과 자료만 건넵니다");
-    var cWiden = optRow(false, "연결된 기록도 함께", "[[링크]]·관계망·백링크로 이어진 기록을 한 단계 더 넣습니다");
-    var cPrompt = optRow(true, "요청문을 앞에 붙이기", "아래 요청문이 묶음 맨 앞에 들어갑니다");
-    body.appendChild(f3);
-
-    var f4 = el("div", "field");
-    f4.appendChild(el("label", null, "요청문 · 고쳐 써도 됩니다"));
-    var ta = el("textarea", "inp"); ta.rows = 7;
-    ta.value = settings.aiPrompt || AI_PROMPT_DEFAULT;
-    f4.appendChild(ta);
-    var pr = el("div", "row"); pr.style.marginTop = "6px";
-    var saveP = el("button", "btn sm", "이 요청문을 기본으로 저장"); saveP.type = "button";
-    saveP.addEventListener("click", function () {
-      settings.aiPrompt = ta.value; saveSettingsLocal();
-      if (connected) saveSettingsRemote().catch(function () {});
-      toast("요청문을 저장했습니다.");
-    });
-    var resetP = el("button", "btn sm ghost", "처음 것으로"); resetP.type = "button";
-    resetP.addEventListener("click", function () { ta.value = AI_PROMPT_DEFAULT; paintCount(); });
-    pr.appendChild(saveP); pr.appendChild(resetP);
-    f4.appendChild(pr);
-    body.appendChild(f4);
-    m.appendChild(body);
-
-    var foot = el("div", "mfoot");
-    var status = el("span", "desc"); status.style.margin = "0";
-    foot.appendChild(status);
-    foot.appendChild(el("span", "spacer"));
-    var mdBtn = el("button", "btn", "⬇ .md");
-    var cpBtn = el("button", "btn primary", "📋 복사해서 AI 에 붙여넣기");
-    foot.appendChild(mdBtn); foot.appendChild(cpBtn);
-    m.appendChild(foot);
-
-    bg.appendChild(m);
-    bg.addEventListener("click", function (e) { if (e.target === bg) closeModal(); });
-    $("modalHost").appendChild(bg);
-    modalEl = bg;
-
-    function gather(quiet) {
-      var ids = pool.filter(function (n) { return picked[n.id]; }).map(function (n) { return n.id; });
-      if (!ids.length) { if (!quiet) toast("건넬 기록을 하나 이상 골라 주세요."); return null; }
-      var list = cWiden.checked ? widenByLinks(ids, 1)
-        : ids.map(function (id) { return entries.filter(function (n) { return n.id === id; })[0]; }).filter(Boolean);
-      list = sortForBook(list, "old");
-      return { list: list, out: bundleMarkdown(list, { dropAi: cAi.checked, prompt: cPrompt.checked ? ta.value : "" }) };
-    }
-    function paintCount() {
-      var k = pool.filter(function (n) { return picked[n.id]; }).length;
-      cnt.textContent = k + " / " + pool.length + " 편 선택";
-      var g = gather(true);
-      status.textContent = g ? ("글자 " + g.out.chars.toLocaleString() + "자" + (g.out.files ? " · 따로 붙일 자료 " + g.out.files + "개" : "")) : "";
-    }
-    allBtn.addEventListener("click", function () {
-      pool.forEach(function (n) { picked[n.id] = true; });
-      Array.prototype.forEach.call(listBox.children, function (r) { r.__cb.checked = true; });
-      paintCount();
-    });
-    noneBtn.addEventListener("click", function () {
-      pool.forEach(function (n) { picked[n.id] = false; });
-      Array.prototype.forEach.call(listBox.children, function (r) { r.__cb.checked = false; });
-      paintCount();
-    });
-    [cAi, cWiden, cPrompt].forEach(function (c) { c.addEventListener("change", paintCount); });
-    ta.addEventListener("input", function () { clearTimeout(ta._t); ta._t = setTimeout(paintCount, 300); });
-    paintCount();
-
-    cpBtn.addEventListener("click", function () {
-      var g = gather(); if (!g) return;
-      copyText(g.out.text).then(function () {
-        status.textContent = g.list.length + "편을 복사했습니다. AI 창에 붙여넣으세요.";
-        toast("복사했습니다. AI 에 붙여넣으세요.");
-      }).catch(function () {
-        downloadText("AI묶음_" + dateStamp() + ".md", "text/markdown", g.out.text);
-        status.textContent = "복사가 막혀 .md 로 내려받았습니다.";
-      });
-    });
-    mdBtn.addEventListener("click", function () {
-      var g = gather(); if (!g) return;
-      downloadText("AI묶음_" + g.list.length + "편_" + dateStamp() + ".md", "text/markdown", g.out.text);
-      status.textContent = g.list.length + "편을 .md 로 내려받았습니다.";
-    });
-  }
-
   /* 보기 넷의 선 아이콘 · 이모지는 색이 우리 색을 안 따라온다 */
   function viewIconSvg(key) {
     var d = {
@@ -10018,12 +10097,9 @@
   }
   function onPopOutside(e) { if (openPop && !openPop.contains(e.target)) closePop(); }
   function onPopKey(e) { if (e.key === "Escape") closePop(); }
-  function openMenu(anchor, items) {
-    var again = openPop && openPop._anchor === anchor;
-    closePop();
-    if (again) return;                      // 같은 단추를 다시 누르면 닫힌다
+  /* 뜬 메뉴 한 장을 짓는다 · 어디에 세울지는 부르는 쪽이 정한다 */
+  function buildPop(items) {
     var pop = el("div", "menupop");
-    pop._anchor = anchor;
     items.forEach(function (it) {
       if (it === "-") { pop.appendChild(el("div", "sep")); return; }
       if (!it) return;
@@ -10034,6 +10110,23 @@
       b.addEventListener("click", function (e) { e.stopPropagation(); closePop(); it.run(); });
       pop.appendChild(b);
     });
+    return pop;
+  }
+  function armPop(pop) {
+    openPop = pop;
+    setTimeout(function () {
+      document.addEventListener("click", onPopOutside, true);
+      document.addEventListener("keydown", onPopKey, true);
+      window.addEventListener("resize", closePop);
+      window.addEventListener("scroll", closePop, true);
+    }, 0);
+  }
+  function openMenu(anchor, items) {
+    var again = openPop && openPop._anchor === anchor;
+    closePop();
+    if (again) return;                      // 같은 단추를 다시 누르면 닫힌다
+    var pop = buildPop(items);
+    pop._anchor = anchor;
     document.body.appendChild(pop);
     var r = anchor.getBoundingClientRect();
     var w = pop.offsetWidth, h = pop.offsetHeight;
@@ -10042,13 +10135,21 @@
     if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);
     pop.style.left = left + "px";
     pop.style.top = top + "px";
-    openPop = pop;
-    setTimeout(function () {
-      document.addEventListener("click", onPopOutside, true);
-      document.addEventListener("keydown", onPopKey, true);
-      window.addEventListener("resize", closePop);
-      window.addEventListener("scroll", closePop, true);
-    }, 0);
+    armPop(pop);
+  }
+  /* 오른쪽 단추로 부른 메뉴 · 누른 자리에 선다.
+     화면 밖으로 나가면 안쪽으로 접어 넣는다 · 아래가 좁으면 위로 뒤집는다. */
+  function openMenuAt(x, y, items) {
+    closePop();
+    var pop = buildPop(items);
+    document.body.appendChild(pop);
+    var w = pop.offsetWidth, h = pop.offsetHeight;
+    var left = Math.min(Math.max(8, x), Math.max(8, window.innerWidth - w - 8));
+    var top = y;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, y - h);
+    pop.style.left = left + "px";
+    pop.style.top = top + "px";
+    armPop(pop);
   }
   function dotsBtn(title) {
     var b = el("button", "dots", "⋯");
@@ -10101,6 +10202,374 @@
     svg.appendChild(p);
     return svg;
   }
+  /* =========================================================
+     기둥의 폴더 줄 · 오른쪽 단추로 여는 메뉴
+     ---------------------------------------------------------
+     앱이 세운 나무와 드라이브의 진짜 폴더가 «같은 것» 이라는 걸 확인할 길이 없었다.
+     여기서 바로 열어 보면 안다. 폴더 ID 를 이미 아는 줄은 바로 열리고,
+     이름길만 아는 줄은 뿌리부터 한 칸씩 내려가 찾는다 (없으면 만들지 않는다 ·
+     보러 가는 길에서 폴더가 새로 생기면 그게 더 나쁘다).
+     ========================================================= */
+  function driveFolderUrl(id) { return "https://drive.google.com/drive/folders/" + id; }
+  /* 이름길로 진짜 폴더를 «찾기만» 한다 · 못 찾으면 null */
+  function findFolderIdByPath(path) {
+    if (!folder.id) return Promise.resolve(null);
+    if (!path.length) return Promise.resolve(folder.id);
+    return path.reduce(function (chain, nm) {
+      return chain.then(function (pid) {
+        if (!pid) return null;
+        return findInFolder(safeName(nm, 60), pid);
+      });
+    }, Promise.resolve(folder.id)).catch(function () { return null; });
+  }
+  /* 새 탭은 «누른 그 순간» 에 열어야 막히지 않는다.
+     ⚠️ 폴더를 찾아온 뒤에 열면 브라우저가 «내가 안 누른 창» 으로 보고 막는다.
+        그래서 빈 탭을 먼저 띄우고, 주소는 찾은 뒤에 넣는다. */
+  function openDriveFolder(path, fid) {
+    if (!connected) { toast("드라이브에 연결한 뒤에 열 수 있습니다."); return; }
+    if (fid) { window.open(driveFolderUrl(fid), "_blank", "noopener"); return; }
+    var w = window.open("", "_blank");
+    findFolderIdByPath(path).then(function (id) {
+      if (!id) {
+        if (w) w.close();
+        toast("드라이브에서 이 폴더를 못 찾았습니다.");
+        toast2("아직 저장된 기록이 없어 폴더가 안 만들어졌을 수 있습니다.");
+        return;
+      }
+      if (w) w.location = driveFolderUrl(id);
+      else window.open(driveFolderUrl(id), "_blank", "noopener");
+    });
+  }
+  function folderMenuItems(label, path, fid, count) {
+    var here = path.length ? path.join(" / ") : (folder.name || "내 폴더");
+    var mine = entries.filter(function (n) { return !n.trashed && underPath(n, path); });
+    var items = [
+      { label: "📂 드라이브에서 폴더 열기", note: "새 탭에서 진짜 폴더를 엽니다",
+        run: function () { openDriveFolder(path, fid); } },
+      { label: "🔗 폴더 주소 복사", note: fid || !path.length ? "" : "폴더를 찾은 뒤 복사합니다",
+        run: function () {
+          if (!connected) { toast("드라이브에 연결한 뒤에 쓸 수 있습니다."); return; }
+          (fid ? Promise.resolve(fid) : findFolderIdByPath(path)).then(function (id) {
+            if (!id) { toast("드라이브에서 이 폴더를 못 찾았습니다."); return; }
+            return copyText(driveFolderUrl(id)).then(function () { toast("폴더 주소를 복사했습니다."); });
+          }).catch(function () { toast("복사하지 못했습니다."); });
+        } },
+      "-",
+      { label: "📄 여기만 모아 보기", run: function () {
+          filterPath = path.slice(); smartView = ""; filterTags = [];
+          closeDrawer(); foldComposer(); render(); gotoList();
+        } }
+    ];
+    /* 지우기는 «이 안의 기록» 을 지우는 일이다 · 폴더 껍데기를 지우는 일이 아니다.
+       한 편이라도 있으면 몇 편인지 세어서 먼저 보여 준다 · 숫자를 보고 나서 누르게. */
+    if (mine.length) {
+      items.push("-");
+      items.push({
+        label: "🗑️ 이 폴더의 기록 " + mine.length + "편 삭제", danger: true,
+        note: "휴지통으로 · 되돌릴 수 있습니다",
+        run: function () {
+          confirmModal("「" + here + "」 안의 기록을 휴지통으로 보낼까요?",
+            "기록 " + mine.length + "편이 휴지통으로 갑니다.\n드라이브의 파일은 아직 그대로 있습니다.\n\n휴지통에서 되돌릴 수 있습니다.",
+            function () {
+              mine.forEach(function (n) {
+                n.trashed = true; n.trashedAt = Date.now(); n.updatedAt = Date.now(); n._dirty = true;
+                if (editingId === n.id) resetComposer();
+              });
+              saveLocal(); render();
+              if (connected) saveIndex().catch(function () {});
+              toast(mine.length + "편을 휴지통으로 보냈습니다.");
+            }, "휴지통으로");
+        }
+      });
+      items.push({
+        label: "🗑️ 이 폴더의 기록 " + mine.length + "편 완전히 삭제", danger: true,
+        note: "드라이브 파일까지 · 되돌릴 수 없습니다",
+        run: function () {
+          var imported = mine.filter(function (n) { return !!n.srcId; }).length;
+          confirmModal("「" + here + "」 안의 기록을 완전히 삭제할까요?",
+            "기록 " + mine.length + "편입니다.\n\n이건 되돌릴 수 없습니다." +
+            (!connected ? "\n이 기기에서 삭제됩니다."
+                        : "\n드라이브의 .md 파일과 첨부 자료도 함께 휴지통으로 이동합니다.") +
+            (imported ? "\n\n그중 " + imported + "편은 폴더에서 끌어온 것이라 목록에서만 빠집니다 · 원본 파일은 그대로 남습니다." : ""),
+            function () {
+              mine.slice().forEach(function (n) { purgeNow(n.id); });
+              saveLocal(); render();
+              if (connected) saveIndex().catch(function () {});
+              toast(mine.length + "편을 완전히 삭제했습니다.");
+            }, "완전히 삭제");
+        }
+      });
+    }
+    return items;
+  }
+
+  /* =========================================================
+     의견 받기 · 질문 · 개선 의견 · 오류
+     ---------------------------------------------------------
+     쓰다가 막힌 자리에서 바로 적어 보낸다. 보낸 것은 만든 사람의 구글 시트 한 장에 쌓인다.
+     이 앱은 서버가 없으므로, 받는 자리는 «구글 앱스 스크립트 웹 앱» 하나다.
+       · 주소는 설정 → 의견 받기 에 넣는다 (이 기기에 저장 · 아래 FEEDBACK_URL 이 기본값)
+       · 보내기는 no-cors 로 던진다 · 답을 못 읽으므로 «던져졌다» 까지만 안다
+       · 못 보낸 것은 이 기기에 남겨 두었다가 다음에 열 때 다시 보낸다
+     ⚠️ 기록 내용은 절대 딸려 보내지 않는다. 사람이 적은 글과 화면 정보만 간다.
+     ========================================================= */
+  var FEEDBACK_URL = "";      // ← 배포한 앱스 스크립트 웹 앱 주소 (docs/의견받기/README.md 참고)
+  var FEEDBACK_SHEET = "https://docs.google.com/spreadsheets/d/1VXvf_7Ki80cmeXeJjplX6ITA0v8n5a-0YK4yTpXGkM0/edit";
+  var FB_KINDS = ["질문", "개선 의견", "오류"];
+
+  function fbUrl() {
+    try { return (localStorage.getItem("pkos.feedbackUrl.v1") || FEEDBACK_URL || "").trim(); }
+    catch (e) { return FEEDBACK_URL; }
+  }
+  function fbSetUrl(u) {
+    try {
+      if (u) localStorage.setItem("pkos.feedbackUrl.v1", String(u).trim());
+      else localStorage.removeItem("pkos.feedbackUrl.v1");
+    } catch (e) {}
+  }
+  /* 이 기기를 가리키는 이름 없는 번호 하나.
+     같은 사람이 이어서 보낸 것을 묶어 보려는 것뿐이다 · 누구인지는 담지 않는다. */
+  function fbClientId() {
+    var k = "pkos.clientId.v1", v = null;
+    try { v = localStorage.getItem(k); } catch (e) {}
+    if (!v) {
+      v = "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+      try { localStorage.setItem(k, v); } catch (e) {}
+    }
+    return v;
+  }
+  function fbLog() { return safeParse(localStorage.getItem("pkos.feedbackLog.v1")) || []; }
+  function fbLogSave(list) {
+    try { localStorage.setItem("pkos.feedbackLog.v1", JSON.stringify(list.slice(-40))); } catch (e) {}
+  }
+  /* 지금 무엇을 보고 있었나 · 「어느 화면에서 그랬는지」 가 없으면 고칠 자리를 못 찾는다 */
+  function fbWhere() {
+    var w = [];
+    if (document.querySelector(".modal-bg")) w.push("설정·창 열림");
+    if (viewerEl) w.push("전체 보기");
+    if (!composerFolded) w.push(editingId ? "기록 편집" : "새 기록 쓰기");
+    if (smartView) w.push("목록 · " + smartView);
+    if (filterPath && filterPath.length) w.push("폴더 · " + filterPath.join("/"));
+    if (document.body.classList.contains("focusing")) w.push("집중 모드");
+    return w.join(" · ") || "목록";
+  }
+  function fbContext() {
+    return {
+      screen: window.innerWidth + "x" + window.innerHeight +
+              (window.devicePixelRatio ? " @" + window.devicePixelRatio + "x" : ""),
+      ua: navigator.userAgent || "",
+      lang: navigator.language || "",
+      built: document.lastModified || "",
+      connected: connected ? "연결됨" : "연결 안 됨",
+      entries: (typeof entries !== "undefined" && entries) ? entries.length : 0,
+      where: fbWhere()
+    };
+  }
+  /* 보내기 · 두 걸음이다.
+     ① 먼저 답을 읽을 수 있는 길(cors)로 던진다. 앱스 스크립트 웹 앱은 답에
+        허용 표시를 붙여 주므로 보통 이쪽이 된다 · «시트에 들어갔다» 를 진짜로 확인한다.
+     ② 브라우저가 답 읽기를 막으면 그때만 던지기만 하는 길(no-cors)로 간다.
+     ⚠️ 예전에는 처음부터 no-cors 한 길이었다. 그러면 주소를 아무렇게나 적어도
+        «보냈습니다» 가 떴다 · 답을 못 읽으니 404 인지 성공인지 가릴 수가 없었다.
+        서버가 «없다» 고 또렷이 답한 것은 실패로 친다 · 다시 던져 봐야 소용없다. */
+  function fbPost(payload) {
+    var url = fbUrl();
+    if (!url) return Promise.reject(new Error("보내는 자리가 아직 정해지지 않았습니다."));
+    var body = JSON.stringify(payload);
+    var head = { "Content-Type": "text/plain;charset=utf-8" };   // 미리 묻는 절차를 안 부르는 형식
+    return fetch(url, { method: "POST", mode: "cors", redirect: "follow", headers: head, body: body })
+      .then(function (r) {
+        if (!r.ok) { var e = new Error("HTTP " + r.status); e.http = true; throw e; }
+        return r.text().then(function (t) {
+          var j = null;
+          try { j = JSON.parse(t); } catch (err) {}
+          if (j && j.ok === false) { var e2 = new Error(j.error || "받는 쪽이 거절했습니다"); e2.http = true; throw e2; }
+          return true;                       // 확인됨
+        });
+      })
+      .catch(function (err) {
+        if (err && err.http) throw err;      // 받는 쪽이 또렷이 «안 된다» 고 한 것
+        return fetch(url, { method: "POST", mode: "no-cors", headers: head, body: body })
+          .then(function () { return "unverified"; });
+      });
+  }
+  function fbQueue() { return safeParse(localStorage.getItem("pkos.feedbackQ.v1")) || []; }
+  function fbQueueSave(list) {
+    try { localStorage.setItem("pkos.feedbackQ.v1", JSON.stringify(list.slice(-20))); } catch (e) {}
+  }
+  function fbFlush() {
+    var q = fbQueue();
+    if (!q.length || !fbUrl() || !navigator.onLine) return;
+    var one = q[0];
+    fbPost(one).then(function () {
+      var rest = fbQueue().filter(function (x) { return x.id !== one.id; });
+      fbQueueSave(rest);
+      var log = fbLog().map(function (r) { return r.id === one.id ? (r.pending = false, r) : r; });
+      fbLogSave(log);
+      if (rest.length) setTimeout(fbFlush, 800);
+    }).catch(function () {});
+  }
+
+  function openFeedback(preKind) {
+    closeModal();
+    var kind = FB_KINDS.indexOf(preKind) >= 0 ? preKind : "개선 의견";
+    var withCtx = true;
+
+    var bg = el("div", "modal-bg");
+    var m = el("div", "card modal"); m.style.maxWidth = "520px";
+
+    var head = el("div", "mhead");
+    head.appendChild(el("h3", null, "💬 의견 보내기"));
+    head.appendChild(el("span", "spacer"));
+    var x = el("button", "btn sm ghost", "✕"); x.addEventListener("click", closeModal);
+    head.appendChild(x); m.appendChild(head);
+
+    var body = el("div", "mbody");
+    body.appendChild(el("p", "desc",
+      "불편한 곳, 있으면 좋겠는 것, 안 되는 것을 적어 주세요. 만든 사람에게 그대로 갑니다."));
+
+    /* ---- 종류 ---- */
+    var kf = el("div", "field");
+    kf.appendChild(el("label", null, "① 무엇인가요?"));
+    var kinds = el("div", "fbkinds");
+    var kindBtns = FB_KINDS.map(function (k) {
+      var b = el("button", "fbkind" + (k === kind ? " on" : ""), k);
+      b.type = "button";
+      b.addEventListener("click", function () {
+        kind = k;
+        kindBtns.forEach(function (o, i) { o.className = "fbkind" + (FB_KINDS[i] === kind ? " on" : ""); });
+        ta.placeholder = kind === "오류"
+          ? "무엇을 하다가 어떻게 됐는지 적어 주세요. 「사진을 넣고 저장을 눌렀더니 …」"
+          : kind === "질문"
+            ? "궁금한 것을 적어 주세요."
+            : "이랬으면 좋겠다 싶은 것을 적어 주세요.";
+      });
+      kinds.appendChild(b);
+      return b;
+    });
+    kf.appendChild(kinds);
+    body.appendChild(kf);
+
+    /* ---- 내용 ---- */
+    var tf = el("div", "field");
+    var tl = el("label", null, "② 내용"); tl.setAttribute("for", "fbText"); tf.appendChild(tl);
+    var ta = el("textarea", "inp"); ta.id = "fbText"; ta.rows = 6;
+    ta.placeholder = "이랬으면 좋겠다 싶은 것을 적어 주세요.";
+    ta.style.resize = "vertical";
+    tf.appendChild(ta);
+    body.appendChild(tf);
+
+    /* ---- 연락처 · 안 적어도 된다 ---- */
+    var cf = el("div", "field");
+    var cl = el("label", null, "③ 답을 받을 곳 (안 적어도 됩니다)"); cl.setAttribute("for", "fbWho"); cf.appendChild(cl);
+    var who = el("input", "inp"); who.id = "fbWho"; who.type = "text";
+    who.placeholder = "메일 주소나 이름";
+    try { who.value = localStorage.getItem("pkos.feedbackWho.v1") || (userEmail || ""); } catch (e) {}
+    cf.appendChild(who);
+    body.appendChild(cf);
+
+    /* ---- 함께 가는 것 · 무엇이 가는지 먼저 보여 준다 ---- */
+    var ctx = fbContext();
+    var box = el("div", "field");
+    var ck = el("label", "checkline");
+    var cb = el("input"); cb.type = "checkbox"; cb.checked = true;
+    cb.addEventListener("change", function () { withCtx = cb.checked; meta.style.opacity = withCtx ? "1" : ".45"; });
+    ck.appendChild(cb);
+    ck.appendChild(el("span", null, "아래 화면 정보도 함께 보냅니다 (고칠 자리를 찾는 데 씁니다)"));
+    box.appendChild(ck);
+    var meta = el("div", "fbmeta");
+    meta.appendChild(el("div", null, "지금 화면 · " + ctx.where));
+    meta.appendChild(el("div", null, "창 크기 · " + ctx.screen + " · 드라이브 " + ctx.connected));
+    meta.appendChild(el("div", null, "브라우저 · " + ctx.ua.slice(0, 90)));
+    meta.appendChild(el("div", null, "⚠️ 기록의 내용·제목·사진은 보내지 않습니다."));
+    box.appendChild(meta);
+    body.appendChild(box);
+
+    /* ---- 이 기기에서 보낸 것 · 「보냈나?」 를 여기서 확인한다 ---- */
+    var sent = el("div", "fbsent");
+    function paintSent() {
+      sent.innerHTML = "";
+      var log = fbLog().slice().reverse();
+      if (!log.length) return;
+      sent.appendChild(el("h4", null, "이 기기에서 보낸 의견 " + log.length + "건"));
+      log.slice(0, 6).forEach(function (r) {
+        var row = el("div", "fbrow");
+        row.appendChild(el("span", "fbk", r.kind));
+        var t = el("span", "fbt", r.text); t.title = r.text;
+        row.appendChild(t);
+        if (r.pending) row.appendChild(el("span", "fbq", "보내는 중"));
+        else if (r.unsure) row.appendChild(el("span", "fbq", "확인 못 함"));
+        row.appendChild(el("span", "fbw", formatDate(r.at)));
+        sent.appendChild(row);
+      });
+    }
+    paintSent();
+    body.appendChild(sent);
+    m.appendChild(body);
+
+    /* ---- 보내기 ---- */
+    var foot = el("div", "mfoot");
+    var status = el("span", "desc"); status.style.margin = "0";
+    foot.appendChild(status);
+    foot.appendChild(el("span", "spacer"));
+    var no = el("button", "btn ghost", "닫기"); no.addEventListener("click", closeModal);
+    var go = el("button", "btn primary", "보내기");
+    go.addEventListener("click", function () {
+      var text = ta.value.trim();
+      if (!text) { status.textContent = "내용을 적어 주세요."; ta.focus(); return; }
+      if (!fbUrl()) {
+        status.textContent = "보내는 자리가 아직 정해지지 않았습니다 · 설정 → 의견 받기";
+        return;
+      }
+      try { localStorage.setItem("pkos.feedbackWho.v1", who.value.trim()); } catch (e) {}
+      var c = withCtx ? fbContext() : { where: "", screen: "", ua: "", lang: "", built: "", connected: "", entries: 0 };
+      var rec = {
+        v: 1,
+        id: "f" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        app: "개인지식운영체제 · PKOS",
+        kind: kind,
+        text: text,
+        contact: who.value.trim(),
+        page: (location.pathname.split("/").pop() || "index.html"),
+        where: c.where, screen: c.screen, ua: c.ua, lang: c.lang,
+        built: c.built, connected: c.connected, entries: c.entries,
+        sentAt: new Date().toISOString(),
+        clientId: fbClientId()
+      };
+      go.disabled = true;
+      status.textContent = "보내는 중…";
+      fbPost(rec).then(function (how) {
+        /* ⚠️ 브라우저가 답을 못 읽게 막았을 때는 «갔다» 를 우리가 확인한 것이 아니다.
+           그걸 「보냈습니다」 라고 하면, 안 간 것도 갔다고 말하는 셈이 된다. 말을 가른다. */
+        var sure = (how === true);
+        fbLogSave(fbLog().concat([{ id: rec.id, kind: kind, text: text, at: Date.now(),
+                                    pending: false, unsure: !sure }]));
+        closeModal();
+        if (sure) {
+          toast("보냈습니다. 읽고 반영하겠습니다.");
+          toast2("답을 받을 곳을 적으셨으면 그리로 연락드립니다.");
+        } else {
+          toast("보냈습니다 · 다만 도착했는지까지는 확인하지 못했습니다.");
+          toast2("이 브라우저가 답을 못 읽게 막았습니다. 안 왔으면 다시 한 번 보내 주세요.");
+        }
+      }).catch(function () {
+        /* 못 보냈다고 사람이 쓴 글을 버리면 안 된다 · 남겨 두었다가 다음에 다시 던진다 */
+        fbQueueSave(fbQueue().concat([rec]));
+        fbLogSave(fbLog().concat([{ id: rec.id, kind: kind, text: text, at: Date.now(), pending: true }]));
+        closeModal();
+        toast("지금은 못 보냈습니다 · 이 기기에 두었다가 다시 보냅니다.");
+      });
+    });
+    foot.appendChild(no); foot.appendChild(go);
+    m.appendChild(foot);
+
+    bg.appendChild(m);
+    bg.addEventListener("click", function (e) { if (e.target === bg) closeModal(); });
+    $("modalHost").appendChild(bg);
+    modalEl = bg;
+    setTimeout(function () { ta.focus(); }, 30);
+  }
+
   function renderSideNav() {
     var host = $("sideNav");
     if (!host) return;
@@ -10274,6 +10743,13 @@
         foldComposer();          // 볼 때는 목록이 위로 온다
         render();
         gotoList();
+      });
+      /* 오른쪽 단추 · 폴더 창에서 하던 그 손버릇 그대로.
+         「진짜 폴더 열기」 가 여기 있어야, 앱이 만든 자리와 드라이브의 자리가 같다는 걸
+         눈으로 확인할 수 있다. 지우기도 같은 자리에 둔다 · 다만 반드시 확인 창을 거친다. */
+      b.addEventListener("contextmenu", function (e) {
+        e.preventDefault(); e.stopPropagation();
+        openMenuAt(e.clientX, e.clientY, folderMenuItems(label, path, fid, count));
       });
       host.appendChild(b);
     }
@@ -10584,6 +11060,25 @@
       btn.title = "지금 · " + st.label + " · 누르면 " + st.tip;
     }
   }
+
+  /* ---- 가운데 칸만 접기 ----
+     ☰ 는 «기둥 → 목록» 순서로 걷는 손잡이라, 「폴더 나무는 두고 목록만」 이 안 됐다.
+     이건 그것만 하는 손잡이다 · ☰ 의 단수와 따로 논다. 접은 것은 기기에 남는다. */
+  var listFolded = localStorage.getItem("pkos.listFold.v1") === "1";
+  function applyListFold() {
+    var l = document.querySelector(".layout");
+    if (l) {
+      if (listFolded) l.setAttribute("data-listcol", "off");
+      else l.removeAttribute("data-listcol");
+    }
+    var b = $("btnListFold");
+    if (b) { b.title = "기록 목록 접기"; b.setAttribute("aria-label", "기록 목록 접기"); }
+  }
+  function setListFold(on) {
+    listFolded = !!on;
+    try { localStorage.setItem("pkos.listFold.v1", listFolded ? "1" : "0"); } catch (e) {}
+    applyListFold();
+  }
   /* ---- 머리띠 높이를 재서 알려 준다 ----
      ⚠️ 칸들이 «100vh - 66px» 로 못 박혀 있었다. 글자 크기를 올리자 머리띠가
         76px 이 되어, 칸이 화면보다 10px 길어졌다 · 쪽 전체에 굴림 막대가 서고
@@ -10699,6 +11194,11 @@
     });
     if (scrim) scrim.addEventListener("click", closeDrawer);
     applyNavStage();
+
+    var fold = $("btnListFold"), rail = $("listRail");
+    if (fold) fold.addEventListener("click", function () { setListFold(true); toast("기록 목록을 접었습니다 · 옆의 띠로 다시 폅니다."); });
+    if (rail) rail.addEventListener("click", function () { setListFold(false); });
+    applyListFold();
   })();
 
   function render() {
@@ -10859,21 +11359,26 @@
       });
       h3.appendChild(tbtn);
       head.appendChild(h3);
-      /* 나머지는 한 겹 안으로 · 위험한 것(삭제)이 편집 바로 옆에 늘 나와 있으면 안 된다 */
+      /* 나머지는 한 겹 안으로 · 위험한 것(삭제)이 편집 바로 옆에 늘 나와 있으면 안 된다.
+         ⚠️ 그런데 «한 겹 안» 이 너무 깊었다. 가운데 칸에서는 ⋯ 이 아예 안 보이다가
+            마우스를 얹어야 나타나서, 지우는 길이 없는 줄 알았다는 말을 들었다.
+            그래서 ⋯ 는 늘 보이게 두고(아래 CSS), 카드 아무 데서나 오른쪽 단추로도 열린다. */
       var dots = dotsBtn("이 기록으로 할 일");
-      dots.addEventListener("click", function (e) {
-        e.stopPropagation();
+      function entryMenuItems() {
         var items = n.trashed
           ? [{ label: "📖 전체 보기", run: function () { openViewer(n); } },
              { label: "↩ 되돌리기", run: function () { restoreEntry(n.id); } },
              "-",
-             { label: "🗑️ 완전히 삭제", danger: true, note: "되돌릴 수 없습니다", run: function () { purgeEntry(n.id); } }]
+             { label: "🗑️ 완전히 삭제", danger: true, note: "드라이브 파일까지 · 되돌릴 수 없습니다", run: function () { purgeEntry(n.id); } }]
           : [{ label: "📖 전체 보기", run: function () { openViewer(n); } },
              { label: "✏️ 편집", run: function () { loadIntoComposer(n); } },
              { label: n.pinned ? "📌 고정 풀기" : "📌 맨 위에 고정", run: function () { togglePin(n); } },
              { label: "🔗 링크로 공유", run: function () { openShareModal(n); } },
              "-",
-             { label: "🗑️ 삭제", danger: true, note: "휴지통으로 · 되돌릴 수 있습니다", run: function () { removeEntry(n.id); } }];
+             { label: "🗑️ 삭제", danger: true, note: "휴지통으로 · 되돌릴 수 있습니다", run: function () { removeEntry(n.id); } },
+             /* 두 걸음이 기본이지만, 「지금 바로 파일째 지우고 싶다」 는 길도 열어 둔다.
+                누르면 무엇이 지워지는지 적힌 확인 창이 반드시 한 번 뜬다 (purgeEntry). */
+             { label: "🗑️ 완전히 삭제", danger: true, note: "드라이브 파일까지 · 되돌릴 수 없습니다", run: function () { purgeEntry(n.id); } }];
         if (!n.trashed && isInbox(n)) {
           items.splice(2, 0, { label: "✅ 정리 끝", note: (n.tags || []).length ? "미정리함에서 뺍니다" : "태그를 하나 붙여야 나갑니다 · 편집으로 갑니다",
             run: function () {
@@ -10883,9 +11388,18 @@
               if (connected) syncPending();
             } });
         }
-        openMenu(dots, items);
+        return items;
+      }
+      dots.addEventListener("click", function (e) {
+        e.stopPropagation();
+        openMenu(dots, entryMenuItems());
       });
       head.appendChild(dots);
+      // 카드 위에서 오른쪽 단추 · 폴더 창에서 하던 그 손버릇 그대로
+      card.addEventListener("contextmenu", function (e) {
+        e.preventDefault(); e.stopPropagation();
+        openMenuAt(e.clientX, e.clientY, entryMenuItems());
+      });
       var line2 = el("span", "when");
       line2.appendChild(document.createTextNode(formatDate(n.createdAt)));
       var pin = el("button", "pinbtn" + (n.pinned ? " on" : ""), n.pinned ? "📌 고정됨" : "📌 고정");
@@ -12979,7 +13493,10 @@
   /* okLabel 을 안 주면 「삭제」다 (원래 쓰던 자리들이 다 지우기라서).
      onCancel 은 취소·바깥 누름·닫기 어느 쪽이든 «딱 한 번» 불린다. 
      기다리는 쪽이 약속(Promise)이면 안 불러 주는 순간 영영 멈춘다. */
-  function confirmModal(title, text, onOk, okLabel, onCancel) {
+  /* extra: 셋째 단추 한 개 · { label, run, danger }.
+     「휴지통으로」 와 「완전히 삭제」 처럼 «되돌릴 수 있는 길» 과 «없는 길» 을
+     한 창에서 같이 보여 줘야 할 때만 쓴다. 기본 단추는 늘 되돌릴 수 있는 쪽이다. */
+  function confirmModal(title, text, onOk, okLabel, onCancel, extra) {
     var bg = el("div", "modal-bg");
     var m = el("div", "card modal"); m.style.maxWidth = "440px";
     var h = el("div", "mhead"); h.appendChild(el("h3", null, title)); m.appendChild(h);
@@ -12997,9 +13514,19 @@
     var f = el("div", "mfoot");
     f.appendChild(el("span", "spacer"));
     var no = el("button", "btn", "취소"); no.addEventListener("click", function () { close(false); });
+    f.appendChild(no);
+    if (extra && extra.label) {
+      var ex = el("button", "btn" + (extra.danger === false ? "" : " dangerbtn"), extra.label);
+      ex.addEventListener("click", function () {
+        if (done) return;
+        done = true; bg.remove();
+        if (extra.run) extra.run();
+      });
+      f.appendChild(ex);
+    }
     var yes = el("button", "btn primary", okLabel || "삭제");
     yes.addEventListener("click", function () { close(true); });
-    f.appendChild(no); f.appendChild(yes); m.appendChild(f);
+    f.appendChild(yes); m.appendChild(f);
     bg.appendChild(m);
     bg.addEventListener("click", function (e) { if (e.target === bg) close(false); });
     $("modalHost").appendChild(bg);
@@ -13031,7 +13558,7 @@
     /* ⚠️ 「📥 가져오기」 는 «고급» 에 묻혀 있었다. 그런데 그것이 이 도구를 만든 진짜 목적이다. 
        십삼 년치를 끌어오는 길. 묻어 두면 그 길이 있는 줄도 모른다. 그래서 제 칸으로 꺼냈다. */
     var TABS = [["look", "모양"], ["storage", "저장 위치"], ["import", "📥 가져오기"],
-                ["types", "기록 유형"], ["naming", "파일 이름"], ["advanced", "고급"]];
+                ["types", "기록 유형"], ["naming", "파일 이름"], ["feedback", "💬 의견 받기"], ["advanced", "고급"]];
     TABS.forEach(function (t) {
       var b = el("button", "tab" + (active === t[0] ? " on" : ""), t[1]);
       b.addEventListener("click", function () { active = t[0]; paint(); });
@@ -13076,7 +13603,73 @@
       else if (active === "types") paintTypes();
       else if (active === "naming") paintNaming();
       else if (active === "import") paintImport();
+      else if (active === "feedback") paintFeedback();
       else paintAdvanced();
+    }
+
+    /* ---- 의견 받는 자리 ----
+       이 칸은 «앱을 펴 놓은 사람» 이 쓴다. 오른쪽 아래 💬 로 들어온 글이
+       어디에 쌓일지를 여기서 정한다 · 서버가 없으니 앱스 스크립트 웹 앱 주소 한 줄이다. */
+    function paintFeedback() {
+      var f = el("div", "field");
+      f.appendChild(el("label", null, "받는 자리 · 앱스 스크립트 웹 앱 주소"));
+      f.appendChild(el("p", "desc",
+        "오른쪽 아래 💬 로 들어온 질문·개선 의견·오류가 이 주소로 갑니다. " +
+        "주소를 넣기 전에는 보내기가 «아직 정해지지 않았습니다» 로 멈춥니다."));
+      var inp = el("input", "inp");
+      inp.type = "url";
+      inp.placeholder = "https://script.google.com/macros/s/…/exec";
+      inp.value = fbUrl();
+      f.appendChild(inp);
+      var row = el("div", "row"); row.style.marginTop = "8px";
+      var save = el("button", "btn sm primary", "주소 저장");
+      save.addEventListener("click", function () {
+        fbSetUrl(inp.value.trim());
+        st.textContent = inp.value.trim() ? "저장했습니다. 이제 의견이 이 주소로 갑니다." : "주소를 비웠습니다.";
+      });
+      var test = el("button", "btn sm", "시험 삼아 한 통 보내기");
+      test.addEventListener("click", function () {
+        fbSetUrl(inp.value.trim());
+        if (!fbUrl()) { st.textContent = "주소를 먼저 넣어 주세요."; return; }
+        st.textContent = "보내는 중…";
+        fbPost({ v: 1, id: "t" + Date.now().toString(36), app: "개인지식운영체제 · PKOS",
+                 kind: "질문", text: "[연결 확인] 이 줄이 시트에 보이면 제대로 이어진 것입니다.",
+                 contact: userEmail || "", page: "설정", where: "설정 · 의견 받기",
+                 screen: window.innerWidth + "x" + window.innerHeight, ua: navigator.userAgent || "",
+                 lang: navigator.language || "", built: document.lastModified || "",
+                 connected: connected ? "연결됨" : "연결 안 됨", entries: 0,
+                 sentAt: new Date().toISOString(), clientId: fbClientId() })
+          .then(function () { st.textContent = "던졌습니다. 시트에 한 줄이 늘었는지 보세요."; })
+          .catch(function () { st.textContent = "못 보냈습니다. 주소와 «액세스 권한: 모든 사용자» 를 확인하세요."; });
+      });
+      var open = el("button", "btn sm", "📊 모인 의견 시트 열기");
+      open.addEventListener("click", function () { window.open(FEEDBACK_SHEET, "_blank", "noopener"); });
+      row.appendChild(save); row.appendChild(test); row.appendChild(open);
+      f.appendChild(row);
+      var st = el("p", "desc"); st.style.marginTop = "8px";
+      f.appendChild(st);
+      body.appendChild(f);
+
+      var g = el("div", "field");
+      g.appendChild(el("label", null, "받는 자리를 만드는 법"));
+      var ol = el("ol"); ol.className = "desc"; ol.style.paddingLeft = "18px"; ol.style.lineHeight = "1.85";
+      ["의견을 모을 구글 시트를 엽니다.",
+       "[확장 프로그램] → [Apps Script] 를 누릅니다.",
+       "저장소의 docs/의견받기/Code.gs 내용을 붙여 넣고 저장합니다.",
+       "[배포] → [새 배포] → 유형 «웹 앱» 을 고릅니다.",
+       "«실행 계정: 나», «액세스 권한: 모든 사용자» 로 두고 배포합니다.",
+       "나온 /exec 주소를 위 칸에 붙여 넣고 [주소 저장] 을 누릅니다.",
+       "모두에게 적용하려면 index.html 의 FEEDBACK_URL 에도 같은 주소를 적습니다."
+      ].forEach(function (t) { ol.appendChild(el("li", null, t)); });
+      g.appendChild(ol);
+      body.appendChild(g);
+
+      var h = el("div", "field");
+      h.appendChild(el("label", null, "보내는 것"));
+      h.appendChild(el("p", "desc",
+        "사람이 적은 글, 종류, 답 받을 곳, 그리고 화면 정보(창 크기·브라우저·지금 보던 화면)입니다. " +
+        "기록의 제목·내용·사진은 보내지 않습니다."));
+      body.appendChild(h);
     }
 
     /* 보는 것 고르기 · 누르면 «그 자리에서» 화면이 바뀐다.
@@ -13187,7 +13780,7 @@
          그래서 고르기를 앞세우고, 붙여넣기는 뒤로 물린다. */
       function took(f) {
         inp.value = "https://drive.google.com/drive/folders/" + f.id;
-        status.textContent = "「" + f.name + "」 을 고르셨습니다. 연결하는 중…";
+        status.textContent = "「" + f.name + "」" + josa(f.name, "을", "를") + " 고르셨습니다. 연결하는 중…";
         connect(f.id).then(function () { if (connected) { status.textContent = "연결됨 · " + folder.name; paint(); } });
       }
       var pick = el("button", "btn primary", "📂 폴더 고르기");
@@ -13715,6 +14308,28 @@
   $("btnFocus").addEventListener("click", function () {
     setFocus(!document.body.classList.contains("focusing"));
   });
+  $("btnDeleteEntry").addEventListener("click", function () { deleteEditing(); });
+  syncDeleteBtn();
+  $("btnUndo").addEventListener("click", function (e) { e.preventDefault(); undoPaper(); });
+  $("btnRedo").addEventListener("click", function (e) { e.preventDefault(); redoPaper(); });
+  $("btnFeedback").addEventListener("click", function () { openFeedback(); });
+  /* ---- 이름표를 누르면 홈으로 ----
+     좁혀 보다 보면 「모든 기록으로 어떻게 돌아가지」 가 된다. 어느 화면에서든
+     늘 같은 자리에 있는 것은 위쪽 이름표뿐이라, 돌아가는 길을 거기에 둔다.
+     ⚠️ 쓰던 글은 건드리지 않는다 · 임시 보관 중인 것을 «홈» 때문에 잃으면 안 된다. */
+  $("btnHome").addEventListener("click", function () {
+    smartView = ""; filterPath = []; filterTags = []; filterType = "all";
+    filterPinned = false; searchQ = "";
+    var sb = $("search"); if (sb) sb.value = "";
+    closeDrawer();
+    foldComposer();
+    render();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    var lc = $("listcol"); if (lc) lc.scrollTop = 0;
+  });
+  /* 지난번에 못 보낸 것이 있으면 조용히 다시 던진다 · 사람이 다시 적게 하면 안 된다 */
+  setTimeout(fbFlush, 2500);
+  window.addEventListener("online", function () { setTimeout(fbFlush, 800); });
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && document.body.classList.contains("focusing")) setFocus(false);
   });
@@ -13812,15 +14427,34 @@
       { label: "🗂 폴더 구조", run: function () { $("btnMap").click(); } },
       { label: "🕸️ 관계망", run: function () { $("btnGraph").click(); } },
       { label: "📚 엮어내기", run: function () { $("btnCompile").click(); } },
-      { label: "🤖 AI에 건네기", note: "고른 기록을 한 덩어리로 복사", run: function () { openAiBundle(); } },
       "-"
     ].concat(topMenuItems()));
   });
   $("search").addEventListener("input", function () { searchQ = this.value.trim(); render(); });
   $("btnCompile").addEventListener("click", openCompile);
-  $("btnAi").addEventListener("click", openAiBundle);
   document.addEventListener("keydown", function (e) {
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); saveEntry(); }
+    /* 되돌리기 · Ctrl+Z, 다시 하기 · Ctrl+Shift+Z (Ctrl+Y 도 받는다).
+       ⚠️ 제목·태그 칸이나 덩어리 안 입력칸에서는 손대지 않는다 · 거기는 브라우저가 더 잘한다.
+          종이 위에서만 우리 것을 쓴다 · 사진·녹음까지 같이 되돌리려면 그래야 한다. */
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && /^[zyZY]$/.test(e.key)) {
+      var t = e.target;
+      var inField = !!(t && t.closest && t.closest("input, textarea"));
+      var inLayer = !!(t && t.closest && t.closest(".modal-bg, .viewer, .lightbox"));
+      var onPaper = !!(paper && t && (t === paper || (paper.contains && paper.contains(t))));
+      /* ⚠️ 사진 단추를 누른 «직후» 는 초점이 종이가 아니라 단추나 몸통에 있다.
+         거기서 Ctrl+Z 가 안 먹으면 「사진 넣고 바로 되돌리기」 가 안 된다 · 그때가 제일 급한데.
+         칸 안(입력칸)과 뜬 창만 비켜 가고, 나머지 자리에서는 종이를 되돌린다. */
+      var loose = !inField && !inLayer && !composerFolded &&
+                  (!t || t === document || t === document.body || t === document.documentElement ||
+                   (t.closest && !!t.closest(".composer")));
+      if (!inField && !inLayer && (onPaper || loose)) {
+        e.preventDefault();
+        var redo = (e.key === "y" || e.key === "Y") || e.shiftKey;
+        if (redo) redoPaper(); else undoPaper();
+        return;
+      }
+    }
     if (e.key === "Escape" && document.querySelector(".lightbox")) return;  // 사진 창이 먼저 닫힌다
     if (e.key === "Escape" && modalEl) closeModal();
     else if (e.key === "Escape" && viewerEl) closeViewer();

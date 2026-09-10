@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="theme-color" content="#ffffff" />
 <meta name="robots" content="noindex, nofollow" />
-<title>기록 보기 · 구글 기록장</title>
+<title>기록 보기 · 개인지식운영체제</title>
 <!-- 보내는 쪽(index.html)과 같은 글꼴로 서야 «같은 기록» 처럼 보인다 -->
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
@@ -554,7 +554,7 @@
   function render(p) {
     if (p.th) { document.documentElement.setAttribute("data-theme", p.th); loadFont(p.th); }
     if (p.tn) document.documentElement.setAttribute("data-tone", p.tn);
-    document.title = (p.t || "기록") + " · 구글 기록장";
+    document.title = (p.t || "기록") + " · 개인지식운영체제";
 
     var w = document.getElementById("wrap");
     w.innerHTML = "";
@@ -651,12 +651,12 @@
 
     w.appendChild(paper);
 
-    /* ⚠️ 여기에 «구글 기록장이란?» 링크를 두었었다. 그 링크가 이 사본이 어디에 있는지를
+    /* ⚠️ 여기에 «개인지식운영체제이란?» 링크를 두었었다. 그 링크가 이 사본이 어디에 있는지를
        받는 사람에게 그대로 알려 준다. 이 앱은 구글 심사 전이라 로그인이 «평생 100명» 한도고,
        주소가 퍼지면 그 자리는 되돌릴 수 없다. 기록 하나를 보여 주자고 걸 만한 것이 아니다.
        그래서 링크는 두지 않는다. 무엇으로 만든 쪽인지만 적는다. */
     var foot = el("div", "foot");
-    foot.appendChild(document.createTextNode("「구글 기록장」으로 만든 쪽입니다. 보낸 사람이 공유를 끄면 더 열리지 않습니다."));
+    foot.appendChild(document.createTextNode("「개인지식운영체제」로 만든 쪽입니다. 보낸 사람이 공유를 끄면 더 열리지 않습니다."));
     w.appendChild(foot);
   }
 
