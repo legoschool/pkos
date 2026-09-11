@@ -1658,6 +1658,11 @@
                         object-fit: cover; background: var(--line-soft); }
   @media (max-width: 700px) { .linkcard .lc-thumb { width: 68px; height: 44px; } }
   .linkcard .lc-desc { font-size: calc(12px * var(--fs)); color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 1px 0; }
+  .record-preview { width: 100%; height: 420px; border: 1px solid var(--line); border-radius: 8px; background: #fff; display: block; margin: 10px 0; }
+  .media-slides { border: 1px solid var(--line); border-radius: 8px; margin: 12px 0; overflow: hidden; }
+  .media-slide-stage { background: var(--bg); min-height: 160px; display: grid; place-items: center; }
+  .media-slide-stage img, .media-slide-stage video { display: block; width: 100%; max-height: 420px; object-fit: contain; }
+  .media-slide-nav { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; gap: 8px; }
   .pdfframe { display: block; width: 100%; height: 560px; border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; background: #fff; }
 
   /* ---------- 전체 보기 (한 편을 통째로 읽는 화면) ---------- */
@@ -2606,11 +2611,9 @@
   var DEFAULTS = {
     version: 1,
     types: [
-      { key: "experience", label: "경험", icon: "🧭" },
-      { key: "knowledge",  label: "지식", icon: "📘" },
-      { key: "idea",       label: "아이디어", icon: "💡" },
-      { key: "material",   label: "자료", icon: "🗂️" },
-      { key: "reflection", label: "회고", icon: "🪞" }
+      { key: "experience", label: "연수", icon: "🧭" },
+      { key: "idea", label: "아이디어", icon: "💡" },
+      { key: "material", label: "자료", icon: "🗂️" }
     ],
     /* 날짜·태그·제목이 기본으로 함께 간다. 나중에 폴더만 보고도 무엇인지 알 수 있게.
        사진·파일은 그 자료에 적어 둔 제목({자료제목})까지 붙는다. 안 적으면 알아서 빠진다. */
@@ -2995,11 +2998,6 @@
   function normalizeSettings(s) {
     var out = JSON.parse(JSON.stringify(DEFAULTS));
     if (!s) return out;
-    if (Array.isArray(s.types) && s.types.length) {
-      out.types = s.types.filter(function (t) { return t && t.key && t.label; })
-        .map(function (t) { return { key: t.key, label: t.label, icon: t.icon || "🏷️" }; });
-      if (!out.types.length) out.types = JSON.parse(JSON.stringify(DEFAULTS.types));
-    }
     /* ⚠️ 이름 규칙을 손으로 고친 사람의 것은 절대 안 건드린다.
        옛 기본값 그대로인 사람만 새 기본값으로 옮긴다 · 안 고친 것을 «고른 것» 으로 여기면 안 된다. */
     var OLD_DEFAULTS = { mdPattern: "{날짜}_{태그}_{제목}", filePattern: "{날짜}_{태그}_{제목}_{자료제목}_{번호}" };
@@ -3014,7 +3012,7 @@
       out.templates = s.templates.filter(function (t) { return t && t.name; }).map(function (t) {
         return {
           id: t.id || uid("tpl_"), name: String(t.name).slice(0, 40),
-          type: t.type || "", tags: t.tags || "",
+          type: ["experience", "idea", "material"].includes(t.type) ? t.type : "material", tags: t.tags || "",
           blocks: Array.isArray(t.blocks) ? t.blocks : []
         };
       });
@@ -3051,6 +3049,7 @@
     return out;
   }
   function typeOf(key) {
+    if (!["experience", "idea", "material"].includes(key)) key = "material";
     for (var i = 0; i < settings.types.length; i++) if (settings.types[i].key === key) return settings.types[i];
     return { key: key || "", label: "미분류", icon: "🏷️" };
   }
@@ -3586,6 +3585,10 @@
   // 예전 버전(본문+첨부 분리)을 블록 구조로 변환
   function migrate(list) {
     return (list || []).map(function (n) {
+      if (!["experience", "idea", "material"].includes(n.type)) {
+        if (n.type) n.previousType = n.type;
+        n.type = "material";
+      }
       if (n.blocks) return n;
       var bl = [];
       if (n.body) bl.push({ id: uid(), kind: "text", text: n.body });
@@ -5198,6 +5201,7 @@
     if (b.kind === "link") { o.url = b.url || ""; o.label = b.label || ""; }
     if (b.kind === "embed") { o.code = b.code || ""; o.height = b.height || 360; }
     if (b.kind === "image" || b.kind === "file") {
+      o.localMtime = b.localMtime || 0;
       o.original = b.original || ""; o.mime = b.mime || ""; o.size = b.size || 0;
       o.name = b.name || ""; o.caption = b.caption || ""; o.fileId = b.fileId || null;
     }
@@ -5218,7 +5222,7 @@
       srcFolderId: n.srcFolderId || null, srcFolderName: n.srcFolderName || null,
       srcPath: (n.srcPath || []).slice(),
       folderId: n.folderId || null, folderName: n.folderName || null,
-      localDir: n.localDir || null,    // 내 컴퓨터 폴더 방식 · 이 기록의 파일이 있는 폴더(뿌리 기준)
+      localDir: n.localDir || null, localMtime: n.localMtime || 0, localMissing: !!n.localMissing,    // 내 컴퓨터 폴더 방식 · 이 기록의 파일이 있는 폴더(뿌리 기준)
       /* 골라 둔 자리 · 지우기는 이 칸을 절대 안 본다 (folderId 와 다른 이유) */
       deskId: n.deskId || null, deskName: n.deskName || null,
       deskPath: (n.deskPath || []).slice(),
@@ -5541,7 +5545,7 @@
     var e = extOf(name).slice(1);
     var t = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp", svg: "image/svg+xml",
               mp4: "video/mp4", webm: "video/webm", mov: "video/quicktime", mp3: "audio/mpeg", m4a: "audio/mp4", wav: "audio/wav",
-              pdf: "application/pdf", txt: "text/plain", md: "text/markdown", json: "application/json" };
+              pdf: "application/pdf", txt: "text/plain", md: "text/markdown", json: "application/json", html: "text/html", htm: "text/html", url: "text/plain", webloc: "text/plain" };
     return t[e] || "application/octet-stream";
   }
   async function localDir(parts, create) {
@@ -5614,16 +5618,32 @@
     n.localDir = out.md.join("/");
     return out;
   }
-  async function localSyncPending() {
+  var localWriteTask = null;
+  function localSyncPending() {
+    if (localWriteTask) return localWriteTask;
+    localWriteTask = localSyncRun().finally(function () { localWriteTask = null; });
+    return localWriteTask;
+  }
+  async function localSyncRun() {
+    if (localScanTask) await localScanTask;
     if (!localOn) return;
     var todo = entries.filter(function (x) {
-      if (x.trashed) return false;
+      if (x.trashed || x.localMissing) return false;
       if (x._dirty || !x.mdId) return true;
       return (x.blocks || []).some(function (b) { return (b.kind === "image" || b.kind === "file") && b.blob && (!b.fileId || b._remask); });
     });
     for (var i = 0; i < todo.length; i++) {
       var n = todo[i];
       try {
+        if (localIsId(n.mdId) && n.localMtime && n._dirty) {
+          try {
+            var previous = await localReadFile(n.mdId);
+            if (previous.lastModified !== n.localMtime) {
+              await localWrite([".pkos-conflicts"], Date.now() + "-" + (n.mdName || "기록.md"), previous);
+              toast("밖에서 수정된 원본을 .pkos-conflicts 폴더에 보관했습니다.");
+            }
+          } catch (err) { if (err.name !== "NotFoundError") throw err; }
+        }
         var t = localTargets(n), bl = n.blocks || [];
         for (var j = 0; j < bl.length; j++) {
           var b = bl[j];
@@ -5646,6 +5666,7 @@
         if (localIsId(n.mdId) && n.mdId !== newId) await localRemove(n.mdId);   // 제목이 바뀌면 옛 파일은 지운다
         n.mdId = await localWrite(t.md, finalName, buildMarkdown(n));
         n.mdName = finalName;
+        n.localMtime = (await localReadFile(n.mdId)).lastModified;
         delete n._dirty;
       } catch (e) {
         console.warn("폴더 저장 실패", n.title, e);
@@ -5719,11 +5740,12 @@
     return localScanTask;
   }
   async function localImportRun(status, opt) {
+    if (localWriteTask) await localWriteTask;
     if (!localOn) return 0;
     opt = opt || {};
-    var known = {}, byId = {}, byMd = {}, added = 0, addedFile = 0, changed = 0, visited = 0;
+    var known = {}, byId = {}, byMd = {}, seenFiles = {}, added = 0, addedFile = 0, changed = 0, visited = 0;
     entries.forEach(function (x) {
-      byId[x.id] = 1;
+      byId[x.id] = x;
       if (x.mdId) { known[x.mdId] = 1; byMd[x.mdId] = x; }
       if (x.srcId) known[x.srcId] = 1;
       (x.blocks || []).forEach(function (b) { if (b.fileId) known[b.fileId] = 1; });
@@ -5732,14 +5754,17 @@
     settings.types.forEach(function (t) { if (t.key === "material" || t.label === "자료") materialType = t.key; });
     var loose = [];   // 어느 글에도 안 걸린 자료 파일
     async function walk(parts, depth) {
-      if (depth > 10 || visited > 3000) return;
       visited++;
       var d = await localDir(parts, false), files = [], dirs = [];
       for await (var ent of d.entries()) {
         var name = ent[0], h = ent[1];
-        if (name[0] === "." || name[0] === "_") continue;
+        if ([".git", ".obsidian", ".trash", ".pkos-conflicts"].includes(name)) continue;
         if (h.kind === "directory") dirs.push(name);
-        else if (!/^PKOS-.*\.json$/i.test(name)) files.push({ name: name, handle: h });
+        else if (!/^(PKOS|TRACE|PEER|PKEMS)-(index|settings|files).*\.json$/i.test(name)) files.push({ name: name, handle: h });
+      }
+      for (var sf of files) {
+        var statFile = await sf.handle.getFile();
+        seenFiles[localIdOf(parts.concat([sf.name]))] = { modified: statFile.lastModified, size: statFile.size };
       }
       var siblings = files.map(function (f) { return { name: f.name, id: localIdOf(parts.concat([f.name])), mimeType: localMime(f.name), size: 0 }; });
       for (var i = 0; i < files.length; i++) {
@@ -5750,13 +5775,13 @@
         var have = byMd[id];
         if (have) {
           // ② 밖에서 고친 글 · 앱이 아직 안 쓴 변경이 없을 때만 파일 쪽을 믿는다
-          if (!have._dirty && have.id !== editingId && file.lastModified > (have.updatedAt || 0) + 2000) {
+          if (!have._dirty && have.id !== editingId && file.lastModified !== have.localMtime) {
             var p2 = parseFrontMatter(await file.text()), fm2 = p2.fm;
             have.title = unquote(fm2.title) || (/^#\s+(.*)$/m.exec(p2.body) || [])[1] || stemOf(f.name);
-            var tg = parseListValue(fm2.tags); if (tg.length) have.tags = tg;
+            have.tags = parseListValue(fm2.tags);
             var wanted2 = unquote(fm2.type); settings.types.forEach(function (tp) { if (tp.label === wanted2) have.type = tp.key; });
             have.blocks = bodyToBlocks(p2.body, siblings);
-            have.updatedAt = file.lastModified;
+            have.updatedAt = file.lastModified; have.localMtime = file.lastModified;
             (have.blocks || []).forEach(function (b) { if (b.fileId) known[b.fileId] = 1; });
             changed++;
           }
@@ -5764,9 +5789,25 @@
         }
         if (known[id]) continue;
         var parsed = parseFrontMatter(await file.text()), fm = parsed.fm;
-        if (fm.id && byId[fm.id]) continue;
+        if (fm.id && byId[fm.id]) {
+          var moved = byId[fm.id];
+          if (moved.mdId !== id && !moved._dirty && moved.id !== editingId) {
+            // Only relocate if the previous path is gone; duplicate copies stay separate from the original.
+            var oldPresent = false;
+            try { await localReadFile(moved.mdId); oldPresent = true; } catch (e) { if (e.name !== "NotFoundError") throw e; }
+            if (!oldPresent) {
+              moved.mdId = id; moved.mdName = f.name; moved.srcId = id; moved.srcPath = parts.slice();
+              moved.localDir = parts.join("/"); moved.localMtime = 0; moved.localMissing = false;
+              moved.title = unquote(fm.title) || stemOf(f.name); moved.tags = parseListValue(fm.tags);
+              moved.blocks = bodyToBlocks(parsed.body, siblings); moved.localMtime = file.lastModified;
+              (moved.blocks || []).forEach(function (b) { if (b.fileId) known[b.fileId] = 1; });
+              known[id] = 1; byMd[id] = moved; changed++;
+            }
+          }
+          continue;
+        }
         var title = unquote(fm.title) || (/^#\s+(.*)$/m.exec(parsed.body) || [])[1] || stemOf(f.name);
-        var typeKey = settings.types[0] ? settings.types[0].key : "", wanted = unquote(fm.type);
+        var typeKey = "material", wanted = unquote(fm.type);
         settings.types.forEach(function (tp) { if (tp.label === wanted) typeKey = tp.key; });
         var created = Date.parse(fm.created) || file.lastModified || Date.now();
         var updated = Date.parse(fm.updated) || file.lastModified || created;
@@ -5774,12 +5815,12 @@
           id: fm.id && !byId[fm.id] ? fm.id : uid("k_"), type: typeKey, title: title,
           tags: parseListValue(fm.tags), blocks: bodyToBlocks(parsed.body, siblings), relations: [],
           createdAt: created, updatedAt: updated, mdId: id, mdName: f.name, srcId: id,
-          srcPath: parts.slice(), localDir: parts.join("/"), _imported: true
+          srcPath: parts.slice(), localDir: parts.join("/"), localMtime: file.lastModified, _imported: true
         };
         if (!e.tags.length && parts.length) e.tags = parts.slice(-3);
         (e.blocks || []).forEach(function (b) { if (b.fileId) known[b.fileId] = 1; });
         tombstones = tombstones.filter(function (tb) { return tb.id !== e.id; });
-        byId[e.id] = 1; byMd[id] = e; known[id] = 1; entries.push(e); added++;
+        byId[e.id] = e; byMd[id] = e; known[id] = 1; entries.push(e); added++;
         if (status) status.textContent = "가져오는 중… " + added;
       }
       // ③ 글에 안 걸린 자료
@@ -5792,7 +5833,10 @@
       }
       for (var k = 0; k < dirs.length; k++) await walk(parts.concat([dirs[k]]), depth + 1);
     }
-    try { await walk([], 0); } catch (e) { console.warn(e); }
+    try { await walk([], 0); } catch (e) {
+      console.warn(e); if (!opt.quiet) toast("폴더 읽기에 실패했습니다. 권한과 드라이브 연결을 확인해 주세요.");
+      throw e;
+    }
     async function addLoose(list) {
       for (var i = 0; i < list.length; i++) {
         var L = list[i], mime = localMime(L.name), mod = 0;
@@ -5809,20 +5853,35 @@
         known[L.id] = 1; entries.push(e); addedFile++;
       }
     }
-    if (loose.length) {
-      if (loose.length <= 20 || opt.quiet) await addLoose(opt.quiet && !opt.allLoose ? loose.slice(0, 200) : loose);
-      else await new Promise(function (resolve) {
-        confirmModal("자료 " + loose.length + "개를 가져올까요?",
-          "글에 걸리지 않은 사진·PDF·문서를 기록 한 편씩으로 세웁니다. 거쳐 온 폴더 이름이 태그가 됩니다.",
-          function () { addLoose(loose).then(resolve, resolve); }, "가져오기", resolve);
+    await addLoose(loose.filter(function (f) { return !known[f.id]; }));
+    entries.forEach(function (n) {
+      if (n.trashed || n._dirty) return;
+      var source = localIsId(n.mdId) ? n.mdId : (localIsId(n.srcId) ? n.srcId : null);
+      if (source) {
+        var missing = !seenFiles[source];
+        if (!!n.localMissing !== missing) { n.localMissing = missing; changed++; }
+      }
+      (n.blocks || []).forEach(function (b) {
+        if (!localIsId(b.fileId) || !seenFiles[b.fileId]) return;
+        var info = seenFiles[b.fileId];
+        if (b.localMtime !== info.modified || b.size !== info.size) {
+          b.localMtime = info.modified; b.size = info.size;
+          if (imgUrlCache[b.fileId]) { URL.revokeObjectURL(imgUrlCache[b.fileId]); delete imgUrlCache[b.fileId]; }
+          changed++;
+        }
       });
-    }
+    });
     lastLocalScan = Date.now();
     var total = added + addedFile + changed;
     if (total) {
       entries.sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
       invalidateLinks(); saveLocal(); render();
       await localSaveIndex();
+      if (viewerEl) {
+        var showing = entries.find(function (n) { return n.id === viewerEl.dataset.recordId; });
+        if (showing && !showing.localMissing) openViewer(showing);
+        else if (showing) closeViewer();
+      }
     }
     var msg = total
       ? [added ? "글 " + added + "편" : "", addedFile ? "자료 " + addedFile + "개" : "", changed ? "고친 글 " + changed + "편" : ""].filter(Boolean).join(" · ") + " 를 폴더에서 읽었습니다."
@@ -5830,20 +5889,20 @@
     if (status) status.textContent = msg; else if (!opt.quiet || total) toast(msg);
     return total;
   }
-  /* 다시 돌아왔을 때 · 옵시디언·탐색기에서 넣거나 고친 것을 조용히 맞춘다 (보이는 동안 10초 간격으로 · 읽기·복사가 겹치면 기다림) */
+  /* 다시 돌아왔을 때 · 옵시디언·탐색기에서 넣거나 고친 것을 조용히 맞춘다 (보이는 동안 2초 간격으로 · 읽기·복사가 겹치면 기다림) */
   function localRescanIfStale() {
-    if (!localOn || document.hidden || localScanTask || localDropBusy || syncing || Date.now() - lastLocalScan < 10000) return;
+    if (!localOn || document.hidden || localScanTask || localDropBusy || localWriteTask || syncing || Date.now() - lastLocalScan < 1500) return;
     localImport(null, { quiet: true }).catch(function () {});
   }
   window.addEventListener("focus", localRescanIfStale);
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") localRescanIfStale(); });
-  setInterval(localRescanIfStale, 10000);
+  setInterval(localRescanIfStale, 2000);
 
   async function localDropFiles(fileList) {
     if (localDropBusy) { toast("앞서 놓은 파일을 저장 중입니다. 끝나면 다시 놓아 주세요."); return; }
     localDropBusy = true;
     var saved = 0, failed = [], files = Array.prototype.slice.call(fileList || []);
-    var targetRoot = localRoot, parts = ["받은 파일"];
+    var targetRoot = localRoot, parts = ["받은 파일"], mediaBatch = [], groupMedia = files.length > 1 && files.every(function (f) { return /^(image|video)\//.test(f.type || localMime(f.name)); });
     try {
       if (localScanTask) await localScanTask;
       for (var i = 0; i < files.length; i++) {
@@ -5852,11 +5911,22 @@
           if (!localOn || localRoot !== targetRoot) throw new Error("저장 폴더 연결이 바뀌었습니다");
           var name = await localUnique(parts, f.name || "file");
           if (await localExists(parts, name)) throw new Error("같은 이름의 파일이 있어 저장하지 않았습니다");
-          await localWrite(parts, name, f);
+          var writtenId = await localWrite(parts, name, f);
+          if (groupMedia) {
+            var mime = f.type || localMime(name);
+            mediaBatch.push(newBlock(/^image\//.test(mime) ? "image" : "file", { original: f.name, name: name, mime: mime, size: f.size, fileId: writtenId }));
+          }
           saved++;
         } catch (e) { failed.push(f.name + ": " + ((e && e.message) || e)); }
       }
-      if (saved && localOn && localRoot === targetRoot) await localImport(null, { quiet: true, allLoose: true });
+      if (saved && localOn && localRoot === targetRoot) {
+        if (mediaBatch.length) {
+          entries.unshift({ id: uid("k_"), type: "material", title: stemOf(files[0].name) + " 외 " + (mediaBatch.length - 1) + "개",
+            tags: [], blocks: mediaBatch, relations: [], createdAt: Date.now(), updatedAt: Date.now(), localDir: parts.join("/"), _dirty: true });
+          await localSyncPending();
+        }
+        await localImport(null, { quiet: true, allLoose: true });
+      }
       toast(saved + "개를 받은 파일 폴더에 저장했습니다." + (failed.length ? " 실패 " + failed.length + "개" : ""));
       if (failed.length) toast2(failed.join("\n"));
     } catch (e) {
@@ -5868,6 +5938,7 @@
     if (connected) connected = false;          // 같은 폴더를 두 길로 쓰지 않는다
     await localLoad();
     saveLocal(); render(); updateChrome();
+    await localImport(null, { quiet: true });
     await localSyncPending();
     return true;
   }
@@ -9100,7 +9171,7 @@
         }
         return;
       }
-      var mime = f.type || "application/octet-stream";
+      var mime = f.type || localMime(f.name);
       made.push(newBlock(/^image\//.test(mime) ? "image" : "file", {
         original: f.name || "file", mime: mime, size: f.size, blob: f
       }));
@@ -9310,7 +9381,7 @@
       entries.unshift(n);
     }
 
-    n.type = currentType;
+    n.type = ["experience", "idea", "material"].includes(currentType) ? currentType : "material";
     n.title = title || "(제목 없음)";
     n.tags = cleanTags($("tags").value);
     n.inbox = !!($("inboxChk") && $("inboxChk").checked);
@@ -9330,6 +9401,9 @@
       return !!(b.text && b.text.trim());
     }).map(function (b) {
       var c = cloneBlock(b);
+      if (c.kind === "text" && /^https?:\/\/[^\s]+$/i.test((c.text || "").trim())) {
+        c.kind = "link"; c.url = c.text.trim(); c.label = ""; delete c.text;
+      }
       // 빈 줄은 저장할 때 걷어낸다 · Enter 를 눌러 두고 안 채운 줄이 그대로 남으면 안 된다
       if (c.kind === "todo" || c.kind === "list") {
         c.items = (c.items || []).filter(function (it) { return it.t && it.t.trim(); })
@@ -9350,7 +9424,10 @@
     resetComposer();
     render();
     toast(localOn ? "저장했습니다. 폴더에 쓰는 중…" : connected ? "저장했습니다. 드라이브에 올리는 중…" : "이 기기에 저장했습니다. (드라이브 미연결)");
-    if (connected || localOn) syncPending();
+    if (connected || localOn) {
+      Promise.resolve(syncPending()).then(function () { if (viewerEl && viewerEl.dataset.recordId === n.id) openViewer(n); });
+    }
+    openViewer(n);
   }
 
   /* ---- 삭제는 두 걸음이다 ----
@@ -9765,7 +9842,7 @@
 
   /* 휴지통에 든 것은 «없는 것» 처럼 군다 · 세는 자리도, 나무도, 목록도 다 이 자를 쓴다 */
   function liveEntries() {
-    return entries.filter(function (n) { return !n.trashed; });
+    return entries.filter(function (n) { return !n.trashed && !n.localMissing; });
   }
   /* 미정리함 · 급히 남긴 것. 태그가 없거나 «나중에 정리» 로 둔 기록.
      분류 안 했다고 저장을 막지 않는다 · 대신 여기 모아 두고 나중에 손본다. */
@@ -9784,6 +9861,7 @@
     })).join(" ").toLowerCase();
   }
   function matches(n) {
+    if (n.localMissing) return false;
     /* 휴지통은 «따로 보는 자리» 다. 평소 목록에는 절대 섞이지 않는다 */
     if (smartView === "trash") return !!n.trashed;
     if (n.trashed) return false;
@@ -9937,7 +10015,7 @@
 
   // 기록 보드(카드)에서는 사진·산출물·삽입 코드를 맨 위로 올린다
   function isMediaGroup(g) {
-    if (g.kind === "images") return true;
+    if (g.kind === "images" || g.kind === "videos") return true;
     var k = g.block && g.block.kind;
     return k === "file" || k === "embed";
   }
@@ -9964,6 +10042,103 @@
     return "[!" + type + "]" + (r === "ai" ? "-" : "") + " " + QUOTE_ROLES[r].icon + " " + QUOTE_ROLES[r].label + (b.src ? " · " + b.src : "");
   }
 
+
+  var mediaObjectUrls = [];
+  function mediaObjectUrl(file, node) {
+    var url = URL.createObjectURL(file);
+    mediaObjectUrls.push({ url: url, node: node });
+    return url;
+  }
+  setInterval(function () {
+    mediaObjectUrls = mediaObjectUrls.filter(function (x) {
+      if (x.node.isConnected) return true;
+      URL.revokeObjectURL(x.url); return false;
+    });
+  }, 30000);
+  function safeWebUrl(raw) {
+    try { var u = new URL(String(raw).trim()); return /^https?:$/.test(u.protocol) ? u.href : ""; }
+    catch (e) { return ""; }
+  }
+  function urlPreview(url) {
+    var wrap = el("div", "url-preview"), safe = safeWebUrl(url);
+    if (!safe) return wrap;
+    wrap.appendChild(linkCard({ url: safe }));
+    var yt = ytId(safe);
+    var frame = el("iframe", "record-preview");
+    frame.title = "링크 미리보기"; frame.loading = "lazy";
+    frame.setAttribute("sandbox", "allow-scripts allow-presentation");
+    frame.referrerPolicy = "no-referrer";
+    frame.src = yt ? "https://www.youtube-nocookie.com/embed/" + yt : safe;
+    frame.allow = "fullscreen"; wrap.appendChild(frame);
+    var fallback = el("a", "hm-link", "미리보기가 차단되면 원본 열기");
+    fallback.href = safe; fallback.target = "_blank"; fallback.rel = "noopener noreferrer";
+    wrap.appendChild(fallback);
+    return wrap;
+  }
+  function blockFile(b) {
+    if (b.blob) return Promise.resolve(b.blob);
+    if (localIsId(b.fileId)) return localReadFile(b.fileId);
+    if (b.fileId && accessToken) return driveFetch("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(b.fileId) + "?alt=media&supportsAllDrives=true").then(function (r) { if (!r.ok) throw new Error("파일 읽기 실패"); return r.blob(); });
+    return Promise.reject(new Error("로컬 파일을 읽을 수 없습니다."));
+  }
+  function filePreview(b) {
+    var wrap = el("div", "file-preview");
+    var name = b.original || b.name || "", isHtml = /\.html?$/i.test(name) || /text\/html/i.test(b.mime || "");
+    if (!isHtml && !/\.(url|webloc)$/i.test(name)) return null;
+    var state = el("p", "desc", "미리보기를 읽는 중입니다."); wrap.appendChild(state);
+    blockFile(b).then(function (file) { return file.text(); }).then(async function (text) {
+      if (!isHtml) {
+        var m = /^URL=(https?:\/\/[^\r\n]+)/im.exec(text) || /<string>(https?:\/\/[^<]+)<\/string>/i.exec(text);
+        wrap.textContent = "";
+        if (m) wrap.appendChild(urlPreview(m[1])); else wrap.appendChild(el("p", "desc", "이 파일에서 웹 주소를 찾지 못했습니다."));
+        return;
+      }
+      var frame = el("iframe", "record-preview"); frame.title = name || "HTML 미리보기";
+      frame.setAttribute("sandbox", "allow-scripts"); frame.referrerPolicy = "no-referrer";
+      // Relative assets stay within the selected folder; scripts run in an isolated origin.
+      if (localIsId(b.fileId)) {
+        var doc = new DOMParser().parseFromString(text, "text/html");
+        var base = localPathOf(b.fileId).slice(0, -1);
+        for (var node of doc.querySelectorAll("[src], link[rel=stylesheet][href]")) {
+          var attr = node.hasAttribute("src") ? "src" : "href", rel = node.getAttribute(attr);
+          if (!rel || /^(?:[a-z]+:|\/\/|#)/i.test(rel)) continue;
+          var parts = rel.startsWith("/") ? [] : base.slice(), valid = true;
+          decodeURIComponent(rel.split(/[?#]/)[0]).split("/").forEach(function (part) {
+            if (part === "..") { if (!parts.length) valid = false; else parts.pop(); }
+            else if (part && part !== ".") parts.push(part);
+          });
+          if (!valid) continue;
+          try { var asset = await localReadFile(localIdOf(parts)); node.setAttribute(attr, mediaObjectUrl(asset, frame)); } catch (e) {}
+        }
+        text = "<!doctype html>\n" + doc.documentElement.outerHTML;
+      }
+      frame.srcdoc = text; wrap.textContent = ""; wrap.appendChild(frame);
+    }).catch(function () { state.textContent = "폴더를 연결하면 HTML 내용을 미리 볼 수 있습니다."; });
+    return wrap;
+  }
+  function mediaSlides(items) {
+    var wrap = el("div", "media-slides"), stage = el("div", "media-slide-stage"), nav = el("div", "media-slide-nav"), at = 0;
+    var prev = el("button", "btn sm", "이전"), next = el("button", "btn sm", "다음"), count = el("span");
+    prev.type = next.type = "button"; count.setAttribute("aria-live", "polite");
+    nav.appendChild(prev); nav.appendChild(count); nav.appendChild(next); wrap.appendChild(stage); wrap.appendChild(nav);
+    function show() {
+      stage.querySelectorAll("video,audio").forEach(function (v) { v.pause(); });
+      stage.textContent = ""; var b = items[at];
+      var node = el(b.kind === "image" ? "img" : "video");
+      if (b.kind === "image") node.alt = b.caption || b.name || b.original || "사진";
+      else { node.controls = true; node.preload = "metadata"; }
+      stage.appendChild(node); count.textContent = (at + 1) + " / " + items.length;
+      var pv = previewUrl(b);
+      if (pv) node.src = pv;
+      else if (localIsId(b.fileId)) blockFile(b).then(function (file) { if (stage.contains(node)) node.src = mediaObjectUrl(file, node); }).catch(function () { node.replaceWith(el("p", "desc", "파일이 없어 표시하지 못했습니다.")); });
+      else if (b.kind === "image" && b.fileId) lazyDriveImage(b.fileId, node);
+      else if (b.fileId) node.replaceWith(drivePlayer(b));
+      prev.disabled = at === 0; next.disabled = at === items.length - 1;
+    }
+    prev.addEventListener("click", function (e) { e.stopPropagation(); if (at > 0) { at--; show(); } });
+    next.addEventListener("click", function (e) { e.stopPropagation(); if (at < items.length - 1) { at++; show(); } }); show(); return wrap;
+  }
+
   function renderContent(n, host, opts) {
     opts = opts || {};
     /* ⚠️ mediaFirst 는 «보드(카드)에서 그리는 중» 이라는 뜻이다. 카드에서는 삽입 페이지를 멈춰 둔다.
@@ -9978,10 +10153,10 @@
     // 연달아 놓인 사진은 슬라이드 묶음으로 보여 준다
     var groups = [], run = null;
     blocks.forEach(function (b) {
-      if (b.kind === "image") {
-        if (!run) { run = { kind: "images", items: [], start: seenImages }; groups.push(run); }
-        run.items.push(b);
-        seenImages++;
+      var kind = b.kind === "image" ? "images" : (b.kind === "file" && isVideo(b) ? "videos" : "");
+      if (kind) {
+        if (!run || run.kind !== kind) { run = { kind: kind, items: [], start: seenImages }; groups.push(run); }
+        run.items.push(b); if (kind === "images") seenImages++;
       } else { run = null; groups.push({ kind: "one", block: b }); }
     });
 
@@ -9991,6 +10166,10 @@
     }
 
     groups.forEach(function (g) {
+      if ((g.kind === "images" || g.kind === "videos") && g.items.length > 1) {
+        host.appendChild(mediaSlides(g.items)); return;
+      }
+      if (g.kind === "videos") { renderOne(g.items[0], -1, host); return; }
       // 사진은 어디서나 작은 썸네일로. 누르면 크게 본다 (접기 버튼 없음)
       if (g.kind === "images") {
         var count = g.items.length;
@@ -10177,9 +10356,10 @@
           w1.appendChild(pb);
         }
         host.appendChild(w1);
+        if (!stillEmbed) { var fp = filePreview(b); if (fp) host.appendChild(fp); }
 
       } else if (b.kind === "link") {
-        host.appendChild(linkCard(b));
+        host.appendChild(stillEmbed ? linkCard(b) : urlPreview(b.url));
 
       } else if (b.kind === "embed") {
         if (b.code && b.code.trim()) {
@@ -10543,7 +10723,7 @@
     closeViewer();
     var t = typeOf(n.type);
 
-    var box = el("div", "viewer");
+    var box = el("div", "viewer"); box.dataset.recordId = n.id;
     var top = el("div", "vtop");
 
     var back = el("button", "btn sm", "← 닫기");
@@ -11568,7 +11748,6 @@
     meta.appendChild(el("div", null, "지금 화면 · " + ctx.where));
     meta.appendChild(el("div", null, "창 크기 · " + ctx.screen + " · 드라이브 " + ctx.connected));
     meta.appendChild(el("div", null, "브라우저 · " + ctx.ua.slice(0, 90)));
-    meta.appendChild(el("div", null, "⚠️ 기록의 내용·제목·사진은 보내지 않습니다."));
     box.appendChild(meta);
     body.appendChild(box);
 
@@ -14924,81 +15103,11 @@
        어디에 쌓일지를 여기서 정한다 · 서버가 없으니 앱스 스크립트 웹 앱 주소 한 줄이다. */
     function paintFeedback() {
       var f = el("div", "field");
-      f.appendChild(el("label", null, "받는 자리 · 앱스 스크립트 웹 앱 주소"));
-      f.appendChild(el("p", "desc", "의견이 도착할 앱스 스크립트 주소"));
-      var inp = el("input", "inp");
-      inp.type = "url";
-      inp.placeholder = "https://script.google.com/macros/s/…/exec";
-      inp.value = fbUrl();
-      f.appendChild(inp);
-      var row = el("div", "row"); row.style.marginTop = "8px";
-      var save = el("button", "btn sm primary", "주소 저장");
-      save.addEventListener("click", function () {
-        fbSetUrl(inp.value.trim());
-        st.textContent = inp.value.trim() ? "저장했습니다. 이제 의견이 이 주소로 갑니다." : "주소를 비웠습니다.";
-      });
-      var test = el("button", "btn sm", "시험 삼아 한 통 보내기");
-      test.addEventListener("click", function () {
-        fbSetUrl(inp.value.trim());
-        if (!fbUrl()) { st.textContent = "주소를 먼저 넣어 주세요."; return; }
-        st.textContent = "보내는 중…";
-        fbPost({ v: 1, id: "t" + Date.now().toString(36), app: "PKOS 개인지식운영체계",
-                 kind: "질문", text: "[연결 확인] 이 줄이 시트에 보이면 제대로 이어진 것입니다.",
-                 contact: userEmail || "", page: "설정", where: "설정 · 의견 받기",
-                 screen: window.innerWidth + "x" + window.innerHeight, ua: navigator.userAgent || "",
-                 lang: navigator.language || "", built: document.lastModified || "",
-                 connected: connected ? "연결됨" : "연결 안 됨", entries: 0,
-                 sentAt: new Date().toISOString(), clientId: fbClientId() })
-          .then(function (how) {
-            /* ⚠️ 「보냈다」 로만 끝내면 «저장은 했는데 배포를 안 한» 경우를 못 가려낸다.
-               받는 쪽이 제 판 번호를 돌려주므로, 그걸 그대로 보여 준다. */
-            if (!how || !how.sure) {
-              st.textContent = "던졌습니다 · 다만 이 브라우저가 답을 못 읽어 도착은 확인 못 했습니다.";
-              return;
-            }
-            st.textContent = how.ver
-              ? "이어졌습니다 · 받는 쪽 판 " + how.ver + (how.ver >= 3 ? " (캡처까지 받습니다)" : " (캡처는 못 받는 판입니다 · 다시 배포하세요)")
-              : "이어졌습니다 · 다만 판 번호를 안 돌려주는 옛 판입니다. 새 Code.gs 로 다시 배포하세요.";
-          })
-          .catch(function () { st.textContent = "못 보냈습니다. 주소와 «액세스 권한: 모든 사용자» 를 확인하세요."; });
-      });
-      var inp2 = el("input", "inp");
-      inp2.type = "url";
-      inp2.style.marginTop = "8px";
-      inp2.placeholder = "모인 의견 시트 주소 (이 기기에만 저장됩니다)";
-      inp2.value = fbSheet();
-      f.appendChild(inp2);
-      var open = el("button", "btn sm", "📊 모인 의견 시트 열기");
-      open.addEventListener("click", function () {
-        fbSetSheet(inp2.value.trim());
-        var u = fbSheet();
-        if (!u) { st.textContent = "시트 주소를 위 칸에 먼저 넣어 주세요."; return; }
-        window.open(u, "_blank", "noopener");
-      });
-      row.appendChild(save); row.appendChild(test); row.appendChild(open);
-      f.appendChild(row);
-      var st = el("p", "desc"); st.style.marginTop = "8px";
-      f.appendChild(st);
-      body.appendChild(f);
-
-      var g = el("div", "field");
-      g.appendChild(el("label", null, "받는 자리를 만드는 법"));
-      var ol = el("ol"); ol.className = "desc"; ol.style.paddingLeft = "18px"; ol.style.lineHeight = "1.85";
-      ["의견을 모을 구글 시트를 엽니다.",
-       "[확장 프로그램] → [Apps Script] 를 누릅니다.",
-       "저장소의 docs/의견받기/Code.gs 내용을 붙여 넣고 저장합니다.",
-       "[배포] → [새 배포] → 유형 «웹 앱» 을 고릅니다.",
-       "«실행 계정: 나», «액세스 권한: 모든 사용자» 로 두고 배포합니다.",
-       "나온 /exec 주소를 위 칸에 붙여 넣고 [주소 저장] 을 누릅니다.",
-       "모두에게 적용하려면 index.html 의 FEEDBACK_URL 에도 같은 주소를 적습니다."
-      ].forEach(function (t) { ol.appendChild(el("li", null, t)); });
-      g.appendChild(ol);
-      body.appendChild(g);
-
-      var h = el("div", "field");
-      h.appendChild(el("label", null, "보내는 것"));
-      h.appendChild(el("p", "desc", "기록의 제목·내용·사진은 보내지 않습니다."));
-      body.appendChild(h);
+      f.appendChild(el("label", null, "의견 보내기"));
+      f.appendChild(el("p", "desc", "질문·개선 의견·오류 중 하나를 고르고 내용을 적어 보내 주세요. 오류는 어느 화면에서 무엇을 눌렀는지 적으면 확인에 도움이 됩니다."));
+      var b = el("button", "btn primary", "의견 작성하기");
+      b.addEventListener("click", function () { closeModal(); openFeedback(); });
+      f.appendChild(b); body.appendChild(f);
     }
 
     /* 보는 것 고르기 · 누르면 «그 자리에서» 화면이 바뀐다.
@@ -15104,7 +15213,7 @@
           impL.addEventListener("click", function () { impL.disabled = true; localImport(status).then(function () { impL.disabled = false; }); });
           r01.appendChild(impL);
           f0.appendChild(r01);
-          f0.appendChild(el("p", "desc", "구글 드라이브 데스크톱 폴더를 고르면 드라이브가 알아서 올립니다. 구글 문서 사본 · 링크 공유 · 웹 쪽 공유는 이 방식에서 쓰지 않습니다."));
+          f0.appendChild(el("p", "desc", "앱이 열려 있으면 2초마다 폴더 변경을 확인합니다. 앱을 닫은 동안에는 PC의 Google Drive가 폴더 파일을 동기화합니다. PC가 켜져 있고 Drive가 실행 중이어야 합니다. 기록 목록은 앱을 다시 열 때 갱신됩니다."));
         }
         body.appendChild(f0);
         var sepL = el("div", "field"); sepL.appendChild(el("label", null, "또는 · 구글 드라이브로 (휴대폰)"));
@@ -15235,44 +15344,10 @@
     }
 
     function paintTypes() {
-      var list = el("div"); list.style.marginTop = "12px";
-      body.appendChild(list);
-
-      function paintList() {
-        list.innerHTML = "";
-        draft.types.forEach(function (t, i) {
-          var row = el("div", "typerow");
-          var ic = el("input", "inp ic"); ic.value = t.icon || ""; ic.maxLength = 4;
-          ic.addEventListener("input", function () { t.icon = ic.value; });
-          var nm = el("input", "inp nm"); nm.value = t.label || ""; nm.placeholder = "유형 이름";
-          nm.addEventListener("input", function () { t.label = nm.value; });
-          var up = el("button", "btn xs", "↑"); up.disabled = i === 0;
-          up.addEventListener("click", function () { var x = draft.types[i - 1]; draft.types[i - 1] = t; draft.types[i] = x; paintList(); });
-          var dn = el("button", "btn xs", "↓"); dn.disabled = i === draft.types.length - 1;
-          dn.addEventListener("click", function () { var x = draft.types[i + 1]; draft.types[i + 1] = t; draft.types[i] = x; paintList(); });
-          var rm = el("button", "btn xs danger", "✕");
-          rm.addEventListener("click", function () {
-            if (draft.types.length <= 1) { toast("유형은 최소 1개가 필요합니다."); return; }
-            var used = entries.filter(function (n) { return n.type === t.key; }).length;
-            if (used) toast("이 유형으로 쓴 기록 " + used + "개는 '미분류'로 표시됩니다.");
-            draft.types.splice(i, 1); paintList();
-          });
-          row.appendChild(ic); row.appendChild(nm); row.appendChild(up); row.appendChild(dn); row.appendChild(rm);
-          list.appendChild(row);
-        });
-      }
-      paintList();
-
-      var add = el("button", "btn sm", "＋ 유형 추가");
-      add.style.marginTop = "8px";
-      add.addEventListener("click", function () {
-        draft.types.push({ key: uid("t_"), label: "새 유형", icon: "🏷️" });
-        paintList();
-        var rows = list.querySelectorAll(".typerow");
-        var last = rows[rows.length - 1];
-        if (last) { var f = last.querySelector(".nm"); f.focus(); f.select(); }
-      });
-      body.appendChild(add);
+      var f = el("div", "field");
+      f.appendChild(el("label", null, "기록 유형"));
+      f.appendChild(el("p", "desc", "연수 · 아이디어 · 자료"));
+      body.appendChild(f);
     }
 
     /* 📛 파일 이름 · 조각 다섯을 켜고 끈다.

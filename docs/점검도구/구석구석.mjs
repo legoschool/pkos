@@ -229,7 +229,7 @@ for (const t of tabList) {
     return body ? (body.querySelectorAll(".typerow .nm").length || body.textContent.trim().length) : 0;
   })()`);
   await wait(250);
-  check(`설정 «${t}» 칸이 그려진다`, (t === "기록 유형" ? r === 5 : r > 40), `${r}자`);
+  check(`설정 «${t}» 칸이 그려진다`, (t === "기록 유형" ? r >= 15 : r > 40), `${r}자`);
 }
 await ev(`(() => { const bg = document.querySelector('.modal-bg'); if (bg) bg.remove(); return true; })()`);
 await wait(300);
