@@ -72,7 +72,7 @@ let u;
 for (let i = 0; i < 80 && !u; i++) {
   try {
     const l = await fetch(`http://127.0.0.1:${PORT}/json/list`).then(r => r.json());
-    u = l.find(t => t.type === "page" && t.webSocketDebuggerUrl && /localhost/.test(t.url || ""))?.webSocketDebuggerUrl;
+    u = l.find(t => t.type === "page" && t.webSocketDebuggerUrl && (t.url || "").startsWith(new URL(BASE).origin + "/"))?.webSocketDebuggerUrl;
   } catch {}
   if (!u) await wait(250);
 }

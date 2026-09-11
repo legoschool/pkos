@@ -219,17 +219,17 @@ const tabList = JSON.parse(tabs);
 /* 여섯이다. 「웹 캡처」 를 빼고, 묻혀 있던 「📥 가져오기」 를 제 칸으로 꺼냈다.
    가져오기는 이 도구를 만든 진짜 목적이라, 「고급」 안에 있으면 그 길이 있는 줄도 모른다. */
 check("설정 탭이 다 있다",
-  tabList.length === 6 && tabList.indexOf("웹 캡처") < 0 && tabList.some(t => t.indexOf("가져오기") >= 0),
+  tabList.length === 7 && tabList.indexOf("웹 캡처") < 0 && tabList.some(t => t.indexOf("가져오기") >= 0),
   tabList.join(" / "));
 for (const t of tabList) {
   const r = await ev(`(() => {
     const b = Array.from(document.querySelectorAll('.tabs .tab')).find(x => x.textContent === ${JSON.stringify(t)});
     b.click();
     const body = document.querySelector('.mbody');
-    return body ? body.textContent.trim().length : 0;
+    return body ? (body.querySelectorAll(".typerow .nm").length || body.textContent.trim().length) : 0;
   })()`);
   await wait(250);
-  check(`설정 «${t}» 칸이 그려진다`, r > 40, `${r}자`);
+  check(`설정 «${t}» 칸이 그려진다`, (t === "기록 유형" ? r === 5 : r > 40), `${r}자`);
 }
 await ev(`(() => { const bg = document.querySelector('.modal-bg'); if (bg) bg.remove(); return true; })()`);
 await wait(300);
@@ -365,6 +365,13 @@ const dr = JSON.parse(draft);
 check("쓰다 만 글이 되살아난다", dr.title === "쓰다 만 글" && dr.bar, dr.title);
 
 /* ---- 다크 모드 ---- */
+await ev(`(() => {
+ document.getElementById('btnSettings').click();
+ Array.from(document.querySelectorAll('.tabs .tab')).find(b=>b.textContent==='모양').click();
+ Array.from(document.querySelectorAll('.mbody button')).find(b=>b.querySelector('.picklabel')?.textContent==='어둡게').click();
+ Array.from(document.querySelectorAll('.mfoot button')).find(b=>b.textContent==='저장').click();
+})()`);
+
 await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: "dark" }] });
 await wait(500);
 const dark = await ev(`(() => {

@@ -2095,6 +2095,7 @@
   .hm-quick > span { color: var(--brand); font-size: 22px; }
   .hm-quick input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font: inherit; font-size: calc(13.5px * var(--fs)); color: var(--ink); }
   .hm-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .hm-grid > * { min-width: 0; }
   .hm-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
   .hm-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 22px 12px; }
   .hm-panel-head h3 { margin: 0; font-family: var(--font-title); font-weight: 500; font-size: calc(15px * var(--fs)); }
@@ -2139,7 +2140,7 @@
               background: linear-gradient(130deg, var(--brand-soft), transparent 60%); }
   .hm-quote p { font-family: var(--font-title); font-size: calc(13.5px * var(--fs)); line-height: 2.1; margin: 0 0 10px; }
   .hm-quote small { font-size: 11px; color: var(--ink-soft); }
-  @media (max-width: 950px) { .hm-grid { grid-template-columns: 1fr; } .hm-quote { display: none; } .hm-eyebrow { display: none; } }
+  @media (max-width: 950px) { .hm-grid { grid-template-columns: minmax(0, 1fr); } .hm-quote { display: none; } .hm-eyebrow { display: none; } }
   @media (max-width: 700px) { .homepage { padding: 20px 16px 110px; } .hm-head h1 { font-size: calc(24px * var(--fs)); } .hm-map { height: 240px; } }
   /* =========================================================
      노션 · 깔끔하게 (2026-09-11 · 기본 색감)
@@ -2148,7 +2149,7 @@
      ========================================================= */
   [data-tone="notion"] {
     color-scheme: light;
-    --bg: #ffffff; --panel: #ffffff; --ink: #37352f; --ink-soft: #787774;
+    --bg: #ffffff; --panel: #ffffff; --ink: #37352f; --ink-soft: #66645f;
     --brand: #2383e2; --brand-dark: #1b6fc2; --brand-soft: #e8f0fb;
     --line: #e9e9e7; --line-soft: #f1f1ef; --hard: #37352f;
     --danger: #e03e3e; --ok: #0f7b6c; --warn: #d9730d;
