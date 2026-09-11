@@ -82,7 +82,7 @@ AI와 함께 내용을 검토하고 발전시키려 해도 먼저 기록을 찾�
 
 **PKOS라는 이름** · Personal Knowledge Operation System 의 약자로, 개인의 지식과 경험을 남기고 활용하는
 체계를 뜻합니다. 기록을 찾아 읽고, 관련 내용을 연결하고, AI와 검토한 뒤 실제로 시도한 결과를 다시 남기는
-과정을 돕고자 붙인 이름입니다. 컴퓨터의 운영체제를 뜻하는 말은 아닙니다. 현재의 개인지식운영체제은 그 환경을
+과정을 돕고자 붙인 이름입니다. 컴퓨터의 운영체제를 뜻하는 말은 아닙니다. 현재의 개인지식운영체제는 그 환경을
 만들어 가기 위한 도구이며, 제 수업과 공부에서 필요한 기능을 중심으로 다듬고 있습니다.
 
 원문과 설계 결정, 개발 연혁은 [docs/개발배경.md](docs/개발배경.md) 에 있습니다.
@@ -488,17 +488,27 @@ attachments:
 ### 파일 구조
 
 ```
-pkos_구글기록장/
-├── index.html                     # 앱 전체 (HTML + CSS + JS)
+pkos/
+├── 0_읽어주세요.md                 # 처음 받은 사람이 읽는 한 장 · 무엇이 들어 있고 어디부터 볼지
+├── index.html                     # 앱 전체 (HTML + CSS + JS) · 맨 위에 바꿔야 할 값 셋
 ├── intro.html                     # 소개 페이지
 ├── view.html                      # 「웹 쪽으로」 공유 링크를 여는 쪽
 ├── privacy.html                   # 개인정보처리방침
 ├── manifest.json                  # 앱으로 설치 + 공유 시트(share_target)
 ├── sw.js                          # 서비스 워커 · 설치 + 공유받기
-├── SETUP.md · 사용안내.md · README.md
+├── icons/                         # 앱 아이콘
+├── README.md · SETUP.md · 사용안내.md
+├── LICENSE · LICENSE.ko.md        # CC BY-NC 4.0 원문 · 쉬운 설명
 ├── .github/workflows/deploy-pages.yml   # GitHub Pages 자동 배포
+├── 안내자료 캡처 사진/              # 연수 안내에 쓴 화면 캡처
 └── docs/
-    ├── 개발배경.md · 작업이어가기.md · 작업기록.md
+    ├── 만든과정.md                  # 어떻게 만들었나 · 한 장 지도 (여기서 시작)
+    ├── 개발배경.md                  # 만든 이유 원문 · 설계 결정 · 이름 변경 이력
+    ├── 작업기록.md                  # 날짜순 개발 기록 · 어쩌다 이렇게 됐나
+    ├── 작업이어가기.md              # 이어 고칠 사람을 위한 인수인계서
+    ├── 변경내역.md                  # 최근 판에서 바뀐 것
+    ├── images/                     # SETUP·소개 페이지 캡처
+    ├── 의견받기/                    # 💬 의견 받기용 앱스 스크립트와 붙이는 법
     ├── 점검도구/                    # 고친 뒤 실제로 눌러 보는 자동 점검
     └── 캡처도구/                    # SETUP.md 안내 그림을 다시 찍는 스크립트
 ```
@@ -517,7 +527,7 @@ git add -A && git commit -m "설명" && git push
 
 | | |
 |---|---|
-| 구성 | HTML / CSS / JavaScript 를 `index.html` 한 파일에. 빌드 도구·프레임워크 없음 (약 730KB) |
+| 구성 | HTML / CSS / JavaScript 를 `index.html` 한 파일에. 빌드 도구·프레임워크 없음 (약 770KB) |
 | 인증 | Google Identity Services (브라우저 토큰 방식, 클라이언트 시크릿 미사용) · 범위 `openid email drive.file` |
 | 파일 고르기 | Google Picker API (폴더 지정·밖에서 만든 파일 가져오기) |
 | 저장 | Google Drive REST API v3 · 글·색인은 multipart, 첨부는 resumable (PC 8MB · 휴대폰 2MB 청크, `XMLHttpRequest` 진행률, 45초 정지 감지, 429·5xx 재시도) |

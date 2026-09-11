@@ -16,12 +16,12 @@
 | 5 | `05-drive-api.png` | `Google Drive API` 페이지의 **`API 사용 설정됨`** |
 | 6 | `06-branding.png` | `인증 플랫폼 → 브랜딩` 의 **앱 이름** 칸 (왼쪽 메뉴까지 함께) |
 | 7 | `07-audience.png` | `인증 플랫폼 → 대상` 의 **게시 상태 / 사용자 유형** |
-| 8 | `08-scopes-panel.png` | **`선택한 범위 업데이트`** 패널 위쪽 · drive·email·openid 체크, profile 체크 안 함 |
-| 9 | `09-scopes-manual.png` | 패널 맨 아래 **`직접 범위 추가`** 에 drive 주소를 붙여넣어 `테이블에 추가` 가 파래진 상태 |
-| 10 | `10-scopes-saved.png` | `제한된 범위` 표에 **`.../auth/drive`** 가 들어간 화면 |
+| 8 | `08-scopes-panel.png` | **`선택한 범위 업데이트`** 패널 위쪽 · email·openid 체크, profile 체크 안 함 |
+| 9 | `09-scopes-manual.png` | 패널 맨 아래 **`직접 범위 추가`** 에 `.../auth/drive.file` 을 붙여넣어 `테이블에 추가` 가 파래진 상태 |
+| 10 | `10-scopes-saved.png` | 저장 뒤 표에 **`.../auth/drive.file`** 이 들어간 화면 · `drive.file` 은 넓은 권한이 아니라서 「제한된 범위」 가 아닌 칸에 들어갑니다 |
 | 11 | `11-client-origin.png` | **승인된 JavaScript 원본** 에 주소를 넣고 리디렉션 URI 는 비운 상태 |
 | 12 | `12-client-id.png` | 생성 직후 **클라이언트 ID** 창 · **보안 비밀번호는 검게 덮어서** 찍음 |
-| 13 | `13-edit-clientid.png` | GitHub 편집 화면의 `OWNER_CLIENT_ID` 줄(568행) |
+| 13 | `13-edit-clientid.png` | GitHub 편집 화면의 `OWNER_CLIENT_ID` 줄 (파일 맨 위 「바꿔야 할 값」 자리) |
 
 ## 아직 없는 것 (2장)
 
