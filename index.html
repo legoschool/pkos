@@ -2094,7 +2094,7 @@
               background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
   .hm-quick > span { color: var(--brand); font-size: 22px; }
   .hm-quick input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font: inherit; font-size: calc(13.5px * var(--fs)); color: var(--ink); }
-  .hm-grid { display: grid; grid-template-columns: minmax(0, 1fr) 285px; gap: 24px; }
+  .hm-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .hm-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
   .hm-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 22px 12px; }
   .hm-panel-head h3 { margin: 0; font-family: var(--font-title); font-weight: 500; font-size: calc(15px * var(--fs)); }
@@ -9282,6 +9282,7 @@
   }
 
   function saveEntry() {
+    syncFromPaper();   // 제목이 있어도 저장 직전에 현재 본문을 읽는다.
     var title = $("title").value.trim();
     if (!title && !hasContent()) { toast("제목이나 내용을 입력해 주세요."); return; }
 
@@ -12654,7 +12655,7 @@
     host.appendChild(q);
 
     var grid = el("div", "hm-grid");
-    var left = el("div"), right = el("aside");
+    var left = el("div");
 
     /* 나의 지식맵 */
     var mp = el("div", "hm-panel");
@@ -12751,54 +12752,7 @@
     qp.appendChild(el("small", null, "기록의 원칙"));
     left.appendChild(qp);
 
-    /* 작은 다음 행동 · 기록 속 안 끝낸 할 일 */
-    var tp = el("div", "hm-panel");
-    var th = el("div", "hm-panel-head"); th.appendChild(el("h3", null, "작은 다음 행동"));
-    var tl = el("button", "hm-link", "할 일 →"); tl.type = "button";
-    tl.addEventListener("click", function () { goTodo(); });
-    th.appendChild(tl);
-    tp.appendChild(th);
-    var tb = el("div", "hm-pad");
-    var todos = [];
-    live.forEach(function (n) {
-      (n.blocks || []).forEach(function (b) {
-        if (b.kind !== "todo") return;
-        (b.items || []).forEach(function (it) { if (it.t && !it.done && todos.length < 5) todos.push({ t: it.t, n: n }); });
-      });
-    });
-    if (!todos.length) tb.appendChild(el("div", "hm-empty", "남은 할 일이 없습니다."));
-    todos.forEach(function (x) {
-      var b = el("button", "hm-task"); b.type = "button";
-      b.appendChild(el("div", "t", x.t));
-      b.appendChild(el("div", "n", "↗ " + (x.n.title || "(제목 없음)")));
-      b.addEventListener("click", function () { openFromHome(x.n); });
-      tb.appendChild(b);
-    });
-    tp.appendChild(tb);
-    right.appendChild(tp);
-
-    /* 생각이 머문 날 · 최근 8주에 실제로 저장한 날 */
-    var hp = el("div", "hm-panel");
-    var hh = el("div", "hm-panel-head"); hh.appendChild(el("h3", null, "생각이 머문 날")); hp.appendChild(hh);
-    var hb = el("div", "hm-pad");
-    var days = {}; live.forEach(function (n) { [n.createdAt, n.updatedAt].forEach(function (ts) { if (ts) days[localDay(ts)] = 1; }); });
-    var heat = el("div", "hm-heat"), cnt = 0, now = new Date();
-    for (var i = 55; i >= 0; i--) {
-      var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-      var key = localDay(d.getTime());
-      var cell = el("span", days[key] ? "on" : ""); cell.title = key;
-      if (days[key]) cnt++;
-      heat.appendChild(cell);
-    }
-    hb.appendChild(heat);
-    var hf = el("div", "hm-heat-foot");
-    hf.appendChild(el("span", null, "최근 8주 · 기록한 날"));
-    hf.appendChild(el("b", null, cnt + "일"));
-    hb.appendChild(hf);
-    hp.appendChild(hb);
-    right.appendChild(hp);
-
-    grid.appendChild(left); grid.appendChild(right);
+    grid.appendChild(left);
     host.appendChild(grid);
   }
   function goTodo() {
