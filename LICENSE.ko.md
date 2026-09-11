@@ -2,7 +2,7 @@
 
 아래는 이해를 돕기 위한 요약입니다. **실제 효력은 [LICENSE](LICENSE) 원문에 있습니다.**
 
-개인지식운영체제 PKOS
+개인지식운영체계 PKOS
 Copyright (c) 2026 레고학교 미스터리 (legoschool)
 
 이 저장소의 모든 것 — 프로그램 코드(index.html 등)와 문서, 그림 — 은

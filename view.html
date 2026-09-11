@@ -4,8 +4,9 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="theme-color" content="#ffffff" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600&display=swap" />
 <meta name="robots" content="noindex, nofollow" />
-<title>기록 보기 · 개인지식운영체제</title>
+<title>기록 보기 · 개인지식운영체계</title>
 <!-- 보내는 쪽(index.html)과 같은 글꼴로 서야 «같은 기록» 처럼 보인다 -->
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
@@ -72,6 +73,54 @@
      ⚠️ 손으로 고치지 말 것 · index.html 쪽과 같은 팔레트여야 한다.
         고칠 일이 있으면 색감만들기.mjs 로 찍어 양쪽에 같이 심는다.
      ========================================================= */
+  /* 노션 · 흰 종이에 파랑 (index.html 과 같은 값) */
+  [data-tone="notion"] {
+    color-scheme: light;
+    --bg: #ffffff; --panel: #ffffff; --ink: #37352f; --ink-soft: #787774;
+    --brand: #2383e2; --brand-dark: #1b6fc2; --brand-soft: #e8f0fb;
+    --line: #e9e9e7; --line-soft: #f1f1ef; --hard: #37352f;
+    --warn-bg: #fbf3db; --warn-line: #f0e1b0; --warn-ink: #7a5400;
+    --ok-bg: #edf3ec; --ok-line: #cfe3cc; --ok-ink: #2c5a34; --pin-bg: #fbf3db;
+    --t1: #0f7b6c; --t1s: #edf3ec; --t2: #2383e2; --t2s: #e8f0fb;
+    --t3: #cb912f; --t3s: #fbf3db; --t4: #d9730d; --t4s: #faebdd;
+    --t5: #ad1a72; --t5s: #f9e6f0; --t6: #6940a5; --t6s: #f0e8f7;
+    --shadow: none; --radius: 6px;
+  }
+  [data-tone="notion"][data-mode="dark"] {
+    color-scheme: dark;
+    --bg: #191919; --panel: #191919; --ink: #d4d4d4; --ink-soft: #9b9b9b;
+    --brand: #529cca; --brand-dark: #6fb0dc; --brand-soft: #1f2d3a;
+    --line: #2f2f2f; --line-soft: #262626; --hard: #000;
+    --warn-bg: #2f2a1a; --warn-line: #4a4025; --warn-ink: #e0c26a;
+    --ok-bg: #1b2b24; --ok-line: #2e4a3c; --ok-ink: #8fd1b5; --pin-bg: #2f2a1a;
+    --t1: #4fb39f; --t1s: #1b2b27; --t2: #529cca; --t2s: #1f2d3a;
+    --t3: #d7b35c; --t3s: #2f2a1a; --t4: #e39a5c; --t4s: #33261a;
+    --t5: #d66fa8; --t5s: #33202b; --t6: #a688d6; --t6s: #2a2336;
+  }
+  /* 남색 · 참고 디자인의 옷 (index.html 과 같은 값) */
+  [data-tone="star"] {
+    color-scheme: light;
+    --bg: #f4f5f8; --panel: #ffffff; --ink: #1b2130; --ink-soft: #6b7689;
+    --brand: #8f7240; --brand-dark: #745a30; --brand-soft: #f3ecdd;
+    --line: #e1e5ee; --line-soft: #edf0f5; --hard: #1b2130;
+    --warn-bg: #fbf5e6; --warn-line: #ead9b0; --warn-ink: #6b4e00;
+    --ok-bg: #e9f4ef; --ok-line: #bfdccd; --ok-ink: #1f5c3f; --pin-bg: #f6efdc;
+    --t1: #3b5f9e; --t1s: #e6edf9; --t2: #8a6a2a; --t2s: #f5eddb;
+    --t3: #6b5a9e; --t3s: #ece8f7; --t4: #2f7a68; --t4s: #e2f1ec;
+    --t5: #a25a54; --t5s: #f8e6e3; --t6: #5f5b52; --t6s: #ecebe6;
+  }
+  [data-tone="star"][data-mode="dark"] {
+    color-scheme: dark;
+    --bg: #101928; --panel: #172235; --ink: #e6e8ec; --ink-soft: #92a0b6;
+    --brand: #d9bf91; --brand-dark: #e7d0a8; --brand-soft: #2a2d36;
+    --line: #263248; --line-soft: #1f2a3d; --hard: #05090f;
+    --warn-bg: #1f2233; --warn-line: #3d3a34; --warn-ink: #d9bf91;
+    --ok-bg: #16262c; --ok-line: #2a4a45; --ok-ink: #93c5b4; --pin-bg: #2a2a2e;
+    --t1: #a9bde6; --t1s: #1e2a40; --t2: #d9be8b; --t2s: #2f2b22;
+    --t3: #bbaddd; --t3s: #2a2739; --t4: #92c7bb; --t4s: #1c2f2c;
+    --t5: #d5a5a0; --t5s: #2f2527; --t6: #c9c5bb; --t6s: #262932;
+    --font-title: "Noto Serif KR", "Nanum Myeongjo", Georgia, serif; --shadow: none; --radius: 12px;
+  }
   /* 크래프트 · 크림 종이에 붉은 흙 */
   [data-tone="craft"] {
     --bg: #FBF6EE; --panel: #FFFDF8; --ink: #26221E; --ink-soft: #685F54;
@@ -554,7 +603,7 @@
   function render(p) {
     if (p.th) { document.documentElement.setAttribute("data-theme", p.th); loadFont(p.th); }
     if (p.tn) document.documentElement.setAttribute("data-tone", p.tn);
-    document.title = (p.t || "기록") + " · 개인지식운영체제";
+    document.title = (p.t || "기록") + " · 개인지식운영체계";
 
     var w = document.getElementById("wrap");
     w.innerHTML = "";
@@ -651,12 +700,12 @@
 
     w.appendChild(paper);
 
-    /* ⚠️ 여기에 «개인지식운영체제이란?» 링크를 두었었다. 그 링크가 이 사본이 어디에 있는지를
+    /* ⚠️ 여기에 «개인지식운영체계이란?» 링크를 두었었다. 그 링크가 이 사본이 어디에 있는지를
        받는 사람에게 그대로 알려 준다. 이 앱은 구글 심사 전이라 로그인이 «평생 100명» 한도고,
        주소가 퍼지면 그 자리는 되돌릴 수 없다. 기록 하나를 보여 주자고 걸 만한 것이 아니다.
        그래서 링크는 두지 않는다. 무엇으로 만든 쪽인지만 적는다. */
     var foot = el("div", "foot");
-    foot.appendChild(document.createTextNode("「개인지식운영체제」로 만든 쪽입니다. 보낸 사람이 공유를 끄면 더 열리지 않습니다."));
+    foot.appendChild(document.createTextNode("「개인지식운영체계」로 만든 쪽입니다. 보낸 사람이 공유를 끄면 더 열리지 않습니다."));
     w.appendChild(foot);
   }
 
