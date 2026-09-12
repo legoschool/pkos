@@ -72,6 +72,43 @@
     for (const r of nodes(await xml(zip, path), "Relationship")) if (r.getAttribute("TargetMode") !== "External") out.set(r.getAttribute("Id"), pathAt(base, r.getAttribute("Target")));
     return out;
   }
+  const relationshipAttr = (n, attr) => n.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", attr) || n.getAttributeNS("http://purl.oclc.org/ooxml/officeDocument/relationships", attr) || n.getAttribute("r:" + attr);
+  async function embeddedImages(zip, parts) {
+    const cache = new Map(); let total = 0, count = 0, skipped = false;
+    for (const { section, doc, path } of parts) {
+      section.images = [];
+      let rels;
+      try { rels = await relationships(zip, path); } catch (_) { skipped = true; continue; }
+      const seen = new Set();
+      for (const n of nodes(doc, "blip")) {
+        const id = relationshipAttr(n, "embed"), target = rels.get(id);
+        if (!target) { skipped = true; continue; }
+        if (seen.has(target)) continue;
+        seen.add(target);
+        if (count >= 48) { skipped = true; continue; }
+        try {
+          if (!cache.has(target)) {
+            const entry = zip.items.get(target);
+            if (!entry || entry.size > 4 * 1024 * 1024 || total + entry.size > 8 * 1024 * 1024) throw new Error("image limit");
+            const bytes = new Uint8Array(await (await zip.read(target)).arrayBuffer());
+            const prefix = String.fromCharCode(...bytes.slice(0, 12));
+            let type = "";
+            if (bytes[0] === 137 && prefix.slice(1, 4) === "PNG" && bytes[4] === 13 && bytes[5] === 10) type = "image/png";
+            else if (bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255) type = "image/jpeg";
+            else if (/^GIF8[79]a/.test(prefix)) type = "image/gif";
+            else if (prefix.startsWith("RIFF") && prefix.slice(8) === "WEBP") type = "image/webp";
+            if (!type) throw new Error("unsupported image");
+            let binary = "";
+            for (let i = 0; i < bytes.length; i += 8192) binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+            cache.set(target, { src: "data:" + type + ";base64," + btoa(binary), name: target.split("/").pop() });
+            total += bytes.length;
+          }
+          section.images.push(cache.get(target)); count++;
+        } catch (_) { skipped = true; }
+      }
+    }
+    return skipped;
+  }
   const relationshipId = n => n.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id") || n.getAttributeNS("http://purl.oclc.org/ooxml/officeDocument/relationships", "id") || n.getAttribute("r:id");
   const ODF = { text: "urn:oasis:names:tc:opendocument:xmlns:text:1.0", table: "urn:oasis:names:tc:opendocument:xmlns:table:1.0", office: "urn:oasis:names:tc:opendocument:xmlns:office:1.0", draw: "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" };
   function odfNodes(root, ns, name) { return Array.from(root.getElementsByTagNameNS(ODF[ns], name)); }
@@ -121,11 +158,12 @@
     });
   }
   async function read(file, name, options = {}) {
-    const zip = await archive(file), ext = name.split(".").pop().toLowerCase(), sections = [];
+    const zip = await archive(file), ext = name.split(".").pop().toLowerCase(), sections = [], imageParts = [];
     if (ext === "zip") return { sections: [{ title: "압축 파일 목록", lines: Array.from(zip.items, ([name, info]) => name + " (" + info.size + " bytes)") }], note: "파일 목록만 표시합니다. 압축을 풀거나 실행하지 않습니다." };
     if (["odt", "ods", "odp"].includes(ext)) return { sections: await readOdf(zip, ext), note: "내용 미리보기입니다. 원본의 글꼴·배치·그림은 재현하지 않습니다." + (ext === "ods" ? " 반복되는 행·열은 범위로 표시하며 수식은 재계산하지 않습니다." : "") };
     if (ext === "docx") {
-      sections.push({ title: "본문", lines: paragraphs(await xml(zip, "word/document.xml")) });
+      const path = "word/document.xml", doc = await xml(zip, path), section = { title: "본문", lines: paragraphs(doc) };
+      sections.push(section); imageParts.push({ section, doc, path });
     } else if (ext === "hwpx") {
       const paths = Array.from(zip.items.keys()).filter(p => /^Contents\/section\d+\.xml$/i.test(p)).sort((a,b) => a.localeCompare(b, undefined, { numeric: true }));
       if (!paths.length) fail("한글 문서의 본문을 찾지 못했습니다.");
@@ -134,7 +172,8 @@
       const path = "ppt/presentation.xml", doc = await xml(zip, path), rels = await relationships(zip, path);
       for (const slide of nodes(doc, "sldId")) {
         const part = rels.get(relationshipId(slide)); if (!part) fail("슬라이드 연결을 찾지 못했습니다.");
-        sections.push({ title: "슬라이드 " + (sections.length + 1), lines: paragraphs(await xml(zip, part)) });
+        const slideDoc = await xml(zip, part), section = { title: "슬라이드 " + (sections.length + 1), lines: paragraphs(slideDoc) };
+        sections.push(section); imageParts.push({ section, doc: slideDoc, path: part });
       }
     } else if (ext === "xlsx") {
       const strings = zip.items.has("xl/sharedStrings.xml") ? nodes(await xml(zip, "xl/sharedStrings.xml"), "si").map(n => textOf(n, "t")) : [];
@@ -151,7 +190,9 @@
         sections.push({ title: sheet.getAttribute("name") || "시트", lines });
       }
     } else fail("이 문서 형식은 아직 지원하지 않습니다.");
-    return { sections, note: "내용 미리보기입니다. 원본의 글꼴·배치·그림은 재현하지 않습니다." + (ext === "xlsx" ? " 숫자는 저장된 값으로 표시하며 날짜·통화 서식과 수식 재계산은 적용하지 않습니다." : "") };
+    const withImages = imageParts.length && !options.fullText && options.images !== false;
+    const skippedImages = withImages ? await embeddedImages(zip, imageParts) : false;
+    return { sections, note: (withImages ? "텍스트와 포함된 이미지를 표시합니다. 원본의 글꼴·배치·도형 효과는 재현하지 않습니다." : "내용 미리보기입니다. 원본의 글꼴·배치·그림은 재현하지 않습니다.") + (skippedImages ? " 일부 이미지는 크기·형식·연결 문제로 생략했습니다. 원본 파일에서 확인해 주세요." : "") + (ext === "xlsx" ? " 숫자는 저장된 값으로 표시하며 날짜·통화 서식과 수식 재계산은 적용하지 않습니다." : "") };
   }
   window.PKOSDocuments = { read, supports: name => /\.(docx|xlsx|pptx|hwpx|odt|ods|odp|zip)$/i.test(name) };
 })();

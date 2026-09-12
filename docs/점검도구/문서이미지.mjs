@@ -136,36 +136,28 @@ await wait(2500);
 
 
 try {
- const fixtures=JSON.parse((await import('node:fs')).readFileSync(new URL('./문서-fixtures.json',import.meta.url),'utf8'));
- await evaluate(`window.docFixtures=${JSON.stringify(fixtures)};window.docFile=n=>new File([Uint8Array.from(atob(docFixtures[n]),c=>c.charCodeAt(0))],n)`);
- for(const [name,expected] of [['sample.docx','워드 본문 확인'],['sample.hwpx','둘째 구역'],['sample.xlsx','공유 문자열'],['sample.zip','../do-not-extract.txt']]){
-  const result=await evaluate(`PKOSDocuments.read(docFile(${JSON.stringify(name)}),${JSON.stringify(name)})`);
-  check(name+' content',JSON.stringify(result).includes(expected));
- }
- const slides=await evaluate(`PKOSDocuments.read(docFile('sample.pptx'),'sample.pptx')`);
- check('PPTX follows presentation order',slides.sections[0].lines[0]==='앞장'&&slides.sections[1].lines[0]==='뒷장');
- const sheet=await evaluate(`PKOSDocuments.read(docFile('sample.xlsx'),'sample.xlsx')`);
- check('XLSX preserves cell coordinates and inline strings',JSON.stringify(sheet).includes('C1: 42')&&JSON.stringify(sheet).includes('D1: 직접 문자열'));
- for(const name of ['unsafe.docx','broken.docx'])check(name+' rejected',await evaluate(`PKOSDocuments.read(docFile('${name}'),'${name}').then(()=>false,()=>true)`));
- if(process.argv[3]) {
-  const encoded=(await import('node:fs')).readFileSync(process.argv[3]).toString('base64');
-  const actual=await evaluate(`PKOSDocuments.read(new Blob([Uint8Array.from(atob(${JSON.stringify(encoded)}),c=>c.charCodeAt(0))]),'actual.pptx').then(r=>({slides:r.sections.length,nonempty:r.sections.filter(s=>s.lines.length).length}))`);
-  check('actual PPTX has readable slide text',actual.slides>0&&actual.nonempty>0,JSON.stringify(actual));
- }
- await evaluate(`(async()=>{const root=await navigator.storage.getDirectory();await pkosLocal.attach(root);const d=new DataTransfer();d.items.add(docFile('sample.docx'));window.dispatchEvent(new DragEvent('drop',{dataTransfer:d,bubbles:true,cancelable:true}));})()`);await wait(250);await evaluate(`document.querySelector('[data-incoming-save]').click()`);await wait(1500);
- await evaluate(`(()=>{document.querySelector('[data-page="library"].nav-item').click();const c=document.querySelector('.card.entry');c.querySelector('.dots').click();Array.from(document.querySelectorAll('.menupop button')).find(b=>b.textContent.includes('전체 보기')).click();})()`);await wait(500);
- check('DOCX drop renders readable preview in app',await evaluate(`document.querySelector('.viewer pre').textContent.includes('워드 본문 확인')`));
-
- await evaluate(`(()=>{document.querySelector('.viewer .vtop button').click();const q=document.querySelector('#search');q.value='워드 본문 확인';q.dispatchEvent(new Event('input',{bubbles:true}));})()`);
- check('attachment text searchable without filename',await evaluate(`document.querySelectorAll('.card.entry').length===1`));
- check('search text saved in folder index',await evaluate(`(async()=>{const root=await navigator.storage.getDirectory();const file=await (await root.getFileHandle('PKOS-index.json')).getFile();return (await file.text()).includes('워드 본문 확인');})()`));
-
- await evaluate(`(()=>{const dt=new DataTransfer();dt.items.add(docFile('long.docx'));dt.items.add(docFile('long.xlsx'));dt.items.add(docFile('long.hwpx'));dt.items.add(docFile('long.pptx'));window.dispatchEvent(new DragEvent('drop',{dataTransfer:dt,bubbles:true,cancelable:true}));})()`);await wait(250);await evaluate(`document.querySelector('[data-incoming-save]').click()`);await wait(1200);
- for(const [query,title] of [['워드끝부분검색','long'],['천행뒤검색','long'],['한글끝부분검색','long'],['슬라이드끝부분검색','long']]) {
-  await evaluate(`(()=>{const q=document.querySelector('#search');q.value=${JSON.stringify(query)};q.dispatchEvent(new Event('input',{bubbles:true}));})()`);await wait(1200);
-  check(query+' not in prefix index',await evaluate(`!pkosLocal.entries().some(n=>n.blocks.some(b=>(b.searchText||'').includes(${JSON.stringify(query)})))`));
-  check(query+' full content search',await evaluate(`document.querySelectorAll('.card.entry').length===1`));
- }
- check('no runtime errors',!errors.length,errors.join('\n'));
- if(results.some(r=>!r.ok))process.exitCode=1;
+ const fixtures=JSON.parse((await import('node:fs')).readFileSync(new URL('./문서이미지-fixtures.json',import.meta.url),'utf8'));
+ await evaluate(`window.imageFixtures=${JSON.stringify(fixtures)};window.imageFile=n=>new File([Uint8Array.from(atob(imageFixtures[n]),c=>c.charCodeAt(0))],n);`);
+ check('DOCX referenced images in order and duplicates removed',await evaluate(`PKOSDocuments.read(imageFile('images.docx'),'images.docx').then(r=>r.sections[0].images.map(i=>i.name).join(',')==='red.png,blue.png')`));
+ check('PPTX images follow slide order',await evaluate(`PKOSDocuments.read(imageFile('images.pptx'),'images.pptx').then(r=>r.sections[0].lines[0]==='앞장'&&r.sections[0].images[0].name==='blue.png'&&r.sections[1].images[0].name==='red.png')`));
+ check('Unsupported and external images preserve text and valid images',await evaluate(`PKOSDocuments.read(imageFile('mixed.docx'),'mixed.docx').then(r=>r.sections[0].images.length===2&&r.sections[0].lines[0].includes('문서 검색어')&&r.note.includes('생략'))`));
+ check('Full text search skips images',await evaluate(`PKOSDocuments.read(imageFile('images.docx'),'images.docx',{fullText:true}).then(r=>!r.sections[0].images&&r.sections[0].lines[0].includes('검색어'))`));
+ await evaluate(`(async()=>{const root=await navigator.storage.getDirectory();await pkosLocal.attach(root);const dt=new DataTransfer();dt.items.add(imageFile('images.docx'));window.dispatchEvent(new DragEvent('drop',{dataTransfer:dt,bubbles:true,cancelable:true}));})()`);await wait(350);
+ await evaluate(`document.querySelector('[data-incoming-save]').click()`);await wait(1800);
+ check('Saved document bytes match original',await evaluate(`(async()=>{const root=await navigator.storage.getDirectory();const folder=await root.getDirectoryHandle('받은 파일');const f=await(await folder.getFileHandle('images.docx')).getFile();return btoa(String.fromCharCode(...new Uint8Array(await f.arrayBuffer())))===imageFixtures['images.docx'];})()`));
+ await evaluate(`(()=>{document.querySelector('[data-page="library"].nav-item').click();const c=document.querySelector('.card.entry');c.querySelector('.dots').click();Array.from(document.querySelectorAll('.menupop button')).find(b=>b.textContent.includes('전체 보기')).click();})()`);await wait(700);
+ check('First image rendered in document viewer',await evaluate(`(()=>{const img=document.querySelector('.viewer .document-images img');return img?.naturalWidth===80&&img.alt.includes('red.png');})()`));
+ await evaluate(`document.querySelector('.viewer .document-image-controls button:last-child').click()`);await wait(250);
+ check('Next image rendered with position and boundary',await evaluate(`(()=>{const g=document.querySelector('.viewer .document-images');return g.querySelector('img').naturalWidth===80&&g.querySelector('img').alt.includes('blue.png')&&g.querySelector('span').textContent==='2 / 2'&&g.querySelector('button:last-child').disabled;})()`));
+ await evaluate(`document.querySelector('.viewer .document-image-controls button:first-child').click()`);await wait(200);
+ check('Previous image rendered',await evaluate(`document.querySelector('.viewer .document-images img').alt.includes('red.png')`));
+ await evaluate(`Array.from(document.querySelectorAll('.viewer .vtop button')).find(b=>b.textContent.includes('편집')).click()`);await wait(700);
+ check('Images render inside editor',await evaluate(`Array.from(document.querySelectorAll('.document-images img')).some(img=>img.naturalWidth===80&&img.closest('figure.atom'))`));
+ await evaluate(`document.querySelector('figure.atom .document-images').scrollIntoView({block:'center'})`);await wait(150);
+ const shot=await send('Page.captureScreenshot',{format:'png'});
+ (await import('node:fs')).writeFileSync(new URL('../../local-service/runtime/document-images.png',import.meta.url),Buffer.from(shot.data,'base64'));
+ await send('Page.reload');await wait(2200);
+ check('Reload retains document search text',await evaluate(`pkosLocal.entries().some(n=>n.blocks.some(b=>(b.searchText||'').includes('문서 검색어')))`));
+ check('No runtime errors',!errors.length,errors.join(';'));
+ console.log(JSON.stringify(results));if(results.some(r=>!r.ok))process.exitCode=1;
 }finally{ws.close();edge.kill();}

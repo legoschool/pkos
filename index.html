@@ -10836,7 +10836,7 @@
         try {
           var file = await blockFile(b), text = "";
           if (office) {
-            var result = await PKOSDocuments.read(file, name);
+            var result = await PKOSDocuments.read(file, name, { images: false });
             text = result.sections.map(function (s) { return s.title + "\n" + s.lines.join("\n"); }).join("\n");
           } else {
             var data = await file.slice(0, 256 * 1024).arrayBuffer();
@@ -10866,7 +10866,27 @@
           details.appendChild(el("summary", null, section.title));
           var pre = el("pre", "codeblock", section.lines.join("\n") || "표시할 텍스트가 없습니다.");
           pre.style.whiteSpace = "pre-wrap"; pre.style.overflowWrap = "anywhere"; pre.style.maxHeight = "520px"; pre.style.overflow = "auto";
-          details.appendChild(pre); wrap.appendChild(details);
+          details.appendChild(pre);
+          if (section.images && section.images.length) {
+            var gallery = el("div", "document-images"), picture = el("img"), controls = el("div", "document-image-controls");
+            var previous = el("button", "btn", "이전 이미지"), next = el("button", "btn", "다음 이미지"), position = el("span");
+            var imageIndex = 0;
+            previous.type = next.type = "button";
+            picture.style.cssText = "display:block;max-width:100%;max-height:480px;margin:auto;object-fit:contain";
+            position.setAttribute("aria-live", "polite");
+            function showImage() {
+              var image = section.images[imageIndex];
+              picture.src = image.src; picture.alt = section.title + " 이미지 " + (imageIndex + 1) + " · " + image.name;
+              position.textContent = (imageIndex + 1) + " / " + section.images.length;
+              previous.disabled = imageIndex === 0; next.disabled = imageIndex === section.images.length - 1;
+            }
+            previous.onclick = function () { if (imageIndex > 0) { imageIndex--; showImage(); } };
+            next.onclick = function () { if (imageIndex < section.images.length - 1) { imageIndex++; showImage(); } };
+            picture.onerror = function () { position.textContent = "이미지를 표시하지 못했습니다. 원본 파일에서 확인해 주세요."; };
+            controls.style.cssText = "display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin:12px 0";
+            controls.append(previous, position, next); gallery.append(picture, controls); details.appendChild(gallery); showImage();
+          }
+          wrap.appendChild(details);
         });
       }).catch(function (e) { loading.textContent = "미리보기를 열지 못했습니다. " + e.message; });
       return wrap;
