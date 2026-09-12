@@ -137,6 +137,8 @@ await wait(2500);
 
 try {
  for(let i=0;i<60;i++){if(await evaluate('window.pkosLocal?.isOn()'))break;await wait(200);}
+ check('Search creates PDF without opening preview',await searchFor('Second slide')===1);
+ await evaluate(`(()=>{const input=document.getElementById('search');input.value='';input.dispatchEvent(new Event('input'));})()`);
  await evaluate(`(()=>{document.querySelector('[data-page="library"].nav-item').click();const c=document.querySelector('.card.entry');c.querySelector('.dots').click();Array.from(document.querySelectorAll('.menupop button')).find(b=>b.textContent.includes('전체 보기')).click();})()`);await wait(400);
  check('Legacy PPT offers local preview',await evaluate(`!!document.querySelector('.viewer [data-presentation-preview]')`));
  await evaluate(`document.querySelector('.viewer [data-presentation-preview]').click()`);
@@ -152,6 +154,17 @@ try {
  check('Unchanged file reuses ready preview',await evaluate(`(async()=>{const request=()=>fetch('/api/presentation-preview?path=legacy.ppt',{method:'POST',headers:{'X-PKOS-Local':'1'}}).then(r=>r.json());const a=await request(),b=await request();return a.state==='ready'&&b.state==='ready'&&a.id===b.id;})()`));
  await evaluate(`document.querySelector('.viewer canvas')?.scrollIntoView({block:'center'})`);
  const shot=await send('Page.captureScreenshot',{format:'png'});(await import('node:fs')).writeFileSync(new URL('../../local-service/runtime/legacy-ppt-preview.png',import.meta.url),Buffer.from(shot.data,'base64'));
+ await send('Page.reload',{ignoreCache:true});await wait(2500);
+ async function searchFor(query) {
+  await evaluate(`(()=>{document.querySelector('[data-page="library"].nav-item').click();const input=document.getElementById('search');input.value=${JSON.stringify(query)};input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  for(let i=0;i<100;i++){if(await evaluate(`document.getElementById('attachmentSearchStatus').textContent.includes('완료')`))break;await wait(500);}
+  return evaluate(`document.querySelectorAll('.card.entry').length`);
+ }
+ check('PPT body search after reload',await searchFor('Original layout stays visible')===1);
+ check('Second slide body is searchable',await searchFor('Second slide')===1);
+ check('Absent PPT text returns no record',await searchFor('pkos-absent-phrase-98521')===0);
+ await evaluate(`(()=>{const input=document.getElementById('search');input.value='Second slide';input.dispatchEvent(new Event('input'));input.value='';input.dispatchEvent(new Event('input'));})()`);await wait(800);
+ check('Clearing search cancels stale results',await evaluate(`document.getElementById('attachmentSearchStatus').textContent===''&&document.querySelectorAll('.card.entry').length===1`));
  check('No runtime errors',!errors.length,errors.join(';'));
  console.log(JSON.stringify(results));if(results.some(r=>!r.ok))process.exitCode=1;
 }finally{ws.close();edge.kill();}

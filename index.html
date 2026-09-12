@@ -10657,15 +10657,16 @@
           var name = b.original || b.name || "";
           var office = window.PKOSDocuments && PKOSDocuments.supports(name);
           var pdfFile = window.PKOSPdf && /\.pdf$/i.test(name);
-          if (!office && !pdfFile && !/\.(txt|csv|tsv|json|xml|yaml|yml|css|js|ts|py|log|ini|toml|sql|md)$/i.test(name)) continue;
+          var legacyPresentation = supportsLocalPresentation(b);
+          if (!office && !pdfFile && !legacyPresentation && !/\.(txt|csv|tsv|json|xml|yaml|yml|css|js|ts|py|log|ini|toml|sql|md)$/i.test(name)) continue;
           if (status) status.textContent = "첨부 검색 중… " + (count + 1);
           try {
-            var file = await blockFile(b), found = false;
+            var file = legacyPresentation ? await localPresentationPdf(b, cancelled) : await blockFile(b), found = false;
             if (cancelled()) return;
             if (office) {
               var parsedDocument = await PKOSDocuments.read(file, name, { fullText: true });
               found = parsedDocument.sections.some(function (section) { return (section.title + "\n" + section.lines.join("\n")).toLowerCase().includes(query); });
-            } else if (pdfFile) found = await PKOSPdf.contains(file, query, cancelled);
+            } else if (pdfFile || legacyPresentation) found = await PKOSPdf.contains(file, query, cancelled);
             else found = await textFileContains(file, query, cancelled);
             if (cancelled()) return;
             count++;
@@ -10932,29 +10933,39 @@
     }
     return count;
   }
+  function supportsLocalPresentation(b) {
+    return !!(window.PKOSBridge?.enabled && window.PKOSPdf && typeof localRoot?.path === 'string' && localIsId(b.fileId) && /\.(ppt|pps)$/i.test(b.original || b.name || ''));
+  }
+  async function localPresentationPdf(b, cancelled) {
+    if (cancelled()) throw new Error('요청이 취소됐습니다.');
+    var path=[localRoot.path,b.fileId.slice(6)].filter(Boolean).join('/');
+    var response=await fetch('/api/presentation-preview?path='+encodeURIComponent(path),{method:'POST',headers:{'X-PKOS-Local':'1'}});
+    var job=await response.json();if(!response.ok)throw new Error(job.error||'PC 연결 프로그램을 확인해 주세요.');
+    for(var attempt=0;job.state==='running'&&attempt<90;attempt++) {
+      if(cancelled())throw new Error('요청이 취소됐습니다.');
+      await new Promise(function(resolve){setTimeout(resolve,2000);});
+      if(cancelled())throw new Error('요청이 취소됐습니다.');
+      response=await fetch('/api/presentation-preview?id='+encodeURIComponent(job.id),{cache:'no-store'});
+      job=await response.json();if(!response.ok)throw new Error(job.error||'변환 상태를 읽지 못했습니다.');
+    }
+    if(cancelled())throw new Error('요청이 취소됐습니다.');
+    if(job.state!=='ready')throw new Error(job.message||'변환이 계속 진행 중입니다. 잠시 후 다시 요청해 주세요.');
+    response=await fetch('/api/presentation-preview-file?id='+encodeURIComponent(job.id),{cache:'no-store'});
+    if(!response.ok)throw new Error('미리보기를 읽지 못했습니다. 다시 요청해 주세요.');
+    return response.blob();
+  }
   function documentPreview(b) {
     var wrap = el("div", "file-preview"), name = b.original || b.name || "파일";
     var pdf = /\.pdf$/i.test(name) || b.mime === "application/pdf";
     var text = /\.(txt|csv|tsv|json|xml|yaml|yml|css|js|ts|py|log|ini|toml|sql|md)$/i.test(name) || /^text\//.test(b.mime || "");
-    if (window.PKOSBridge?.enabled && typeof localRoot?.path === 'string' && localIsId(b.fileId) && /\.(ppt|pps)$/i.test(name)) {
+    if (supportsLocalPresentation(b)) {
       var action = el('button','btn','슬라이드 미리보기 만들기'), progress = el('p','desc','PC의 PowerPoint로 PDF 사본을 만듭니다. 원본은 유지합니다.');
       action.type='button';action.dataset.presentationPreview='';wrap.append(action,progress);
       action.onclick=async function(event) {
         event.stopPropagation();action.disabled=true;progress.textContent='슬라이드 미리보기를 만드는 중입니다.';
         try {
-          var path=[localRoot.path,b.fileId.slice(6)].filter(Boolean).join('/');
-          var response=await fetch('/api/presentation-preview?path='+encodeURIComponent(path),{method:'POST',headers:{'X-PKOS-Local':'1'}});
-          var job=await response.json();if(!response.ok)throw new Error(job.error||'PC 연결 프로그램을 확인해 주세요.');
-          for(var attempt=0;job.state==='running'&&attempt<90&&wrap.isConnected;attempt++) {
-            await new Promise(function(resolve){setTimeout(resolve,2000);});
-            response=await fetch('/api/presentation-preview?id='+encodeURIComponent(job.id),{cache:'no-store'});
-            job=await response.json();if(!response.ok)throw new Error(job.error||'변환 상태를 읽지 못했습니다.');
-          }
-          if(!wrap.isConnected)return;
-          if(job.state!=='ready')throw new Error(job.message||'변환이 계속 진행 중입니다. 잠시 후 다시 눌러 주세요.');
-          response=await fetch('/api/presentation-preview-file?id='+encodeURIComponent(job.id),{cache:'no-store'});
-          if(!response.ok)throw new Error('미리보기를 읽지 못했습니다. 다시 요청해 주세요.');
-          await PKOSPdf.preview(await response.blob(),wrap);
+          var converted = await localPresentationPdf(b, function () { return !wrap.isConnected; });
+          if (wrap.isConnected) await PKOSPdf.preview(converted,wrap);
         } catch(error) {progress.textContent=error.message;action.disabled=false;}
       };
       return wrap;
