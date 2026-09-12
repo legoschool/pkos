@@ -143,7 +143,11 @@ try {
  writeFileSync(join(barrier,label+'.ready'),'ready');
  for(let i=0;i<200&&!existsSync(join(barrier,'go'));i++)await wait(100);
  if(!existsSync(join(barrier,'go')))throw Error('barrier timeout');
- await evaluate(`(()=>{document.querySelector('.hm-quick input').value=${JSON.stringify(label)};document.querySelector('.hm-quick').requestSubmit();const dt=new DataTransfer();dt.items.add(new File([${JSON.stringify('bytes-'+label)}],${JSON.stringify(label+'.txt')},{type:'text/plain'}));document.querySelector('#blocks').dispatchEvent(new DragEvent('drop',{dataTransfer:dt,bubbles:true,cancelable:true}));document.querySelector('#btnSave').click();})()`);
+ await evaluate(`(()=>{document.querySelector('.hm-quick input').value=${JSON.stringify(label)};document.querySelector('.hm-quick').requestSubmit();const dt=new DataTransfer();dt.items.add(new File([${JSON.stringify('bytes-'+label)}],${JSON.stringify(label+'.txt')},{type:'text/plain'}));document.querySelector('#blocks').dispatchEvent(new DragEvent('drop',{dataTransfer:dt,bubbles:true,cancelable:true}));})()`);
+ await evaluate(`(()=>{const input=document.querySelector('[aria-label="저장할 파일 이름"] input');if(!input)throw Error('filename dialog missing');input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',ctrlKey:true,bubbles:true,cancelable:true}));})()`);
+ for(let i=0;i<50&&!await evaluate(`document.querySelectorAll('#blocks figure.atom').length>0`);i++)await wait(100);
+ check('이름 확인 중 기록은 저장하지 않음',await evaluate(`document.querySelector('#title').value!==''&&!document.querySelector('[aria-label="저장할 파일 이름"]')`));
+ await evaluate(`document.querySelector('#btnSave').click()`);
  let complete=false;
  for(let i=0;i<100;i++){
   complete=await evaluate(`(async()=>{const r=await fetch('/api/file?path=PKOS-index.json',{cache:'no-store'});if(!r.ok)return false;const data=await r.json();return ['window-A','window-B'].every(title=>data.entries.some(n=>n.title===title&&n.mdId&&n.blocks.some(b=>b.fileId)));})()`);

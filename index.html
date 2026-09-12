@@ -6317,7 +6317,7 @@
       var body=el('div','mbody');body.appendChild(el('h3',null,'저장할 파일 이름'));body.appendChild(el('p','desc','이름을 바꾸거나 그대로 저장하세요. 가져온 원본 파일은 바뀌지 않습니다.'));
       var inputs=docs.map(function(f){var ext=(f.name.match(/\.[^.]+$/)||[''])[0];var label=el('label',null,f.name);var input=el('input','inp');input.value=ext?f.name.slice(0,-ext.length):f.name;input.setAttribute('aria-label',f.name+' 저장 이름');label.appendChild(input);label.appendChild(el('span','desc',ext+' 유지'));body.appendChild(label);return {file:f,input:input,ext:ext};});
       var status=el('p',null,'');body.appendChild(status);box.appendChild(body);var foot=el('div','mfoot'),cancel=el('button','btn','취소'),save=el('button','btn primary','이 이름으로 저장');save.dataset.incomingSave='1';cancel.onclick=function(){bg.remove();resolve([]);};
-      save.onclick=function(){var renamed=new Map();for(var row of inputs){var name=row.input.value.trim();if(!name||/[\\/:*?"<>|]/.test(name)||name==='.'||name==='..'||/[. ]$/.test(name)){status.textContent='파일 이름을 확인해 주세요.';return;}if(row.ext&&!name.toLowerCase().endsWith(row.ext.toLowerCase()))name+=row.ext;renamed.set(row.file,new File([row.file],name,{type:row.file.type,lastModified:row.file.lastModified}));}bg.remove();resolve(files.map(function(f){return renamed.get(f)||f;}));};foot.appendChild(cancel);foot.appendChild(save);box.appendChild(foot);bg.appendChild(box);document.body.appendChild(bg);inputs[0].input.focus();inputs[0].input.select();
+      save.onclick=function(){var renamed=new Map();for(var row of inputs){var name=row.input.value.trim();if(!name||/[\\/:*?"<>|]/.test(name)||name==='.'||name==='..'||/[. ]$/.test(name)){status.textContent='파일 이름을 확인해 주세요.';return;}if(row.ext&&!name.toLowerCase().endsWith(row.ext.toLowerCase()))name+=row.ext;renamed.set(row.file,new File([row.file],name,{type:row.file.type,lastModified:row.file.lastModified}));}bg.remove();resolve(files.map(function(f){return renamed.get(f)||f;}));};bg.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key==='Escape'){e.preventDefault();e.stopPropagation();if(e.key==='Escape')cancel.click();else save.click();}});foot.appendChild(cancel);foot.appendChild(save);box.appendChild(foot);bg.appendChild(box);document.body.appendChild(bg);inputs[0].input.focus();inputs[0].input.select();
     });
   }
 
@@ -12192,7 +12192,7 @@
       }catch(e){status.textContent=e.message;save.disabled=cancel.disabled=false;}
       finally{transferBusy=false;}
     };
-    input.onkeydown=function(e){if(e.key==='Enter')save.click();if(e.key==='Escape'&&!cancel.disabled)cancel.click();};
+    input.onkeydown=function(e){if(e.key==='Enter'||e.key==='Escape'){e.preventDefault();e.stopPropagation();if(e.key==='Enter'&&!save.disabled)save.click();if(e.key==='Escape'&&!cancel.disabled)cancel.click();}};
   }
 
   function folderMenuItems(label, path, fid, count) {
