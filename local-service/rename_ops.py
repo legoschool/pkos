@@ -1,5 +1,23 @@
 """Explicit user-requested folder/tag renames with rollback on failure."""
-import json, os, re, time
+import json, os, re, time, tempfile
+from pathlib import Path
+
+
+def replace_bytes(path, data, expected):
+    """Publish complete bytes only; never truncate the existing document."""
+    fd, temporary = tempfile.mkstemp(prefix='.pkos-write-rename-', dir=path.parent)
+    temporary = Path(temporary)
+    try:
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write(data)
+            stream.flush()
+            os.fsync(stream.fileno())
+        if path.read_bytes() != expected:
+            raise ValueError('저장 중 다른 곳에서 파일을 변경했습니다. 해당 파일을 덮어쓰지 않았습니다.')
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
 
 def rename(store, raw, new_name, tag=None):
     if not isinstance(new_name,str) or not new_name.strip() or new_name!=new_name.strip() or re.search(r'[\\/:*?"<>|\x00-\x1f]',new_name) or new_name.endswith(('.', ' ')) or new_name in ('.','..') or new_name.startswith('.'):
@@ -72,17 +90,16 @@ def rename(store, raw, new_name, tag=None):
             if old:old.rename(dest);renamed=True
             for p,b in writes.items():
                 current=store.path(pathmap(p.relative_to(store.root).as_posix()))
+                replace_bytes(current, b, backups[p])
                 touched.append(p)
-                current.write_bytes(b)
             for n in modified:
                 ident=n.get('mdId','')
                 if ident.startswith('local:'):
                     p=store.path(ident[6:])
                     if p.exists():n['localMtime']=p.stat().st_mtime_ns//1000000
-            temp=index.with_name('.pkos-rename-index.tmp')
-            temp.write_text(json.dumps(data,ensure_ascii=False),encoding='utf-8');os.replace(temp,index)
+            replace_bytes(index, json.dumps(data,ensure_ascii=False).encode('utf-8'), original_index)
         except Exception:
             if renamed:dest.rename(old)
-            for p in touched:p.write_bytes(backups[p])
+            for p in touched:replace_bytes(p, backups[p], writes[p])
             raise
         return {'renamed':bool(old),'oldPath':raw,'newPath':new_raw,'tag':tag,'name':new_name,'updatedRecords':len(modified)}

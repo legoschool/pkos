@@ -41,6 +41,36 @@ class RenameTests(unittest.TestCase):
   self.assertIn(b'(nested/renamed.bin)',(self.root/'old/note.md').read_bytes())
  def test_file_extension_unchanged(self):
   with self.assertRaises(ValueError):rename(self.store,'old/nested/file.bin','file.pdf')
+ def test_flush_failure_does_not_truncate_original(self):
+  before=self.index.read_bytes()
+  with patch('rename_ops.os.fsync',side_effect=OSError('disk flush failed')):
+   with self.assertRaises(OSError):rename(self.store,'old','new','old')
+  self.assertEqual((self.root/'old/note.md').read_bytes(),self.md)
+  self.assertEqual(self.index.read_bytes(),before)
+  self.assertEqual(list(self.root.rglob('.pkos-write-rename-*')),[])
+ def test_index_publication_failure_restores_complete_document(self):
+  import os
+  real_replace=os.replace;before=self.index.read_bytes()
+  def fail_index(source,destination):
+   if Path(destination)==self.index:raise OSError('index commit failed')
+   return real_replace(source,destination)
+  with patch('rename_ops.os.replace',side_effect=fail_index):
+   with self.assertRaises(OSError):rename(self.store,'old','new','old')
+  self.assertEqual((self.root/'old/note.md').read_bytes(),self.md)
+  self.assertEqual(self.index.read_bytes(),before)
+  self.assertFalse((self.root/'new').exists())
+  self.assertEqual(list(self.root.rglob('.pkos-write-rename-*')),[])
+ def test_external_edit_during_staging_is_preserved(self):
+  import os
+  real_sync=os.fsync;changed=self.md+b'EXTERNAL CHANGE\n'
+  def external_write(fd):
+   real_sync(fd)
+   target=self.root/'new/note.md'
+   if target.exists():target.write_bytes(changed)
+  with patch('rename_ops.os.fsync',side_effect=external_write):
+   with self.assertRaises(ValueError):rename(self.store,'old','new','old')
+  self.assertEqual((self.root/'old/note.md').read_bytes(),changed)
+  self.assertEqual(list(self.root.rglob('.pkos-write-rename-*')),[])
  def test_invalid_names(self):
   for name in ['../bad','CON','x/y','bad.', '']:
    with self.assertRaises(ValueError):rename(self.store,'old',name)
