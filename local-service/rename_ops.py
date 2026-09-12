@@ -56,7 +56,7 @@ def rename(store, raw, new_name, tag=None):
                 elif k=='tags' and isinstance(v,list) and tag:v=list(dict.fromkeys(new_name if x==tag else x for x in v))
                 else:v=remap(v)
                 out[k]=v
-            if isinstance(obj.get('fileId'),str) and out.get('fileId')!=obj['fileId']:out['name']=new_name
+            if isinstance(obj.get('fileId'),str) and out.get('fileId')!=obj['fileId']:out['name']=Path(out['fileId'][6:]).name
             if isinstance(obj.get('mdId'),str) and out.get('mdId')!=obj['mdId'] and old and old.is_file():out['mdName']=new_name
             return out
         modified=[]; backups={};writes={};now=int(time.time()*1000)

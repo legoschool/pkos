@@ -17,6 +17,22 @@ class RenameTests(unittest.TestCase):
   rename(self.store,'old','new')
   self.assertFalse((self.root/'old').exists());self.assertEqual((self.root/'new/note.md').read_bytes(),self.md)
   n=json.loads(self.index.read_text())['entries'][0];self.assertEqual(n['blocks'][0]['fileId'],'local:new/nested/file.bin');self.assertEqual(n['srcPath'],['new']);self.assertEqual((self.root/'new/nested/file.bin').read_bytes(),bytes(range(256)))
+ def test_folder_preserves_attachment_names_and_extensions(self):
+  names=['연수자료.pdf','수업안.pptx','사진.png','기록.hwp']
+  blocks=[]
+  for name in names:
+   (self.root/'old/nested'/name).write_bytes(bytes(range(32)))
+   blocks.append({'kind':'file','name':name,'original':name,'fileId':'local:old/nested/'+name})
+  self.data['entries'][0]['blocks']=blocks;self.data['entries'][0]['mdName']='note.md'
+  self.index.write_text(json.dumps(self.data),encoding='utf-8')
+  rename(self.store,'old','새 지식 폴더')
+  record=json.loads(self.index.read_text(encoding='utf-8'))['entries'][0]
+  self.assertEqual([b['name'] for b in record['blocks']],names)
+  self.assertEqual([b['original'] for b in record['blocks']],names)
+  self.assertEqual(record['mdName'],'note.md')
+  for block in record['blocks']:
+   self.assertEqual(block['fileId'],'local:새 지식 폴더/nested/'+block['name'])
+   self.assertEqual((self.root/'새 지식 폴더/nested'/block['name']).read_bytes(),bytes(range(32)))
  def test_tag_and_folder(self):
   rename(self.store,'old','new','old');text=(self.root/'new/note.md').read_bytes();self.assertIn(b'tags: ["new"]',text);self.assertEqual(text.split(b'---\r\n')[-1],self.md.split(b'---\r\n')[-1]);n=json.loads(self.index.read_text())['entries'][0];self.assertEqual(n['tags'],['new']);self.assertEqual(n['localMtime'],(self.root/'new/note.md').stat().st_mtime_ns//1000000)
  def test_tag_without_folder(self):
