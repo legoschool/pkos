@@ -96,6 +96,8 @@ class Store:
 
 def make_server(store, app, port=8788):
     app = Path(app).resolve()
+    from presentation_preview import PresentationPreviews
+    previews = PresentationPreviews(store)
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *_):
@@ -137,6 +139,8 @@ def make_server(store, app, port=8788):
                 if request.path == "/api/status":
                     with store.lock:
                         return self.reply(200, {"name": store.root.name, "protocol": 2, **store.snapshot})
+                if request.path == "/api/presentation-preview":
+                    return self.reply(200, previews.status(query.get("id", [""])[0]))
                 if request.path == "/api/stat":
                     path = store.path(query.get("path", [""])[0])
                     if not path.exists():
@@ -160,6 +164,8 @@ def make_server(store, app, port=8788):
                     path = (workspace / raw).resolve()
                     if raw not in manifest or not path.is_relative_to(workspace):
                         return self.reply(403, {"error": "not in read-only catalog"})
+                elif request.path == "/api/presentation-preview-file":
+                    path = previews.output(query.get("id", [""])[0])
                 elif request.path == "/api/file":
                     path = store.path(query.get("path", [""])[0])
                 else:
@@ -176,7 +182,7 @@ def make_server(store, app, port=8788):
                     self.send_header("ETag", '"%s-%s-%s"' % (stat.st_mtime_ns, stat.st_size, stat.st_ino))
                     self.send_header("Cache-Control", "no-store")
                     self.send_header("X-Content-Type-Options", "nosniff")
-                    if request.path in ("/api/file", "/api/archive-file"):
+                    if request.path in ("/api/file", "/api/archive-file", "/api/presentation-preview-file"):
                         self.send_header("Content-Security-Policy", "sandbox")
                     self.end_headers()
                     while chunk := stream.read(1024 * 1024):
@@ -192,6 +198,10 @@ def make_server(store, app, port=8788):
             request = urlsplit(self.path)
             query = parse_qs(request.query, keep_blank_values=True)
             try:
+                if request.path == "/api/presentation-preview":
+                    with store.lock:
+                        store.recover_rename()
+                        return self.reply(202, previews.start(query.get("path", [""])[0]))
                 if request.path == "/api/rename":
                     from rename_ops import rename
                     length = int(self.headers.get("Content-Length", "0"))
@@ -287,7 +297,9 @@ def make_server(store, app, port=8788):
                 if temporary:
                     Path(temporary).unlink(missing_ok=True)
 
-    return ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    server.preview_jobs = previews
+    return server
 
 
 if __name__ == "__main__":
