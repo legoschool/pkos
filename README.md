@@ -399,6 +399,16 @@ PC 에서는 세 칸입니다 · 왼쪽 메뉴 │ 가운데 목록 │ 오른�
 
 두 방식은 같은 `PKOS-index.json` 을 씁니다. 다만 PC 폴더가 쓴 기록은 휴대폰에서 읽기만 되고 사진은 뜨지 않습니다.
 
+### PC 연결 프로그램 (선택)
+
+브라우저의 폴더 허용 대신, PC 에 작은 파이썬 프로그램을 띄워 두고 앱이 그 프로그램을 거쳐 폴더를 읽고 쓰는 방식입니다. `local-service/server.py` 가 `127.0.0.1:8788` 에서 기다리고, 앱은 `http://127.0.0.1:8788/?localBridge=1` 로 엽니다. 같은 컴퓨터에서만 열립니다.
+
+- **띄우기** · `local-service/startup.vbs` 를 두 번 누릅니다. 감시 스크립트 `start.ps1` 이 파이썬을 찾아 서버를 띄우고 10초마다 살아 있는지 봅니다. 파이썬은 `C:\Python314` → `%LOCALAPPDATA%\Programs\Python\Python31x` → PATH 순으로 찾습니다.
+- **켤 때마다 저절로** · `Win+R` → `shell:startup` 폴더에 `startup.vbs` 의 바로가기를 넣습니다. 이 등록은 사람이 직접 합니다.
+- **기록 폴더** · `start.ps1` 맨 위 `$RecordRoot` 에 적혀 있습니다. 다른 폴더를 쓰려면 그 줄을 고칩니다.
+- **안 열리면** · 구글 드라이브가 실행 중이고 G: 폴더가 열리는지 본 뒤 `local-service/runtime/supervisor.log` 를 봅니다. «Python runtime unavailable» 이면 파이썬이 없거나 다른 곳에 있는 것입니다.
+- **이 방식에서만 되는 것** · 태그·폴더·파일 이름 바꾸기(우클릭). 이름을 바꾸다 프로그램이 죽어도 `runtime/rename-*.json` 기록으로 다음 실행 때 되돌리거나 이어갑니다. GitHub Pages 공개 앱은 파이썬을 못 돌리므로 안 됩니다.
+
 ### 드라이브에 쌓이는 모습
 
 기본은 「기록마다 폴더 하나」 입니다.
@@ -510,6 +520,10 @@ pkos/
 ├── privacy.html                   # 개인정보처리방침
 ├── manifest.json                  # 앱으로 설치 + 공유 시트(share_target)
 ├── sw.js                          # 서비스 워커 · 설치 + 공유받기
+├── local-bridge.js                # PC 연결 프로그램을 폴더처럼 다루는 어댑터 (?localBridge=1)
+├── local-service/                 # PC 연결 프로그램 · server.py(8788) · start.ps1 감시 · startup.vbs 띄우기
+├── document-preview.js            # DOCX·XLSX·PPTX·HWPX·ZIP 안을 읽어 보여 주기
+├── pdf-reader.js · vendor/pdfjs/  # PDF 펼쳐 보기 · 본문 검색 (Mozilla PDF.js)
 ├── icons/                         # 앱 아이콘
 ├── README.md · SETUP.md · 사용안내.md
 ├── LICENSE · LICENSE.ko.md        # CC BY-NC 4.0 원문 · 쉬운 설명

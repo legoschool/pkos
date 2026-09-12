@@ -5,7 +5,18 @@
 $ErrorActionPreference = 'Stop'
 $serverPath = Join-Path $PSScriptRoot 'server.py'
 $runtimePath = Join-Path $PSScriptRoot 'runtime'
-$pythonPath = 'C:\Python314\python.exe'
+# Python lives in a different place on each PC. Try the known folders first, then PATH.
+# The WindowsApps stub named python.exe only opens the Store, so it is skipped.
+$pythonPath = @(
+    'C:\Python314\python.exe',
+    (Join-Path $env:LOCALAPPDATA 'Programs\Python\Python314\python.exe'),
+    (Join-Path $env:LOCALAPPDATA 'Programs\Python\Python313\python.exe'),
+    (Join-Path $env:LOCALAPPDATA 'Programs\Python\Python312\python.exe')
+) | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Leaf) } | Select-Object -First 1
+if (-not $pythonPath) {
+    $found = Get-Command python.exe -ErrorAction SilentlyContinue | Where-Object { $_.Source -notmatch 'WindowsApps' } | Select-Object -First 1
+    if ($found) { $pythonPath = $found.Source } else { $pythonPath = 'C:\Python314\python.exe' }
+}
 $mutex = New-Object System.Threading.Mutex($false, 'Local\PKOS-Local-Folder-Service-8788')
 $ownsMutex = $false
 $lastState = ''
