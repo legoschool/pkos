@@ -74,14 +74,17 @@ def rename(store, raw, new_name, tag=None):
                 encoded=replaced.encode('utf-8')
                 if original.startswith(b'\xef\xbb\xbf'):encoded=b'\xef\xbb\xbf'+encoded
                 backups[p]=original;writes[p]=encoded
-            if old and old.is_file() and any(b.get('fileId')=='local:'+raw for b in n.get('blocks',[])) and str(n.get('mdId','')).startswith('local:'):
-                p=store.path(n['mdId'][6:]);original=p.read_bytes();text=original.decode('utf-8-sig')
-                from urllib.parse import quote
-                for before,after in [(old.name,new_name),(quote(old.name),quote(new_name))]:
-                    text=re.sub(r'([/\("\'])'+re.escape(before)+r'(?=[\)"\'#?])',lambda m:m[1]+after,text)
-                encoded=text.encode('utf-8')
-                if original.startswith(b'\xef\xbb\xbf'):encoded=b'\xef\xbb\xbf'+encoded
-                if encoded!=original:backups[p]=original;writes[p]=encoded
+            if old and str(n.get('mdId','')).startswith('local:') and not n.get('localMissing'):
+                p=store.path(n['mdId'][6:])
+                if p.is_file():
+                    original=p.read_bytes()
+                    staged=writes.get(p,original)
+                    from markdown_paths import rewrite
+                    text=rewrite(staged.decode('utf-8-sig'), n['mdId'][6:], pathmap(n['mdId'][6:]), pathmap)
+                    encoded=text.encode('utf-8')
+                    if original.startswith(b'\xef\xbb\xbf'):encoded=b'\xef\xbb\xbf'+encoded
+                    if encoded!=original:
+                        backups[p]=original;writes[p]=encoded;changed=True;revised['updatedAt']=now
             n.clear();n.update(revised)
             if changed:modified.append(n)
         renamed=False;touched=[];journal=None

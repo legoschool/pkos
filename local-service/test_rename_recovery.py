@@ -43,6 +43,8 @@ class RecoveryTests(unittest.TestCase):
   self.original=b'---\nid: first\ntags: ["old"]\n---\nORIGINAL CONTENT\n';self.binary=bytes(range(256))*32
   (self.root/'old/note.md').write_bytes(self.original);(self.root/'old/other.md').write_bytes(self.original.replace(b'first',b'second'));(self.root/'old/file.bin').write_bytes(self.binary)
   entries=[{'id':ident,'tags':['old'],'mdId':'local:old/'+name,'blocks':[{'fileId':'local:old/file.bin'}]} for ident,name in [('first','note.md'),('second','other.md')]]
+  (self.root/'outside').mkdir();self.outside=b'[file](../old/file.bin)\r\n';(self.root/'outside/ref.md').write_bytes(self.outside)
+  entries.append({'id':'outside','mdId':'local:outside/ref.md','blocks':[]})
   self.index=json.dumps({'entries':entries}).encode();(self.root/'PKOS-index.json').write_bytes(self.index)
  def kill_at(self,stage):
   p=subprocess.run([sys.executable,'-c',CHILD,str(self.root),str(self.state),stage],cwd=Path(__file__).parent,capture_output=True,timeout=15)
@@ -50,6 +52,7 @@ class RecoveryTests(unittest.TestCase):
  def restart(self):
   store=Store(self.root,self.state);store.scan();return store
  def assert_restored(self,store):
+  self.assertEqual((self.root/'outside/ref.md').read_bytes(),self.outside)
   self.assertTrue(store.snapshot['ready'],store.snapshot);self.assertFalse((self.root/'new').exists())
   self.assertEqual((self.root/'old/note.md').read_bytes(),self.original);self.assertEqual((self.root/'old/other.md').read_bytes(),self.original.replace(b'first',b'second'))
   self.assertEqual((self.root/'old/file.bin').read_bytes(),self.binary);self.assertEqual((self.root/'PKOS-index.json').read_bytes(),self.index);self.assertFalse(location(store).exists())
@@ -63,6 +66,7 @@ class RecoveryTests(unittest.TestCase):
   self.kill_at('intent');self.assert_restored(self.restart())
  def test_crash_after_index_keeps_commit(self):
   self.kill_at('index');store=self.restart();self.assertTrue(store.snapshot['ready']);self.assertFalse((self.root/'old').exists())
+  self.assertEqual((self.root/'outside/ref.md').read_bytes(),self.outside.replace(b'../old/',b'../new/'))
   self.assertIn(b'tags: ["new"]',(self.root/'new/note.md').read_bytes());self.assertEqual((self.root/'new/file.bin').read_bytes(),self.binary)
   self.assertEqual(json.loads((self.root/'PKOS-index.json').read_text())['entries'][0]['mdId'],'local:new/note.md');self.assertFalse(location(store).exists())
  def test_recovery_interrupted_again(self):

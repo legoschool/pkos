@@ -9,6 +9,8 @@ with tempfile.TemporaryDirectory() as tmp:
  fixture=json.loads((app/'docs/점검도구/문서-fixtures.json').read_text(encoding='utf-8'))
  (root/'old/nested/연수자료.docx').write_bytes(base64.b64decode(fixture['sample.docx']))
  with (root/'old/note.md').open('a',encoding='utf-8') as stream:stream.write('\n📎 [연수자료.docx](nested/연수자료.docx)\n')
+ (root/'outside').mkdir()
+ (root/'outside/ref.md').write_text('---\nid: outside-reference\ntitle: 폴더 밖 기록\n---\n📎 [연수자료.docx](../old/nested/연수자료.docx)\n',encoding='utf-8')
  original_body=(root/'old/note.md').read_text(encoding='utf-8').split('---\n',2)[-1]
  (root/'PKOS-index.json').write_text(json.dumps({'entries':[],'deleted':[]}),encoding='utf-8')
  store=Store(root,Path(tmp)/'state.json');store.scan();server=make_server(store,app,0);thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()

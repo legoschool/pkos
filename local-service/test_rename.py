@@ -33,6 +33,21 @@ class RenameTests(unittest.TestCase):
   for block in record['blocks']:
    self.assertEqual(block['fileId'],'local:새 지식 폴더/nested/'+block['name'])
    self.assertEqual((self.root/'새 지식 폴더/nested'/block['name']).read_bytes(),bytes(range(32)))
+ def test_folder_updates_reference_from_other_folder(self):
+  (self.root/'outside').mkdir()
+  text='\ufeff---\r\nid: outside\r\n---\r\n[attachment](../old/nested/file.bin)\r\n<!-- [example](../old/nested/file.bin) -->\r\n~~~\r\n[code](../old/nested/file.bin)\r\n~~~\r\n'
+  # Escape sequences above are materialized for an exact BOM/CRLF comparison.
+  text=text.replace('\\ufeff','\ufeff').replace('\\r','\r').replace('\\n','\n')
+  (self.root/'outside/ref.md').write_bytes(text.encode('utf-8'))
+  self.data['entries'].append({'id':'outside','mdId':'local:outside/ref.md','blocks':[]})
+  self.index.write_text(json.dumps(self.data),encoding='utf-8')
+  rename(self.store,'old','new')
+  self.assertEqual((self.root/'outside/ref.md').read_bytes(),text.replace('[attachment](../old/','[attachment](../new/').encode('utf-8'))
+ def test_file_rename_does_not_change_same_name_elsewhere(self):
+  text=self.md+b'[target](nested/file.bin)\n[unrelated](other/file.bin)\n'
+  (self.root/'old/note.md').write_bytes(text)
+  rename(self.store,'old/nested/file.bin','renamed.bin')
+  self.assertEqual((self.root/'old/note.md').read_bytes(),text.replace(b'(nested/file.bin)',b'(nested/renamed.bin)'))
  def test_tag_and_folder(self):
   rename(self.store,'old','new','old');text=(self.root/'new/note.md').read_bytes();self.assertIn(b'tags: ["new"]',text);self.assertEqual(text.split(b'---\r\n')[-1],self.md.split(b'---\r\n')[-1]);n=json.loads(self.index.read_text())['entries'][0];self.assertEqual(n['tags'],['new']);self.assertEqual(n['localMtime'],(self.root/'new/note.md').stat().st_mtime_ns//1000000)
  def test_tag_without_folder(self):

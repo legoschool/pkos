@@ -151,6 +151,7 @@ try{
  check('폴더 변경 후 첨부 파일명과 확장자 유지',await evaluate(`pkosLocal.entries().some(n=>n.mdId==='local:final/note.md'&&n.blocks.some(b=>b.fileId==='local:final/nested/연수자료.docx'&&b.name==='연수자료.docx'))`));
  await evaluate(`(()=>{document.querySelector('[data-page="library"].nav-item').click();const c=document.querySelector('.card.entry');c.querySelector('.dots').click();Array.from(document.querySelectorAll('.menupop button')).find(b=>b.textContent.includes('전체 보기')).click();})()`);await wait(600);
  check('폴더 변경 후 DOCX 본문 미리보기 유지',await evaluate(`Array.from(document.querySelectorAll('.viewer pre')).some(n=>n.textContent.includes('워드 본문 확인'))`));
+ check('폴더 밖 문서의 실제 링크 갱신',await evaluate(`fetch('/api/file?path=outside/ref.md').then(r=>r.text()).then(t=>t.includes('../final/nested/')&&!t.includes('../old/')&&!t.includes('../renamed/'))`));
  check('화면 오류 없음',errors.length===0,errors.join(';'));
  console.log(JSON.stringify(results));if(results.some(r=>!r.ok))process.exitCode=1;
 }finally{ws.close();edge.kill();}
