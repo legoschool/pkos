@@ -39,7 +39,20 @@ class Store:
             raise ValueError("path outside root")
         return path
 
+    def recover_rename(self):
+        from rename_journal import recover
+        return recover(self)
+
     def scan(self):
+        with self.lock:
+            try:
+                self.recover_rename()
+            except (OSError, ValueError) as exc:
+                self.snapshot = {**self.snapshot, "ready": False, "error": str(exc), "checkedAt": time.time()}
+                return
+            self._scan()
+
+    def _scan(self):
         try:
             if not self.root.is_dir():
                 raise FileNotFoundError("record folder unavailable")
@@ -190,6 +203,7 @@ def make_server(store, app, port=8788):
                     return self.reply(200, rename(store, payload.get("path", ""), payload.get("name"), payload.get("tag")))
                 path = store.path(query.get("path", [""])[0])
                 with store.lock:
+                    store.recover_rename()
                     if request.path == "/api/directory":
                         path.mkdir(exist_ok=True)
                     elif request.path == "/api/file":
@@ -216,6 +230,7 @@ def make_server(store, app, port=8788):
                 if path == store.root:
                     raise ValueError("cannot remove root")
                 with store.lock:
+                    store.recover_rename()
                     if path.is_dir():
                         path.rmdir()  # Deliberately refuse recursive removal.
                     else:
@@ -241,6 +256,7 @@ def make_server(store, app, port=8788):
                     raise ValueError("file path and length required")
                 self.connection.settimeout(30)
                 with store.lock:
+                    store.recover_rename()
                     expected = self.headers.get("If-Match")
                     if expected and file_version(path) != expected:
                         return self.reply(412, {"error": "다른 곳에서 파일이 변경됐습니다. 원본을 덮어쓰지 않았습니다."})

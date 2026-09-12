@@ -1,6 +1,7 @@
 """Explicit user-requested folder/tag renames with rollback on failure."""
 import json, os, re, time, tempfile
 from pathlib import Path
+import rename_journal
 
 
 def replace_bytes(path, data, expected):
@@ -28,6 +29,7 @@ def rename(store, raw, new_name, tag=None):
     if not raw and not tag:raise ValueError('연결한 최상위 폴더는 이 메뉴에서 바꿀 수 없습니다.')
     index=store.root/'PKOS-index.json'
     with store.lock:
+        rename_journal.recover(store)
         original_index=index.read_bytes()
         data=json.loads(original_index.decode('utf-8-sig'))
         old=store.path(raw) if raw else None
@@ -82,11 +84,12 @@ def rename(store, raw, new_name, tag=None):
                 if encoded!=original:backups[p]=original;writes[p]=encoded
             n.clear();n.update(revised)
             if changed:modified.append(n)
-        renamed=False;touched=[]
+        renamed=False;touched=[];journal=None
         try:
             for p,b in backups.items():
                 if p.read_bytes()!=b:raise ValueError('작업 중 원본이 바뀌었습니다. 다시 시도해 주세요.')
             if index.read_bytes()!=original_index:raise ValueError('다른 창에서 기록을 변경했습니다. 다시 시도해 주세요.')
+            journal=rename_journal.prepare(store,raw,new_raw,backups,writes,original_index)
             if old:old.rename(dest);renamed=True
             for p,b in writes.items():
                 current=store.path(pathmap(p.relative_to(store.root).as_posix()))
@@ -97,9 +100,13 @@ def rename(store, raw, new_name, tag=None):
                 if ident.startswith('local:'):
                     p=store.path(ident[6:])
                     if p.exists():n['localMtime']=p.stat().st_mtime_ns//1000000
-            replace_bytes(index, json.dumps(data,ensure_ascii=False).encode('utf-8'), original_index)
+            index_bytes=json.dumps(data,ensure_ascii=False).encode('utf-8')
+            rename_journal.commit_intent(store,journal,index_bytes)
+            replace_bytes(index,index_bytes,original_index)
         except Exception:
             if renamed:dest.rename(old)
             for p in touched:replace_bytes(p, backups[p], writes[p])
+            if journal is not None:rename_journal.finish(store)
             raise
+        rename_journal.finish(store)
         return {'renamed':bool(old),'oldPath':raw,'newPath':new_raw,'tag':tag,'name':new_name,'updatedRecords':len(modified)}

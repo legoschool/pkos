@@ -7,7 +7,7 @@ class RenameTests(unittest.TestCase):
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.root=Path(self.tmp.name);(self.root/'old'/'nested').mkdir(parents=True)
   self.md=b'---\r\nid: r1\r\ntags: ["old"]\r\n---\r\n\r\nKEEP BODY\r\n';(self.root/'old'/'note.md').write_bytes(self.md);(self.root/'old'/'nested'/'file.bin').write_bytes(bytes(range(256)))
-  self.store=SimpleNamespace(root=self.root,lock=threading.RLock(),path=self.path)
+  self.store=SimpleNamespace(root=self.root,state=self.root/"state.json",lock=threading.RLock(),path=self.path)
   self.data={'entries':[{'id':'r1','tags':['old'],'mdId':'local:old/note.md','srcId':'local:old/note.md','localDir':'old','srcPath':['old'],'updatedAt':1,'blocks':[{'fileId':'local:old/nested/file.bin'}]}]};self.index=self.root/'PKOS-index.json';self.index.write_text(json.dumps(self.data),encoding='utf-8')
  def path(self,raw):
   p=(self.root/raw).resolve()
