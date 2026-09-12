@@ -161,6 +161,20 @@ try {
  await evaluate(`document.querySelector('.modal-bg').click()`);
  await evaluate(`document.querySelector('[data-page="library"].nav-item').click()`);
  const openRecord=async(title)=>{await evaluate(`(()=>{const old=document.querySelector('.viewer .vtop button');if(old)old.click();const q=document.querySelector('#search');q.value=${JSON.stringify(title)};q.dispatchEvent(new Event('input',{bubbles:true}));})()`);await wait(400);await evaluate(`(()=>{let c=document.querySelector('.card.entry');if(!c)throw Error('no card');c.querySelector('.dots').click();Array.from(document.querySelectorAll('.menupop button')).find(b=>b.textContent.includes('전체 보기')).click();})()`);await wait(500);};
+
+ await evaluate(`(async()=>{await writeTest('sample.csv','이름,값\\n자료,42');await writeTest('unsafe.txt','<img src=x onerror=alert(1)>');await writeTest('unknown.xyz','BINARY-PRESERVED');await writeTest('sample.PDF','%PDF-1.4\\n%%EOF');await pkosLocal.importAll(null,{quiet:true});})()`);
+ await openRecord('sample.csv');
+ check('CSV contents visible',await evaluate(`Array.from(document.querySelectorAll('.viewer pre')).some(p=>p.textContent.includes('자료,42'))`));
+ await openRecord('unsafe');
+ check('text preview escapes HTML',await evaluate(`document.querySelector('.viewer pre').textContent.includes('<img')&&!document.querySelector('.viewer pre img')`));
+ await openRecord('unknown');
+ check('unknown format has explicit fallback',await evaluate(`document.querySelector('.viewer').textContent.includes('아직 내용 미리보기를 지원하지 않습니다')`));
+ check('unknown bytes preserved',await evaluate(`(async()=>{return (await (await testFolder.getFileHandle('unknown.xyz')).getFile()).text()})()`)==='BINARY-PRESERVED');
+ await openRecord('sample');
+ // Both records have the same stem; narrow by filename in search.
+ await evaluate(`(()=>{document.querySelector('.viewer .vtop button').click();const q=document.querySelector('#search');q.value='sample.PDF';q.dispatchEvent(new Event('input',{bubbles:true}));let c=document.querySelector('.card.entry');c.querySelector('.dots').click();Array.from(document.querySelectorAll('.menupop button')).find(b=>b.textContent.includes('전체 보기')).click();})()`);await wait(500);
+ for(let i=0;i<40;i++){if(await evaluate(`document.querySelector('.viewer').textContent.includes('PDF 미리보기를 읽지 못했습니다')`))break;await wait(100);}
+ check('invalid uppercase PDF reports failure',await evaluate(`document.querySelector('.viewer').textContent.includes('PDF 미리보기를 읽지 못했습니다')`));
  await openRecord('_visible');
  check('HTML actual srcdoc preview',await evaluate(`document.querySelector('.viewer iframe.record-preview').srcdoc.includes('HTML TEST')`));
  await openRecord('one 외');
@@ -173,6 +187,10 @@ try {
  check('video slides playable',await evaluate(`!!document.querySelector('.viewer video[controls]')&&document.querySelector('.viewer video').readyState>=1`));
  await evaluate(`document.querySelector('.viewer .media-slide-nav button:last-child').click()`);await wait(500);
  check('video slides next',await evaluate(`document.querySelector('.viewer .media-slide-nav').textContent.includes('2 / 2')&&document.querySelector('.viewer video').readyState>=1`));
+
+ await evaluate(`(async()=>{document.querySelector('.viewer .vtop button').click();await writeTest('linked.md','# Linked files\\n\\n[[unknown.xyz]]');await pkosLocal.importAll(null,{quiet:true});})()`);
+ await openRecord('linked.md');
+ check('filename wikilink resolves to attachment record',await evaluate(`!!document.querySelector('.viewer .wikilink:not(.missing)')`));
  check('no runtime errors',errors.length===0,errors.join('\n'));
  if(results.some(r=>!r.ok))process.exitCode=1;
 } finally {ws.close();edge.kill();}

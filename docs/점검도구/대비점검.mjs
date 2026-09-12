@@ -133,13 +133,13 @@ const MEASURE = `(() => {
 const THEMES = ["lego"];
 /* 색감 여섯. 색은 이제 «모양» 이 아니라 «색감» 이 쥐고 있다.
    그래서 색 대비는 색감마다 한 번씩만 재면 된다. 모양은 색을 안 건드리므로. */
-const TONES = ["notion"];
+const TONES = ["plain"];
 const rows = [];
 for (const th of THEMES) {
   for (const dark of [false, true]) {
     await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: dark ? "dark" : "light" }] });
     await ev(SEED);
-    await ev(`localStorage.setItem('pkos.settings.v1', JSON.stringify({version:1, lookV2:true, lookV3:true, tone:"notion", theme:'${th}', mode:'${dark ? 'dark' : 'light'}', viewMode:'stream', folderMode:'perEntry'})); true`);
+    await ev(`localStorage.setItem('pkos.settings.v1', JSON.stringify({version:1, lookV2:true, lookV3:true, tone:"plain", theme:'${th}', mode:'${dark ? 'dark' : 'light'}', viewMode:'stream', folderMode:'perEntry'})); true`);
     await send("Page.reload", { ignoreCache: true });
     await wait(2600);
     await ev(`(() => { const c=document.querySelector('.composer'); if(c) c.style.display='none'; return true; })()`);
@@ -164,7 +164,7 @@ for (const th of THEMES) {
   }
 }
 
-const NAME = { notion: "기본", lego: "레고", clean: "깔끔" };
+const NAME = { plain: "기본", lego: "레고", clean: "깔끔" };
 const LOW = [];
 console.log("프리셋      화면   카드 넘침 폰넘침 | 본문  제목  배지  날짜  태그  길찾기 단추  칩");
 for (const r of rows) {
@@ -196,7 +196,7 @@ for (const tn of TONES) {
     await send("Emulation.clearDeviceMetricsOverride");
     await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: dark ? "dark" : "light" }] });
     await ev(SEED);
-    await ev(`localStorage.setItem('pkos.settings.v1', JSON.stringify({version:1, lookV2:true, lookV3:true, tone:"notion", theme:'lego', tone:'${tn}', mode:'${dark ? 'dark' : 'light'}', viewMode:'stream', folderMode:'perEntry'})); true`);
+    await ev(`localStorage.setItem('pkos.settings.v1', JSON.stringify({version:1, lookV2:true, lookV3:true, tone:"plain", theme:'lego', tone:'${tn}', mode:'${dark ? 'dark' : 'light'}', viewMode:'stream', folderMode:'perEntry'})); true`);
     await send("Page.reload", { ignoreCache: true });
     await wait(2400);
     await ev(`(() => { const c=document.querySelector('.composer'); if(c) c.style.display='none'; return true; })()`);
@@ -228,7 +228,7 @@ async function look(theme, mode, fontSize, deviceDark, phone) {
   if (phone) await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
   else await send("Emulation.clearDeviceMetricsOverride");
   await ev(SEED);
-  await ev(`localStorage.setItem('pkos.settings.v1', JSON.stringify({version:1, lookV2:true, lookV3:true, tone:"notion", theme:'${theme}', mode:'${mode}', fontSize:'${fontSize}', viewMode:'stream', folderMode:'perEntry'})); true`);
+  await ev(`localStorage.setItem('pkos.settings.v1', JSON.stringify({version:1, lookV2:true, lookV3:true, tone:"plain", theme:'${theme}', mode:'${mode}', fontSize:'${fontSize}', viewMode:'stream', folderMode:'perEntry'})); true`);
   await send("Page.reload", { ignoreCache: true });
   await wait(2400);
   return JSON.parse(await ev(`(() => {

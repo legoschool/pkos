@@ -140,7 +140,7 @@ try {
  let failures=[];
  for(const width of [1440,768,390])for(const mode of ['light','dark'])for(const fontSize of ['','huge']){
   await send('Emulation.setDeviceMetricsOverride',{width,height:1000,deviceScaleFactor:1,mobile:width<500});
-  await evaluate(`localStorage.setItem('pkos.settings.v1',JSON.stringify({lookV2:true,lookV3:true,theme:'lego',tone:'notion',mode:'${mode}',fontSize:'${fontSize}',viewMode:'stream'}))`);
+  await evaluate(`localStorage.setItem('pkos.settings.v1',JSON.stringify({lookV2:true,lookV3:true,theme:'lego',tone:'plain',mode:'${mode}',fontSize:'${fontSize}',viewMode:'stream'}))`);
   await send('Page.reload');await wait(650);
   for(const page of ['home','library']){
    await evaluate(`document.querySelector('.nav-item[data-page="${page}"]').click()`);

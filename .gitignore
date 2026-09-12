@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+local-service/runtime/
+local-service/build_archive.py
+organized.html
+organized.js
+docs/완료조건-점검.md
+_site/
+docs/점검도구/기존기록-읽기전용.mjs

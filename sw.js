@@ -1,12 +1,17 @@
-/* PKOS 서비스 워커 · «설치되는 앱» 이 되기 위한 최소한만 한다.
- *
- * ⚠️ index.html 을 절대 캐시하지 않는다.
- *    이 앱은 index.html 한 개를 고쳐서 배포하는 구조라, 캐시에 물고 있으면
- *    고쳐도 옛 화면이 계속 뜬다. 그래서 «항상 네트워크» 로만 간다.
- *    오프라인일 때만 안내 문구를 대신 보여 준다.
- */
-self.addEventListener("install", function () { self.skipWaiting(); });
-self.addEventListener("activate", function (e) { e.waitUntil(self.clients.claim()); });
+/* Keep an offline app shell. Online requests still check the server first. */
+var SHELL_CACHE = "pkos-shell-20260912-release";
+var SHELL_FILES = ["./", "index.html", "document-preview.js", "pdf-reader.js", "vendor/pdfjs/cmaps/78-EUC-H.bcmap", "vendor/pdfjs/cmaps/78-EUC-V.bcmap", "vendor/pdfjs/cmaps/78-H.bcmap", "vendor/pdfjs/cmaps/78-RKSJ-H.bcmap", "vendor/pdfjs/cmaps/78-RKSJ-V.bcmap", "vendor/pdfjs/cmaps/78-V.bcmap", "vendor/pdfjs/cmaps/78ms-RKSJ-H.bcmap", "vendor/pdfjs/cmaps/78ms-RKSJ-V.bcmap", "vendor/pdfjs/cmaps/83pv-RKSJ-H.bcmap", "vendor/pdfjs/cmaps/90ms-RKSJ-H.bcmap", "vendor/pdfjs/cmaps/90ms-RKSJ-V.bcmap", "vendor/pdfjs/cmaps/90msp-RKSJ-H.bcmap", "vendor/pdfjs/cmaps/90msp-RKSJ-V.bcmap", "vendor/pdfjs/cmaps/90pv-RKSJ-H.bcmap", "vendor/pdfjs/cmaps/90pv-RKSJ-V.bcmap", "vendor/pdfjs/cmaps/Add-H.bcmap", "vendor/pdfjs/cmaps/Add-RKSJ-H.bcmap", "vendor/pdfjs/cmaps/Add-RKSJ-V.bcmap", "vendor/pdfjs/cmaps/Add-V.bcmap", "vendor/pdfjs/cmaps/Adobe-CNS1-0.bcmap", "vendor/pdfjs/cmaps/Adobe-CNS1-1.bcmap", "vendor/pdfjs/cmaps/Adobe-CNS1-2.bcmap", "vendor/pdfjs/cmaps/Adobe-CNS1-3.bcmap", "vendor/pdfjs/cmaps/Adobe-CNS1-4.bcmap", "vendor/pdfjs/cmaps/Adobe-CNS1-5.bcmap", "vendor/pdfjs/cmaps/Adobe-CNS1-6.bcmap", "vendor/pdfjs/cmaps/Adobe-CNS1-UCS2.bcmap", "vendor/pdfjs/cmaps/Adobe-GB1-0.bcmap", "vendor/pdfjs/cmaps/Adobe-GB1-1.bcmap", "vendor/pdfjs/cmaps/Adobe-GB1-2.bcmap", "vendor/pdfjs/cmaps/Adobe-GB1-3.bcmap", "vendor/pdfjs/cmaps/Adobe-GB1-4.bcmap", "vendor/pdfjs/cmaps/Adobe-GB1-5.bcmap", "vendor/pdfjs/cmaps/Adobe-GB1-UCS2.bcmap", "vendor/pdfjs/cmaps/Adobe-Japan1-0.bcmap", "vendor/pdfjs/cmaps/Adobe-Japan1-1.bcmap", "vendor/pdfjs/cmaps/Adobe-Japan1-2.bcmap", "vendor/pdfjs/cmaps/Adobe-Japan1-3.bcmap", "vendor/pdfjs/cmaps/Adobe-Japan1-4.bcmap", "vendor/pdfjs/cmaps/Adobe-Japan1-5.bcmap", "vendor/pdfjs/cmaps/Adobe-Japan1-6.bcmap", "vendor/pdfjs/cmaps/Adobe-Japan1-UCS2.bcmap", "vendor/pdfjs/cmaps/Adobe-Korea1-0.bcmap", "vendor/pdfjs/cmaps/Adobe-Korea1-1.bcmap", "vendor/pdfjs/cmaps/Adobe-Korea1-2.bcmap", "vendor/pdfjs/cmaps/Adobe-Korea1-UCS2.bcmap", "vendor/pdfjs/cmaps/B5-H.bcmap", "vendor/pdfjs/cmaps/B5-V.bcmap", "vendor/pdfjs/cmaps/B5pc-H.bcmap", "vendor/pdfjs/cmaps/B5pc-V.bcmap", "vendor/pdfjs/cmaps/CNS-EUC-H.bcmap", "vendor/pdfjs/cmaps/CNS-EUC-V.bcmap", "vendor/pdfjs/cmaps/CNS1-H.bcmap", "vendor/pdfjs/cmaps/CNS1-V.bcmap", "vendor/pdfjs/cmaps/CNS2-H.bcmap", "vendor/pdfjs/cmaps/CNS2-V.bcmap", "vendor/pdfjs/cmaps/ETen-B5-H.bcmap", "vendor/pdfjs/cmaps/ETen-B5-V.bcmap", "vendor/pdfjs/cmaps/ETenms-B5-H.bcmap", "vendor/pdfjs/cmaps/ETenms-B5-V.bcmap", "vendor/pdfjs/cmaps/ETHK-B5-H.bcmap", "vendor/pdfjs/cmaps/ETHK-B5-V.bcmap", "vendor/pdfjs/cmaps/EUC-H.bcmap", "vendor/pdfjs/cmaps/EUC-V.bcmap", "vendor/pdfjs/cmaps/Ext-H.bcmap", "vendor/pdfjs/cmaps/Ext-RKSJ-H.bcmap", "vendor/pdfjs/cmaps/Ext-RKSJ-V.bcmap", "vendor/pdfjs/cmaps/Ext-V.bcmap", "vendor/pdfjs/cmaps/GB-EUC-H.bcmap", "vendor/pdfjs/cmaps/GB-EUC-V.bcmap", "vendor/pdfjs/cmaps/GB-H.bcmap", "vendor/pdfjs/cmaps/GB-V.bcmap", "vendor/pdfjs/cmaps/GBK-EUC-H.bcmap", "vendor/pdfjs/cmaps/GBK-EUC-V.bcmap", "vendor/pdfjs/cmaps/GBK2K-H.bcmap", "vendor/pdfjs/cmaps/GBK2K-V.bcmap", "vendor/pdfjs/cmaps/GBKp-EUC-H.bcmap", "vendor/pdfjs/cmaps/GBKp-EUC-V.bcmap", "vendor/pdfjs/cmaps/GBpc-EUC-H.bcmap", "vendor/pdfjs/cmaps/GBpc-EUC-V.bcmap", "vendor/pdfjs/cmaps/GBT-EUC-H.bcmap", "vendor/pdfjs/cmaps/GBT-EUC-V.bcmap", "vendor/pdfjs/cmaps/GBT-H.bcmap", "vendor/pdfjs/cmaps/GBT-V.bcmap", "vendor/pdfjs/cmaps/GBTpc-EUC-H.bcmap", "vendor/pdfjs/cmaps/GBTpc-EUC-V.bcmap", "vendor/pdfjs/cmaps/H.bcmap", "vendor/pdfjs/cmaps/Hankaku.bcmap", "vendor/pdfjs/cmaps/Hiragana.bcmap", "vendor/pdfjs/cmaps/HKdla-B5-H.bcmap", "vendor/pdfjs/cmaps/HKdla-B5-V.bcmap", "vendor/pdfjs/cmaps/HKdlb-B5-H.bcmap", "vendor/pdfjs/cmaps/HKdlb-B5-V.bcmap", "vendor/pdfjs/cmaps/HKgccs-B5-H.bcmap", "vendor/pdfjs/cmaps/HKgccs-B5-V.bcmap", "vendor/pdfjs/cmaps/HKm314-B5-H.bcmap", "vendor/pdfjs/cmaps/HKm314-B5-V.bcmap", "vendor/pdfjs/cmaps/HKm471-B5-H.bcmap", "vendor/pdfjs/cmaps/HKm471-B5-V.bcmap", "vendor/pdfjs/cmaps/HKscs-B5-H.bcmap", "vendor/pdfjs/cmaps/HKscs-B5-V.bcmap", "vendor/pdfjs/cmaps/Katakana.bcmap", "vendor/pdfjs/cmaps/KSC-EUC-H.bcmap", "vendor/pdfjs/cmaps/KSC-EUC-V.bcmap", "vendor/pdfjs/cmaps/KSC-H.bcmap", "vendor/pdfjs/cmaps/KSC-Johab-H.bcmap", "vendor/pdfjs/cmaps/KSC-Johab-V.bcmap", "vendor/pdfjs/cmaps/KSC-V.bcmap", "vendor/pdfjs/cmaps/KSCms-UHC-H.bcmap", "vendor/pdfjs/cmaps/KSCms-UHC-HW-H.bcmap", "vendor/pdfjs/cmaps/KSCms-UHC-HW-V.bcmap", "vendor/pdfjs/cmaps/KSCms-UHC-V.bcmap", "vendor/pdfjs/cmaps/KSCpc-EUC-H.bcmap", "vendor/pdfjs/cmaps/KSCpc-EUC-V.bcmap", "vendor/pdfjs/cmaps/NWP-H.bcmap", "vendor/pdfjs/cmaps/NWP-V.bcmap", "vendor/pdfjs/cmaps/RKSJ-H.bcmap", "vendor/pdfjs/cmaps/RKSJ-V.bcmap", "vendor/pdfjs/cmaps/Roman.bcmap", "vendor/pdfjs/cmaps/UniCNS-UCS2-H.bcmap", "vendor/pdfjs/cmaps/UniCNS-UCS2-V.bcmap", "vendor/pdfjs/cmaps/UniCNS-UTF16-H.bcmap", "vendor/pdfjs/cmaps/UniCNS-UTF16-V.bcmap", "vendor/pdfjs/cmaps/UniCNS-UTF32-H.bcmap", "vendor/pdfjs/cmaps/UniCNS-UTF32-V.bcmap", "vendor/pdfjs/cmaps/UniCNS-UTF8-H.bcmap", "vendor/pdfjs/cmaps/UniCNS-UTF8-V.bcmap", "vendor/pdfjs/cmaps/UniGB-UCS2-H.bcmap", "vendor/pdfjs/cmaps/UniGB-UCS2-V.bcmap", "vendor/pdfjs/cmaps/UniGB-UTF16-H.bcmap", "vendor/pdfjs/cmaps/UniGB-UTF16-V.bcmap", "vendor/pdfjs/cmaps/UniGB-UTF32-H.bcmap", "vendor/pdfjs/cmaps/UniGB-UTF32-V.bcmap", "vendor/pdfjs/cmaps/UniGB-UTF8-H.bcmap", "vendor/pdfjs/cmaps/UniGB-UTF8-V.bcmap", "vendor/pdfjs/cmaps/UniJIS-UCS2-H.bcmap", "vendor/pdfjs/cmaps/UniJIS-UCS2-HW-H.bcmap", "vendor/pdfjs/cmaps/UniJIS-UCS2-HW-V.bcmap", "vendor/pdfjs/cmaps/UniJIS-UCS2-V.bcmap", "vendor/pdfjs/cmaps/UniJIS-UTF16-H.bcmap", "vendor/pdfjs/cmaps/UniJIS-UTF16-V.bcmap", "vendor/pdfjs/cmaps/UniJIS-UTF32-H.bcmap", "vendor/pdfjs/cmaps/UniJIS-UTF32-V.bcmap", "vendor/pdfjs/cmaps/UniJIS-UTF8-H.bcmap", "vendor/pdfjs/cmaps/UniJIS-UTF8-V.bcmap", "vendor/pdfjs/cmaps/UniJIS2004-UTF16-H.bcmap", "vendor/pdfjs/cmaps/UniJIS2004-UTF16-V.bcmap", "vendor/pdfjs/cmaps/UniJIS2004-UTF32-H.bcmap", "vendor/pdfjs/cmaps/UniJIS2004-UTF32-V.bcmap", "vendor/pdfjs/cmaps/UniJIS2004-UTF8-H.bcmap", "vendor/pdfjs/cmaps/UniJIS2004-UTF8-V.bcmap", "vendor/pdfjs/cmaps/UniJISPro-UCS2-HW-V.bcmap", "vendor/pdfjs/cmaps/UniJISPro-UCS2-V.bcmap", "vendor/pdfjs/cmaps/UniJISPro-UTF8-V.bcmap", "vendor/pdfjs/cmaps/UniJISX0213-UTF32-H.bcmap", "vendor/pdfjs/cmaps/UniJISX0213-UTF32-V.bcmap", "vendor/pdfjs/cmaps/UniJISX02132004-UTF32-H.bcmap", "vendor/pdfjs/cmaps/UniJISX02132004-UTF32-V.bcmap", "vendor/pdfjs/cmaps/UniKS-UCS2-H.bcmap", "vendor/pdfjs/cmaps/UniKS-UCS2-V.bcmap", "vendor/pdfjs/cmaps/UniKS-UTF16-H.bcmap", "vendor/pdfjs/cmaps/UniKS-UTF16-V.bcmap", "vendor/pdfjs/cmaps/UniKS-UTF32-H.bcmap", "vendor/pdfjs/cmaps/UniKS-UTF32-V.bcmap", "vendor/pdfjs/cmaps/UniKS-UTF8-H.bcmap", "vendor/pdfjs/cmaps/UniKS-UTF8-V.bcmap", "vendor/pdfjs/cmaps/V.bcmap", "vendor/pdfjs/cmaps/WP-Symbol.bcmap", "vendor/pdfjs/build/pdf.min.mjs", "vendor/pdfjs/build/pdf.worker.min.mjs", "vendor/pdfjs/standard_fonts/FoxitDingbats.pfb", "vendor/pdfjs/standard_fonts/FoxitFixed.pfb", "vendor/pdfjs/standard_fonts/FoxitFixedBold.pfb", "vendor/pdfjs/standard_fonts/FoxitFixedBoldItalic.pfb", "vendor/pdfjs/standard_fonts/FoxitFixedItalic.pfb", "vendor/pdfjs/standard_fonts/FoxitSerif.pfb", "vendor/pdfjs/standard_fonts/FoxitSerifBold.pfb", "vendor/pdfjs/standard_fonts/FoxitSerifBoldItalic.pfb", "vendor/pdfjs/standard_fonts/FoxitSerifItalic.pfb", "vendor/pdfjs/standard_fonts/FoxitSymbol.pfb", "vendor/pdfjs/standard_fonts/LiberationSans-Bold.ttf", "vendor/pdfjs/standard_fonts/LiberationSans-BoldItalic.ttf", "vendor/pdfjs/standard_fonts/LiberationSans-Italic.ttf", "vendor/pdfjs/standard_fonts/LiberationSans-Regular.ttf", "vendor/pdfjs/wasm/jbig2.wasm", "vendor/pdfjs/wasm/openjpeg.wasm", "vendor/pdfjs/wasm/qcms_bg.wasm", "vendor/pdfjs/wasm/quickjs-eval.wasm"];
+var shellUrls = SHELL_FILES.map(function (p) { return new URL(p, self.registration.scope).href; });
+self.addEventListener("install", function (e) {
+  e.waitUntil(caches.open(SHELL_CACHE).then(function (cache) {
+    return cache.addAll(shellUrls);
+  }).then(function () { return self.skipWaiting(); }));
+});
+self.addEventListener("activate", function (e) {
+  e.waitUntil(caches.keys().then(function (keys) {
+    return Promise.all(keys.filter(function (key) { return key.indexOf("pkos-shell-") === 0 && key !== SHELL_CACHE; }).map(function (key) { return caches.delete(key); }));
+  }).then(function () { return self.clients.claim(); }));
+});
 
 var OFFLINE_HTML =
   '<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">' +
@@ -17,7 +22,7 @@ var OFFLINE_HTML =
   'div{max-width:420px;text-align:center}h1{font-size:20px;margin:0 0 10px}' +
   'p{color:#667085;line-height:1.7;margin:0}</style></head><body><div>' +
   "<h1>인터넷에 연결되어 있지 않습니다</h1>" +
-  "<p>이 기록장은 구글 드라이브에 저장하기 때문에 인터넷이 있어야 열립니다.<br>" +
+  "<p>이 기기에 앱의 오프라인 사본이 아직 없습니다.<br>" +
   "연결한 뒤 다시 열어 주세요.</p>" +
   "</div></body></html>";
 
@@ -65,10 +70,24 @@ self.addEventListener("fetch", function (e) {
     e.respondWith(takeShare(e.request));
     return;
   }
-  if (e.request.mode !== "navigate") return;      // 나머지는 그대로 통과
-  e.respondWith(
-    fetch(e.request).catch(function () {
-      return new Response(OFFLINE_HTML, { headers: { "Content-Type": "text/html; charset=utf-8" } });
-    })
-  );
+  if (e.request.method !== "GET" || url.origin !== new URL(self.registration.scope).origin) return;
+  var plain = url.origin + url.pathname;
+  if (shellUrls.indexOf(plain) < 0) return;
+  e.respondWith((async function () {
+    var cache = await caches.open(SHELL_CACHE);
+    try {
+      var response = await fetch(e.request);
+      if (response.ok) {
+        try { await cache.put(plain, response.clone()); } catch (ignore) {}
+        return response;
+      }
+      var old = await cache.match(plain);
+      return old || response;
+    } catch (error) {
+      var saved = await cache.match(plain);
+      if (saved) return saved;
+      if (e.request.mode === "navigate") return new Response(OFFLINE_HTML, { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } });
+      return Response.error();
+    }
+  })());
 });

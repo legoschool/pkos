@@ -34,11 +34,19 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      - name: Prepare public site
+        shell: bash
+        run: |
+          mkdir -p _site
+          cp index.html view.html intro.html privacy.html manifest.json sw.js document-preview.js pdf-reader.js local-bridge.js .nojekyll README.md SETUP.md LICENSE LICENSE.ko.md _site/
+          cp -R vendor docs icons _site/
+          find _site/docs -type f \( -name '*.mjs' -o -name '*.ps1' -o -name '*.py' \) -delete
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # 정적 사이트 전체(현재 폴더)를 업로드합니다.
-          path: "."
+          # 공개 사이트 파일만 업로드합니다.
+          path: "_site"
 
       - name: Deploy to GitHub Pages
         id: deployment
