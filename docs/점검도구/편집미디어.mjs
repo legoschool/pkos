@@ -275,6 +275,14 @@ try {
  check('lecture attaches to notes saved during recording',await evaluate(`pkosLocal.entries().some(n=>n.title==='강의 중 메모'&&n.blocks.some(b=>b.lectureId==='lecture-editor-fixture')&&n.blocks.some(b=>(b.text||'').includes('강의 전사')))`));
  await evaluate(`editorLectureHooks.attach({...lectureResult,id:'lecture-editor-fixture',target:editorLectureHooks.target})`);
  check('lecture attachment retry does not duplicate',await evaluate(`pkosLocal.entries().flatMap(n=>n.blocks||[]).filter(b=>b.lectureId==='lecture-editor-fixture').length===1`));
+ await evaluate(`(()=>{window.readPending=()=>new Promise((resolve,reject)=>{const r=indexedDB.open('pkems');r.onsuccess=()=>{const db=r.result,q=db.transaction('pending').objectStore('pending').getAllKeys();q.onsuccess=()=>{resolve(q.result);db.close();};q.onerror=()=>reject(q.error);};});PKOSLecture.open=hooks=>window.clearDraftHooks=hooks;document.querySelector('[data-add="lecture"]').click();PKOSLecture.open=realLectureOpen;})()`);
+ await evaluate(`clearDraftHooks.attach({...lectureResult,id:'discard-video',target:clearDraftHooks.target})`);await wait(200);
+ await evaluate(`(async()=>{window.savedVideoKey='protected-saved-fixture';pkosLocal.entries().push({id:'protected-entry',title:'저장된 첨부',blocks:[{id:savedVideoKey,kind:'file'}]});await new Promise(resolve=>{const r=indexedDB.open('pkems');r.onsuccess=()=>{const db=r.result,tx=db.transaction('pending','readwrite');tx.objectStore('pending').put(lectureResult.blob,savedVideoKey);tx.oncomplete=()=>{db.close();resolve();};};});window.pendingBeforeClear=await readPending();window.originalConfirm=window.confirm;window.confirm=()=>false;document.querySelector('#draftBar button').click();})()`);
+ check('clear draft cancel retains attachment',await evaluate(`document.getElementById('blocks').textContent.includes('강의')&&document.querySelector('#draftBar button').textContent==='작성 내용 비우기'`));
+ await evaluate(`window.confirm=()=>true;document.querySelector('#draftBar button').click()`);await wait(500);
+ console.log('clear state',await evaluate(`(async()=>({keys:await readPending(),before:pendingBeforeClear,title:document.getElementById('title').value,hidden:document.getElementById('draftBar').className}))()`));
+ check('clear draft removes temporary video preserves saved video',await evaluate(`(async()=>{const keys=await readPending();return keys.includes(savedVideoKey)&&keys.length<pendingBeforeClear.length&&!document.getElementById('title').value&&!document.getElementById('blocks').querySelector('video')&&document.getElementById('draftBar').classList.contains('hidden');})()`));
+ await evaluate(`window.confirm=originalConfirm`);
  check('no exceptions',errors.length===0,errors.join(';'));
  console.log(JSON.stringify(results));if(results.some(r=>!r.ok))process.exitCode=1;
 }finally{ws.close();edge.kill();}

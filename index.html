@@ -10097,16 +10097,21 @@
   function clearDraft(silent) {
     var d = safeParse(localStorage.getItem(LS.draft));
     localStorage.removeItem(LS.draft);
-    // 저장되지 않고 버려진 임시 파일 정리
-    if (d && d.blocks) {
-      var keep = {};
-      entries.forEach(function (n) { (n.blocks || []).forEach(function (b) { keep[b.id] = 1; }); });
-      d.blocks.forEach(function (b) { if (!keep[b.id]) idbDel(b.id); });
-    }
+    // Include attachments added since the last autosave, but retain every saved record reference.
+    var candidates = (d && d.blocks || []).concat(blocks || []), keep = {}, removed = {};
+    entries.forEach(function (n) { (n.blocks || []).forEach(function (b) { keep[b.id] = 1; }); });
+    var ids = candidates.filter(function (b) {
+      if (!b.id || keep[b.id] || removed[b.id]) return false;
+      removed[b.id] = true; dropPreview(b.id); return true;
+    }).map(function (b) { return b.id; });
+    var cleanup = attachmentSaveQueue.then(function () {
+      return idbRun("readwrite", function (store) { ids.forEach(function (id) { store.delete(id); }); });
+    }).then(function () { return true; }).catch(function () { toast("임시 첨부 파일 정리를 완료하지 못했습니다."); return false; });
     draftDirty = false;
     lastDraftBody = null;
     if (!silent) toast("임시 보관한 내용을 지웠습니다.");
     hideDraftBar();
+    return cleanup;
   }
   function restoreDraft() {
     var d = safeParse(localStorage.getItem(LS.draft));
@@ -10153,12 +10158,16 @@
       ? "⏳ 쓰다 만 내용을 되살렸습니다" + (t ? " (" + t + " 저장)" : "") + " · 이어서 쓰시면 됩니다."
       : "⏳ 임시 보관 중" + (t ? " · " + t : ""));
     bar.appendChild(txt);
-    var b2 = el("button", "btn sm", "새로 쓰기");
-    b2.title = "지금 쓰던 내용을 버리고 빈 화면으로";
-    b2.addEventListener("click", function () {
-      if (draftHasContent() && !window.confirm("쓰던 내용을 버리고 새로 시작할까요?")) return;
-      clearDraft();
+    var b2 = el("button", "btn sm", "작성 내용 비우기");
+    b2.title = "작성 중인 글과 임시 첨부 파일 삭제";
+    b2.addEventListener("click", async function () {
+      if (!window.confirm("작성 중인 글과 첨부한 사진·파일을 비울까요?\n이미 저장한 기록과 가져온 원본 파일은 유지됩니다.")) return;
+      b2.disabled = true;
+      while (attachmentSaves) await attachmentSaveQueue;
+      syncFromPaper();
+      var cleanup = clearDraft(true);
       resetComposer();
+      if (await cleanup) toast("작성 내용을 비웠습니다.");
     });
     bar.appendChild(b2);
     bar.classList.remove("hidden");
