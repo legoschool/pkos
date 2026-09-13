@@ -146,6 +146,14 @@ try {
  check('title collapses',await evaluate(`!document.querySelector('[data-eid="photo-test"] .content')`));
  await evaluate(`(()=>{document.querySelector('[data-eid="photo-test"] .dots').click();Array.from(document.querySelectorAll('.menupop button')).find(b=>b.textContent.includes('편집')).click();})()`);await wait(300);
  check('simplified toolbar',await evaluate(`!document.querySelector('.edbar [data-add="todo"],.edbar [data-add="list"],.edbar [data-add="source"],.edbar [data-add="code"]')`));
+ await evaluate(`document.querySelector('#btnPhotoViews').click();Array.from(document.querySelectorAll('.modal button')).find(b=>b.textContent==='바둑판 보기').click()`);await wait(200);
+ check('multiple photos grid view',await evaluate(`document.querySelectorAll('.photo-grid img').length===2`));
+ await evaluate(`Array.from(document.querySelectorAll('.modal button')).find(b=>b.textContent==='슬라이드 보기').click()`);
+ check('multiple photos slide view',await evaluate(`document.querySelectorAll('.media-slide-stage img').length===1&&!document.querySelector('.media-slide-nav').hidden`));
+ await evaluate(`document.querySelector('.media-slide-stage img').click()`);await wait(200);
+ check('gallery photo opens editing studio',await evaluate(`!!document.querySelector('.maskcanvas')||!!document.querySelector('.modal canvas')`));
+ await evaluate(`document.querySelector('.modal .mhead button').click()`);
+
  await evaluate(`document.querySelector('#blocks .pimg').click()`);
  for(let i=0;i<50;i++){if(await evaluate(`document.querySelector('.maskpad')?.width===64`))break;await wait(100);}
  check('local photo loads in studio',await evaluate(`document.querySelector('.maskpad')?.width===64&&document.querySelector('.maskpad').height===48`));

@@ -8,7 +8,7 @@ with tempfile.TemporaryDirectory(prefix='pkos-editor-media-') as tmp:
  rows=b''.join(b'\0'+bytes(v for x in range(64) for v in ((255,255,255) if (x+y)%2 else (0,0,0))) for y in range(48))
  png=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',64,48,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(rows))+chunk(b'IEND',b'')
  (root/'sample.png').write_bytes(png)
- (root/'photo.md').write_text('---\nid: photo-test\ntitle: Photo\ntype: 자료\ntags: [test]\n---\n\n# Photo\n\n![photo](sample.png)\n',encoding='utf-8')
+ (root/'photo.md').write_text('---\nid: photo-test\ntitle: Photo\ntype: 자료\ntags: [test]\n---\n\n# Photo\n\n![photo](sample.png)\n\n![photo2](sample.png)\n',encoding='utf-8')
  source=Path(tmp)/'incoming.png';source.write_bytes(png)
  audio=Path(tmp)/'sample.wav'
  with wave.open(str(audio),'wb') as w:w.setnchannels(1);w.setsampwidth(2);w.setframerate(8000);w.writeframes(b'\0'*16000)

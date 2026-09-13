@@ -1796,7 +1796,7 @@
   .crophint { font-size: calc(12.5px * var(--fs)); color: var(--ink-soft); margin: 10px 0 0; }
   .modebar { display: flex; gap: 6px; justify-content: center; margin: 0 0 12px; flex-wrap: wrap; }
 
-  /* 손 메모 판 · 손가락으로 그릴 때 화면이 같이 밀리면 안 된다 */
+  /* 필기 판 · 손가락으로 그릴 때 화면이 같이 밀리면 안 된다 */
   /* 사진 모자이크 화면 · 여러 장을 한자리에서 */
   .maskbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 8px; }
   .maskstrip { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 10px; }
@@ -2409,6 +2409,11 @@
 [data-tone="plain"] .edbar .btn { border-color:var(--btn-line); }
 [data-tone="plain"] .btn:disabled { opacity:.5; }
 
+#addbar.open { flex-wrap:wrap; overflow:visible; }
+#addbar.open .addx { display:inline-flex; }
+.photo-grid { display:grid!important;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px; }
+.photo-grid img { width:100%;height:160px;object-fit:contain; }
+
 </style>
 </head>
 <body>
@@ -2574,12 +2579,12 @@
           <button class="btn sm" data-add="capture">캡처</button>
           <button class="btn sm" data-add="file">파일·영상</button>
           <button class="btn sm" data-add="link">링크</button>
-          <button class="btn sm addx" data-add="draw">손 메모</button>
+          <button class="btn sm addx" data-add="draw">필기</button>
           <button class="btn sm" data-add="voice">녹음</button>
         </div>
         <div class="edgrp roles">
         </div>
-        <button id="btnAddMore" class="btn sm noico" title="취소선·코드·번호 목록·인용·표·접이식·구분선·코드 삽입·손 메모·녹음">⋯ 더</button>
+        <button id="btnAddMore" class="btn sm noico" title="취소선·코드·번호 목록·인용·표·접이식·구분선·코드 삽입·필기·녹음">⋯ 더</button>
       </div>
       <!-- 종이 · 여기에 이어 쓴다. 사진·파일은 커서 자리에 덩어리로 박힌다.
            id 는 그대로 blocks 다 · 밖에서 «마지막 것으로 굴려 보기» 를 이 id 로 한다. -->
@@ -3374,6 +3379,8 @@
       quote:   ["M9 6.5C6.5 8 5.5 10 5.5 12.5 5.5 14.5 6.8 16 8.6 16c1.6 0 2.9-1.2 2.9-2.8 0-1.6-1.2-2.8-2.8-2.8-.3 0-.6 0-.9.1.3-1.2 1-2.2 2.1-3Z",
                 "M17.4 6.5C14.9 8 13.9 10 13.9 12.5c0 2 1.3 3.5 3.1 3.5 1.6 0 2.9-1.2 2.9-2.8 0-1.6-1.2-2.8-2.8-2.8-.3 0-.6 0-.9.1.3-1.2 1-2.2 2.1-3Z"],
       capture: ["M3 8.5 7 8.5 8.8 5.5 15.2 5.5 17 8.5 21 8.5 21 19 3 19Z", "M12 16a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8Z"],
+      table: ["M3 3h18v18H3Z", "M3 9h18M9 3v18M15 3v18M3 15h18"],
+      fold: ["M5 5h14M5 19h14", "m8 10 4 4 4-4"],
       draw:    ["M4 19.5 8 18.6 19.3 7.3a2 2 0 0 0-2.8-2.8L5.2 15.8Z", "M15.5 5.6 18.4 8.5"],
       voice:   ["M12 4.5a2.6 2.6 0 0 1 2.6 2.6v4.6a2.6 2.6 0 0 1-5.2 0V7.1A2.6 2.6 0 0 1 12 4.5Z",
                 "M6.5 11.2a5.5 5.5 0 0 0 11 0", "M12 16.8 12 19.5", "M9.3 19.5 14.7 19.5"],
@@ -7691,7 +7698,7 @@
     syncMaskBar();
     histCommit();
   }
-  /* 밖에서 만든 블록(사진·녹음·손 메모·공유)을 «지금 커서 자리» 에 넣는다.
+  /* 밖에서 만든 블록(사진·녹음·필기·공유)을 «지금 커서 자리» 에 넣는다.
      afterBlock 이 있으면 그 블록 뒤에 넣는다. */
   function insertBlocks(made, afterBlock) {
     var nodes = [];
@@ -7884,7 +7891,7 @@
     { k: "quote", l: "인용" }, { k: "mine", l: "💭 내 생각" }, { k: "source", l: "📚 자료 인용" }, { k: "ai", l: "🤖 AI 답변" },
     { k: "image", l: "사진" }, { k: "capture", l: "캡처" }, { k: "file", l: "파일·영상" }, { k: "link", l: "링크" },
     { k: "embed", l: "코드 삽입 · 유튜브·문서" }, { k: "table", l: "표" }, { k: "code", l: "코드" }, { k: "fold", l: "접이식" },
-    { k: "draw", l: "손 메모" }, { k: "voice", l: "녹음" }, { k: "divider", l: "구분선" }
+    { k: "draw", l: "필기" }, { k: "voice", l: "녹음" }, { k: "divider", l: "구분선" }
   ];
   var slashState = { items: [], sel: 0, para: null };
   function slashOpen() { var p = $("slashPop"); return !!(p && !p.classList.contains("hidden")); }
@@ -8212,7 +8219,7 @@
   /* =========================================================
      되돌리기 · 다시 하기 (Ctrl+Z · Ctrl+Shift+Z)
      ---------------------------------------------------------
-     ⚠️ 브라우저가 스스로 해 주는 되돌리기는 «사람이 친 글자» 만 센다. 사진·녹음·손 메모·
+     ⚠️ 브라우저가 스스로 해 주는 되돌리기는 «사람이 친 글자» 만 센다. 사진·녹음·필기·
         표처럼 우리가 코드로 넣은 덩어리는 그 셈에 안 들어간다. 그래서 사진을 넣고 Ctrl+Z 를
         누르면 사진은 그대로 있고 엉뚱한 글자만 지워졌다 · 실제로 그랬다.
      그래서 종이의 상태를 우리가 직접 «한 장씩» 찍어 둔다. 진실은 blocks 배열이고
@@ -9033,7 +9040,7 @@
     sync();
   }
 
-  /* ---------- ✍️ 손 메모 · 손으로 쓰고 그린 것을 그대로 담는다 ----------
+  /* ---------- ✍️ 필기 · 손으로 쓰고 그린 것을 그대로 담는다 ----------
      칠판 앞에서, 회의 중에, 책 옆에서 · 자판을 두드리기 어려운 자리를 위한 것.
      획을 «점의 목록» 으로 들고 있다가 매번 다시 그린다. 되돌리기가 공짜가 되고,
      화면을 돌리거나 창 크기가 바뀌어도 그림이 뭉개지지 않는다. */
@@ -9050,7 +9057,7 @@
     var m = el("div", "card modal"); m.style.maxWidth = "min(1040px, 97vw)";
 
     var head = el("div", "mhead");
-    head.appendChild(el("h3", null, "✍️ 손 메모"));
+    head.appendChild(el("h3", null, "✍️ 필기"));
     head.appendChild(el("span", "spacer"));
     var x = el("button", "btn sm ghost", "✕"); x.addEventListener("click", closeModal);
     head.appendChild(x);
@@ -9082,12 +9089,30 @@
     body.appendChild(wrap);
     m.appendChild(body);
 
+    var recognize=el('button','btn','텍스트 인식'),result=el('textarea','inp'),insertText=el('button','btn','텍스트 넣기'),ocrStatus=el('div','desc');
+    result.setAttribute('aria-label','인식한 텍스트');result.rows=4;result.style.width='100%';result.hidden=true;insertText.hidden=true;
+    body.appendChild(recognize);body.appendChild(ocrStatus);body.appendChild(result);body.appendChild(insertText);
+    recognize.onclick=async function(){
+      if(!strokes.length){ocrStatus.textContent='필기를 먼저 입력하세요.';return;}
+      recognize.disabled=true;ocrStatus.textContent='인식 중…';var worker;
+      try{
+        if(!window.Tesseract)await new Promise(function(resolve,reject){var script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';script.onload=resolve;script.onerror=function(){script.remove();reject(Error('문자 인식을 불러오지 못했습니다.'));};document.head.appendChild(script);});
+        worker=await Tesseract.createWorker('kor+eng');
+        var source=document.createElement('canvas');source.width=PAPER.w;source.height=PAPER.h;paintAll(source.getContext('2d'),PAPER.w,PAPER.h);
+        var recognized=await worker.recognize(source);if(!bg.isConnected)return;
+        result.value=recognized.data.text.trim();result.hidden=false;insertText.hidden=false;
+        ocrStatus.textContent=result.value?'':'인식한 글자가 없습니다.';
+      }catch(e){if(bg.isConnected)ocrStatus.textContent='인식 실패: '+e.message;}
+      finally{if(worker)await worker.terminate();recognize.disabled=false;}
+    };
+    insertText.onclick=function(){if(!result.value.trim())return;insertBlocks([newBlock('text',{text:result.value.trim()})]);closeModal();};
+
     var foot = el("div", "mfoot");
     var undo = el("button", "btn", "↩ 한 획 되돌리기");
     undo.addEventListener("click", function () { strokes.pop(); redraw(); syncTools(); });
     var clear = el("button", "btn", "전부 지우기");
     clear.addEventListener("click", function () { strokes = []; redraw(); syncTools(); });
-    var save = el("button", "btn primary", "이 메모 넣기");
+    var save = el("button", "btn primary", "필기 넣기");
     save.addEventListener("click", commit);
     foot.appendChild(undo); foot.appendChild(clear);
     foot.appendChild(el("span", "spacer"));
@@ -9194,11 +9219,11 @@
       out.width = PAPER.w; out.height = PAPER.h;
       paintAll(out.getContext("2d"), PAPER.w, PAPER.h);
       canvasToAttachment(out, null).then(function (att) {
-        // 드라이브에서 한눈에 알아보게 이름을 «손메모» 로 바꿔 준다
-        att.original = "손메모_" + dateStamp() + "_" + timeStamp() + (/\.jpg$/.test(att.original) ? ".jpg" : ".png");
+        // 드라이브에서 한눈에 알아보게 이름을 «필기» 로 바꿔 준다
+        att.original = "필기_" + dateStamp() + "_" + timeStamp() + (/\.jpg$/.test(att.original) ? ".jpg" : ".png");
         insertBlocks([newBlock("image", att)]);
         closeModal();
-        toast("손 메모를 넣었습니다. (" + humanSize(att.size) + ")");
+        toast("필기를 넣었습니다. (" + humanSize(att.size) + ")");
       });
     }
 
@@ -9348,6 +9373,9 @@
     var ghost = el("div", "maskghost");     // 누르기 전에 «이만큼 가려진다» 를 보여 주는 동그라미
     stage.appendChild(cv); stage.appendChild(ghost);
     body.appendChild(stage);
+    var cropButton=el('button','btn sm','자르기');body.appendChild(cropButton);
+    cropButton.onclick=function(){var w=cur(),photo=photos[idx];if(!w||!w.img)return;var out=document.createElement('canvas');out.width=w.img.naturalWidth;out.height=w.img.naturalHeight;var context=out.getContext('2d');context.drawImage(w.img,0,0);w.stamps.forEach(function(stamp){paintStamp(context,w.img,stamp);});commit().then(function(){openCropModal(out,photo.original||photo.name,photo);}).catch(function(e){toast('사진 편집 실패: '+e.message);});};
+
 
     var hint = el("p", "crophint",
       "가릴 자리를 누르세요. 문지르면 이어서 가려집니다.");
@@ -9499,9 +9527,9 @@
        파일 아이디가 그대로라 색인이 어긋나지 않는다. */
     function commit() {
       var list = edited();
-      if (!list.length) { closeModal(); return; }
+      if (!list.length) { closeModal(); return Promise.resolve(); }
       done.disabled = true; done.textContent = "바꾸는 중…";
-      list.reduce(function (chain, b) {
+      return list.reduce(function (chain, b) {
         return chain.then(function () {
           var w = work[b.id];
           var out = document.createElement("canvas");
@@ -9549,6 +9577,15 @@
     bar.classList.toggle("hidden", !n);
     if (n) {
       $("maskBarHint").textContent = "사진 " + n + "장";
+      var galleryButton=$('btnPhotoViews');
+      if(!galleryButton){galleryButton=el('button','btn sm','사진 모아 보기');galleryButton.id='btnPhotoViews';galleryButton.type='button';bar.appendChild(galleryButton);galleryButton.onclick=function(){
+        syncFromPaper();var images=blocks.filter(function(b){return b.kind==='image';});closeModal();
+        var bg=el('div','modal-bg'),modal=el('div','card modal'),head=el('div','mhead'),body=el('div','mbody'),close=el('button','btn','닫기');
+        head.appendChild(el('h3',null,'사진'));head.appendChild(close);close.onclick=closeModal;
+        body.appendChild(mediaSlides(images,function(b){closeModal();openPhotoMaskStudio(b.id);}));modal.appendChild(head);modal.appendChild(body);bg.appendChild(modal);$('modalHost').appendChild(bg);modalEl=bg;
+      };}
+      galleryButton.hidden=n<2;
+
     }
   }
 
@@ -11260,16 +11297,24 @@
     }).catch(function () { state.textContent = "폴더를 연결하면 HTML 내용을 미리 볼 수 있습니다."; });
     return wrap;
   }
-  function mediaSlides(items) {
+  function mediaSlides(items, onPhoto) {
     var wrap = el("div", "media-slides"), stage = el("div", "media-slide-stage"), nav = el("div", "media-slide-nav"), at = 0;
     var prev = el("button", "btn sm", "이전"), next = el("button", "btn sm", "다음"), count = el("span");
     prev.type = next.type = "button"; count.setAttribute("aria-live", "polite");
     nav.appendChild(prev); nav.appendChild(count); nav.appendChild(next); wrap.appendChild(stage); wrap.appendChild(nav);
+    var grid=false, viewbar=el('div','row');
+    if(items.every(function(b){return b.kind==='image';})){
+      ['슬라이드 보기','바둑판 보기'].forEach(function(label,i){var button=el('button','btn sm',label);button.onclick=function(e){e.stopPropagation();grid=!!i;show();};viewbar.appendChild(button);});wrap.insertBefore(viewbar,stage);
+    }
+    function photoNode(b){var node=el('img');node.alt=b.caption||b.name||'사진';node.style.cursor='pointer';node.onclick=function(e){e.stopPropagation();if(onPhoto)onPhoto(b);};var u=previewUrl(b);if(u)node.src=u;else if(localIsId(b.fileId))blockFile(b).then(function(f){if(node.isConnected)node.src=mediaObjectUrl(f,node);}).catch(function(){node.alt='사진을 불러오지 못했습니다';});else if(b.fileId)lazyDriveImage(b.fileId,node);return node;}
     function show() {
       stage.querySelectorAll("video,audio").forEach(function (v) { v.pause(); });
       stage.textContent = ""; var b = items[at];
+      stage.classList.toggle('photo-grid',grid);nav.hidden=grid;
+      if(grid){items.forEach(function(photo){stage.appendChild(photoNode(photo));});return;}
+
       var node = el(b.kind === "image" ? "img" : "video");
-      if (b.kind === "image") node.alt = b.caption || b.name || b.original || "사진";
+      if (b.kind === "image") { node.alt = b.caption || b.name || b.original || "사진"; node.style.cursor="pointer";node.onclick=function(e){e.stopPropagation();if(onPhoto)onPhoto(b);}; }
       else { node.controls = true; node.preload = "metadata"; }
       stage.appendChild(node); count.textContent = (at + 1) + " / " + items.length;
       var pv = previewUrl(b);
@@ -11294,6 +11339,10 @@
     var seenImages = 0;
     var blocks = n.blocks || [];
 
+    function editPhoto(b){
+      if(editingId!==n.id && (($('title').value||'').trim()||hasContent()) && !confirm('작성 중인 내용 대신 이 기록을 편집할까요?'))return;
+      closeModal();closeViewer();if(editingId!==n.id)loadIntoComposer(n);openPhotoMaskStudio(b.id);
+    }
     // 연달아 놓인 사진은 슬라이드 묶음으로 보여 준다
     var groups = [], run = null;
     blocks.forEach(function (b) {
@@ -11311,7 +11360,7 @@
 
     groups.forEach(function (g) {
       if ((g.kind === "images" || g.kind === "videos") && g.items.length > 1) {
-        host.appendChild(mediaSlides(g.items)); return;
+        host.appendChild(mediaSlides(g.items, editPhoto)); return;
       }
       if (g.kind === "videos") { renderOne(g.items[0], -1, host); return; }
       // 사진은 어디서나 작은 썸네일로. 누르면 크게 본다 (접기 버튼 없음)
@@ -11324,7 +11373,7 @@
           var at = startAt + k;
           var bt = el("button");
           bt.type = "button";
-          bt.title = (b.caption || b.name || b.original || "사진") + " · 눌러서 크게 보기";
+          bt.title = (b.caption || b.name || b.original || "사진") + " 편집";
           var im = el("img");
           im.loading = "lazy";
           im.alt = b.caption || b.original || "";
@@ -11335,12 +11384,12 @@
           if (k === SHOWN - 1 && count > SHOWN) {
             bt.appendChild(el("span", "more", "+" + (count - SHOWN)));
           }
-          bt.addEventListener("click", function () { openLightbox(shots, at); });
+          bt.addEventListener("click", function (e) { e.stopPropagation();editPhoto(b); });
           gal.appendChild(bt);
         });
         host.appendChild(gal);
         host.appendChild(el("div", "galcap",
-          "🖼️ 사진 " + count + "장 · 누르면 크게 볼 수 있습니다"));
+          "사진 " + count + "장"));
         return;
       }
       renderOne(g.block, -1, host);
@@ -13444,7 +13493,7 @@
       host.classList.add("hidden");
       return;
     }
-    host.appendChild(document.createTextNode("저장 위치 · "));
+    host.appendChild(document.createTextNode("저장 위치: "));
     host.appendChild(el("b", null, deskLabel(desk)));
     host.appendChild(el("span", "spacer"));
     var b = el("button", "btn xs", "자리 바꾸기");
@@ -14024,7 +14073,7 @@
     if (localOn) {
       b.className = "banner ok";
       var lo = el("div", "grow");
-      lo.appendChild(document.createTextNode("📁 저장 위치 · "));
+      lo.appendChild(document.createTextNode("📁 저장 위치: "));
       lo.appendChild(el("b", null, localName));
       lo.appendChild(document.createTextNode(" · " + folderModeLabel(settings.folderMode)));
       b.appendChild(lo);
@@ -14048,7 +14097,7 @@
     if (connected && folder.id) {
       b.className = "banner ok";
       var g = el("div", "grow");
-      g.appendChild(document.createTextNode("☁ 저장 위치 · "));
+      g.appendChild(document.createTextNode("☁ 저장 위치: "));
       var a = el("a", null, folder.name);
       a.href = folder.link || ("https://drive.google.com/drive/folders/" + folder.id);
       a.target = "_blank"; a.rel = "noopener noreferrer";
@@ -16701,18 +16750,8 @@
      매일 넣는 것(소제목·글·할 일·목록·표·캡처·사진·파일)만 처음부터 보인다.
      ⚠️ 뜬 메뉴로 덮지 않는다 · 적던 자리를 가리면 무엇을 쓰던 중이었는지 놓친다.
         편 것은 기기에 남는다 · 늘 다 쓰는 사람에게 매번 다시 펴게 하면 안 된다. */
-  var addOpen = localStorage.getItem("pkos.addOpen.v1") === "1";
-  function applyAddOpen() {
-    var bar = $("addbar"), b = $("btnAddMore");
-    if (bar) bar.classList.toggle("open", addOpen);
-    if (b) { b.textContent = addOpen ? "⋯ 접기" : "⋯ 더"; }
-  }
-  $("btnAddMore").addEventListener("click", function () {
-    addOpen = !addOpen;
-    try { localStorage.setItem("pkos.addOpen.v1", addOpen ? "1" : "0"); } catch (e) {}
-    applyAddOpen();
-  });
-  applyAddOpen();
+  $("addbar").classList.add("open");
+  $("btnAddMore").remove();
 
   $("btnFocus").addEventListener("click", function () {
     setFocus(!document.body.classList.contains("focusing"));
@@ -16758,7 +16797,7 @@
   /* 이름이 보이는 자리를 누르면 나오는 메뉴 */
   function accountMenuItems() {
     return [
-      { label: "⚙️ 저장 위치 · 설정", note: "폴더·백업·이름 규칙",
+      { label: "⚙️ 저장 위치: 설정", note: "폴더·백업·이름 규칙",
         run: function () { openSettings("storage"); } },
       { label: "🔁 다른 계정으로 로그인…", note: "계정을 고르는 화면이 다시 뜹니다",
         run: function () {

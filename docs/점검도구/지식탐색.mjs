@@ -203,6 +203,13 @@ try {
  await evaluate(`document.querySelector('[data-go="settings"]').click();Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='모양').click()`);await wait(100);
  writeFileSync('local-service/runtime/appearance-dark.png',Buffer.from((await send('Page.captureScreenshot',{format:'png'})).data,'base64'));
  await evaluate(`document.querySelector('.modal .mhead button').click();document.querySelector('[data-add="capture"]').click()`);check('capture follows dark palette',await evaluate(`getComputedStyle(document.querySelector('.sheetbtn')).backgroundColor==='rgb(37, 42, 50)'`));
+
+ await evaluate(`document.querySelector('.modal .mhead button').click();document.querySelector('[data-add="draw"]').click()`);await wait(200);
+ check('all tools visible and handwriting renamed',await evaluate(`!document.querySelector('#btnAddMore')&&document.querySelector('[data-add="draw"]').textContent==='필기'&&getComputedStyle(document.querySelector('[data-add="table"]')).display!=='none'`));
+ await evaluate(`window.ocrCheck=(async()=>{await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s)});let worker;try{worker=await Tesseract.createWorker('kor+eng');const c=document.createElement('canvas');c.width=800;c.height=200;const ctx=c.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,800,200);ctx.fillStyle='black';ctx.font='64px Arial';ctx.fillText('PKOS NOTE 123',30,110);const r=await worker.recognize(c);window.ocrResult=r.data.text;}catch(e){window.ocrResult='ERROR '+e.message;}finally{if(worker)await worker.terminate();}})()`);
+ for(let i=0;i<90;i++){if(await evaluate(`typeof window.ocrResult==='string'`))break;await wait(1000);}
+ check('real Korean English OCR engine recognizes text',await evaluate(`(window.ocrResult||'').includes('PKOS')&&(window.ocrResult||'').includes('123')`),await evaluate(`window.ocrResult||'timeout'`));
+ await evaluate(`document.querySelector('.modal .mhead button').click()`);
  check('no exceptions',errors.length===0,errors.join(';'));
  console.log(JSON.stringify(results));if(results.some(r=>!r.ok))process.exitCode=1;
 }finally{ws.close();edge.kill();}
