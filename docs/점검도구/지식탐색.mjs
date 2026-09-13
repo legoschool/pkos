@@ -218,6 +218,16 @@ try {
  await evaluate(`document.querySelector('#btnListFold').click()`);
  check('storage shown once with clear local label',await evaluate(`document.querySelector('#storageChip').textContent.startsWith('저장 위치: 로컬 폴더')&&getComputedStyle(document.querySelector('#wsChip')).display==='none'&&document.querySelector('#banner').hidden`));
  check('site shortcut matches sidebar menu',await evaluate(`document.querySelector('#webTools > button').classList.contains('nav-item')`));
+
+ await evaluate(`document.querySelector('#btnCancelEdit').click();document.querySelector('#title').value='태그 저장 검사';const input=document.querySelector('#tagEntry');input.value='게임';input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',isComposing:true,bubbles:true}));`);
+ check('Korean composition does not commit tags',await evaluate(`document.querySelector('#tags').value===''&&document.querySelector('#tagEntry').value==='게임'`));
+ await evaluate(`document.querySelector('#tagEntry').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));document.querySelector('#tagEntry').value='#게임, 게이미피케이션';document.querySelector('#tagAdd').click()`);
+ check('tag add normalizes and deduplicates',await evaluate(`document.querySelector('#tags').value==='게임, 게이미피케이션'&&document.querySelectorAll('#tagChips .chip').length===2`));
+ await evaluate(`document.querySelector('[aria-label="게임 태그 삭제"]').click();document.querySelector('#tagEntry').value='게임';document.querySelector('#btnSave').click()`);await wait(700);
+ await evaluate(`const card=Array.from(document.querySelectorAll('.entry')).find(c=>c.textContent.includes('태그 저장 검사'));card.querySelector('.dots').click();Array.from(document.querySelectorAll('.menupop button')).find(b=>b.textContent.includes('편집')).click()`);
+ check('tags survive save and reopen including pending input',await evaluate(`document.querySelector('#tags').value==='게이미피케이션, 게임'&&document.querySelectorAll('#tagChips .chip').length===2`));
+ await evaluate(`document.querySelector('[aria-label="게이미피케이션 태그 삭제"]').click();document.querySelector('#tagEntry').value='게이미';document.querySelector('#tagEntry').dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#tagSuggestions button').click()`);
+ check('tag suggestion selects one full tag',await evaluate(`document.querySelector('#tags').value==='게임, 게이미피케이션'&&document.querySelector('#tagEntry').value===''`));
  check('no exceptions',errors.length===0,errors.join(';'));
  console.log(JSON.stringify(results));if(results.some(r=>!r.ok))process.exitCode=1;
 }finally{ws.close();edge.kill();}

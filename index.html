@@ -2430,6 +2430,7 @@
 .layout[data-listcol="off"] .listcol { display:none!important; }
 @media(max-width:600px){#btnListFold{font-size:12px;width:94px;min-width:94px;} .top-inner #crumb{display:none;} }
 
+#tagEditor{display:flex;flex-direction:column;gap:6px;} #tagEntry{min-width:100px;flex:1;} #tagChips .chip{display:inline-flex;align-items:center;gap:6px;} #tagSuggestions:empty,#tagChips:empty{display:none;}
 </style>
 </head>
 <body>
@@ -2556,7 +2557,7 @@
     <div class="grid2">
       <div class="field" style="margin-bottom:12px;">
         <label for="tags">태그</label>
-        <input id="tags" class="inp" placeholder="태그 추가…" />
+        <input id="tags" type="hidden" autocomplete="off" /><div id="tagEditor"><div id="tagChips" class="row"></div><div class="row"><input id="tagEntry" class="inp" placeholder="태그 추가" aria-label="태그 추가" autocomplete="off" /><button id="tagAdd" type="button" class="btn sm">추가</button></div><div id="tagSuggestions" class="row"></div></div>
         <!-- 급할 때는 분류 없이 남긴다. 태그가 없거나 이 칸을 켜 두면 «미정리함» 에 모인다 -->
         <label class="checkline inboxline" hidden><input type="checkbox" id="inboxChk" /> <span>나중에 정리</span></label>
       </div>
@@ -4000,8 +4001,8 @@
      같은 태그를 두 번 적은 것도 여기서 하나로 만든다. */
   function cleanTags(raw) {
     var seen = {}, out = [];
-    String(raw == null ? "" : raw).split(",").forEach(function (s) {
-      var t = safeName(s, 60);
+    String(raw == null ? "" : raw).split(/[,，;；\n]+/).forEach(function (s) {
+      var t = safeName(s.trim().replace(/^#+/, ""), 60);
       if (!t || seen[t]) return;
       seen[t] = 1; out.push(t);
     });
@@ -10003,7 +10004,7 @@
       editingId: editingId,
       type: currentType,
       title: $("title").value,
-      tags: $("tags").value,
+      tags: cleanTags($("tags").value+','+($("tagEntry")?$("tagEntry").value:'')).join(', '),
       inbox: !!($("inboxChk") && $("inboxChk").checked),
       blocks: syncFromPaper().map(function (b) { var c = cloneBlock(b); delete c.blob; return c; })
     };
@@ -10043,7 +10044,7 @@
     editingId = d.editingId || null;
     currentType = d.type || currentType;
     $("title").value = d.title || "";
-    $("tags").value = d.tags || "";
+    $("tags").value = d.tags || ""; renderTagChips();
     if ($("inboxChk")) $("inboxChk").checked = !!d.inbox;
     blocks = d.blocks.map(cloneBlock);
     if (editingId) {
@@ -10102,7 +10103,7 @@
   function resetComposer() {
     editingId = null;
     currentType = settings.defaultType || (settings.types[0] ? settings.types[0].key : "");
-    $("title").value = ""; $("tags").value = "";
+    $("title").value = ""; $("tags").value = ""; renderTagChips();
     if ($("inboxChk")) $("inboxChk").checked = false;
     blocks = [];
     renderTypeChips(); renderBlocks(); histReset();
@@ -10117,7 +10118,7 @@
     editingId = n.id;
     currentType = n.type;
     $("title").value = n.title || "";
-    $("tags").value = (n.tags || []).join(", ");
+    $("tags").value = (n.tags || []).join(", "); renderTagChips();
     if ($("inboxChk")) $("inboxChk").checked = !!n.inbox;
     blocks = (n.blocks || []).map(cloneBlock);
     renderTypeChips(); renderBlocks(); histReset();
@@ -10160,6 +10161,7 @@
 
   var entrySaveWaiting = false;
   async function saveEntry() {
+    commitTag();
     if (entrySaveWaiting) return;
     if (attachmentSaves) {
       entrySaveWaiting = true;
@@ -13342,7 +13344,7 @@
     clearDraft(true);
     resetComposer();
     if (tpl.type) { currentType = tpl.type; renderTypeChips(); }
-    if (tpl.tags) $("tags").value = tpl.tags;
+    if (tpl.tags) $("tags").value = tpl.tags; renderTagChips();
     blocks = (tpl.blocks || []).map(function (t) {
       var b = newBlock(t.kind || "text");
       if (t.text != null) b.text = fillTplText(t.text);
@@ -16738,7 +16740,22 @@
   // 무엇을 고치든 임시저장 대상으로 표시
   $("blocks").addEventListener("input", touchDraft);
   $("title").addEventListener("input", touchDraft);
-  $("tags").addEventListener("input", touchDraft);
+  function renderTagChips(){
+    var host=$('tagChips');if(!host)return;host.replaceChildren();
+    cleanTags($('tags').value).forEach(function(tag){var chip=el('span','chip'),remove=el('button','btn xs','×');chip.appendChild(document.createTextNode(tag));remove.type='button';remove.setAttribute('aria-label',tag+' 태그 삭제');remove.onclick=function(){ $('tags').value=cleanTags($('tags').value).filter(function(t){return t!==tag;}).join(', ');renderTagChips();touchDraft();saveDraft();};chip.appendChild(remove);host.appendChild(chip);});
+    if($('tagEntry'))$('tagEntry').value='';if($('tagSuggestions'))$('tagSuggestions').replaceChildren();
+  }
+  function commitTag(){var input=$('tagEntry');if(!input||!input.value.trim())return;$('tags').value=cleanTags($('tags').value+','+input.value).join(', ');renderTagChips();touchDraft();saveDraft();}
+  $('tagAdd').onclick=function(){commitTag();$('tagEntry').focus();};
+  var tagComposing=false;
+  $('tagEntry').addEventListener('compositionstart',function(){tagComposing=true;});
+  $('tagEntry').addEventListener('compositionend',function(){tagComposing=false;});
+  $('tagEntry').addEventListener('keydown',function(e){if(tagComposing||e.isComposing||e.keyCode===229)return;if(e.key==='Enter'||e.key===','||e.key==='，'){e.preventDefault();commitTag();}});
+  $('tagEntry').addEventListener('blur',function(){if(!tagComposing)commitTag();});
+  $('tagEntry').addEventListener('input',function(){touchDraft();var host=$('tagSuggestions');host.replaceChildren();var q=this.value.trim(),selected=cleanTags($('tags').value);if(!q)return;var all=[];liveEntries().forEach(function(n){(n.tags||[]).forEach(function(t){if(!all.includes(t))all.push(t);});});all.filter(function(t){return !selected.includes(t)&&t.toLowerCase().includes(q.toLowerCase());}).slice(0,8).forEach(function(tag){var b=el('button','btn sm',tag);b.type='button';b.onpointerdown=function(e){e.preventDefault();};b.onclick=function(){$('tagEntry').value=tag;commitTag();$('tagEntry').focus();};host.appendChild(b);});});
+  $('tags').addEventListener('input',function(){renderTagChips();touchDraft();});
+  renderTagChips();
+
   $("typeChips").addEventListener("click", touchDraft);
 
   $("btnSave").addEventListener("click", saveEntry);
