@@ -173,7 +173,7 @@ try {
  check('Markdown saved as heading/list',await evaluate(`(()=>{const n=pkosLocal.entries().find(n=>n.id==='photo-test');return n.blocks.some(b=>b.kind==='heading'&&b.text.includes('Markdown heading'))&&n.blocks.some(b=>b.kind==='list');})()`));
  // Responsive viewport bounds and no new script exceptions.
  for(const width of [390,768,1024,1280,1920]){await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<600});await wait(120);check('viewport '+width,await evaluate(`document.documentElement.scrollWidth<=innerWidth+2`));}
- await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+ await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});await wait(350);
  await evaluate(`(()=>{const ns=pkosLocal.entries();ns.push({...ns[0],id:'trash-fixture',trashed:true,localMissing:false,mdId:null,srcId:null,blocks:[]});document.getElementById('typeFilters').querySelector('button').click();const b=Array.from(document.querySelectorAll('.smartrow')).find(b=>b.textContent.includes('휴지통'));b.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true,clientX:50,clientY:100}));})()`);
  check('trash bulk context actions',await evaluate(`document.querySelector('.menupop').textContent.includes('전체 복원')&&document.querySelector('.menupop').textContent.includes('전체 삭제')`));
  await evaluate(`Array.from(document.querySelectorAll('.menupop button')).find(b=>b.textContent.includes('전체 복원')).click()`);await wait(200);
