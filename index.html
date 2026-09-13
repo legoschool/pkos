@@ -2630,11 +2630,12 @@
        ⚠️ 날짜를 앞에 두었었다. 그러면 드라이브에서 날짜순으로는 잘 서지만,
           정작 «무엇에 대한 것인지» 는 이름 한가운데에 묻힌다. 폴더가 이미 날짜별로
           갈리지 않는 이 앱에서는 «무엇» 이 먼저 오는 편이 찾기 쉽다. */
-    filePattern: "{태그}_{제목}_{자료제목}_{번호}",
-    mdPattern: "{태그}_{제목}",
+    shortNamesVersion: 1,
+    filePattern: "{폴더명}",
+    mdPattern: "{폴더명}",
     // 드라이브 정리 방식: perEntry(기록마다 폴더) | materials(자료만 따로) | monthly(월별) | flat(한 폴더)
     folderMode: "perEntry",
-    folderPattern: "{날짜}_{유형}_{제목}",
+    folderPattern: "{제목}",
     materialsFolderName: "자료",
     /* 양식 · 같은 틀로 되풀이해 쓰는 기록을 한 번에 세운다.
        교사 기록은 「수업 회고」·「연수 정리」처럼 되풀이되는 것이 대부분인데,
@@ -3023,6 +3024,13 @@
       if (OLD_DEFAULTS[k] && s[k].trim() === OLD_DEFAULTS[k]) return;   // 옛 기본값 → 새 기본값으로
       out[k] = s[k].trim();
     });
+    // 기존 설정도 짧은 이름으로 한 번 전환한다. 저장된 원본은 바꾸지 않는다.
+    if (!s.shortNamesVersion) {
+      out.filePattern = "{폴더명}";
+      out.mdPattern = "{폴더명}";
+      out.folderPattern = "{제목}";
+    }
+    out.shortNamesVersion = 1;
     out.useSubfolder = !!s.useSubfolder;
     // 양식 · 사람이 지운 것도 뜻이므로, 배열이 있으면 «비어 있어도» 그대로 받는다
     if (Array.isArray(s.templates)) {
@@ -4290,9 +4298,16 @@
     var t = (entry && entry.tags || []).filter(Boolean)[0];
     return t ? safeName(String(t), 24) : "";
   }
+  function recordFolderLabel(entry) {
+    var path = entry.localDir != null ? entry.localDir.split("/").filter(Boolean) : (entry.deskPath || []).filter(Boolean);
+    if (path.length) return safeName(path[path.length - 1], 60);
+    if (entry.folderName) return safeName(entry.folderName, 60);
+    if (settings.folderMode === "perEntry") return safeName(entry.title, 60) || "기록";
+    return folderLabel() || "기록";
+  }
   function nameContext(entry, order, original, ext, caption) {
     return {
-      folder: folderLabel(), subfolder: subfolderLabel(),
+      folder: recordFolderLabel(entry), subfolder: subfolderLabel(),
       date: dateStamp(entry.createdAt), time: timeStamp(entry.createdAt),
       type: typeOf(entry.type).label,
       title: safeName(entry.title, 40) || "무제",
@@ -5819,7 +5834,7 @@
           delete b._remask; delete b.blob; dropPreview(b.id); idbDel(b.id);
         }
         var want = mdName(n);
-        var keep = !!(n.mdName && localIsId(n.mdId) && (n.srcId || want === n.mdName));
+        var keep = !!(n.mdName && localIsId(n.mdId));
         var finalName = keep ? n.mdName : await localUnique(t.md, want);
         var newId = localIdOf(t.md.concat([finalName]));
         var previousId = n.mdId;
@@ -6638,7 +6653,7 @@
                  「📛 밖에서 넣은 파일 이름 정리」 하나뿐이다. 거기서는 사람이 보고 시킨다.
                  앱이 만든 파일이라도, 규칙이 내놓는 이름이 «지난번에 앱이 붙인 이름» 과 같으면
                  손대지 않는다. 사람이 드라이브에서 고쳐 둔 이름을 저장 한 번에 되돌리지 않으려는 것이다. */
-              var keepName = !!(n.mdId && (n.srcId || (n.mdName && finalName === n.mdName)));
+              var keepName = !!(n.mdId && (n.srcId || n.mdName));
               return uploadFile(keepName ? null : finalName, "text/markdown", buildMarkdown(n), false, n.mdId || null, t.md)
                 // 이름을 안 바꿨으면 mdName 도 그대로 둔다. 여기가 «드라이브에 있는 이름» 이어야 한다
                 .then(function (r) { n.mdId = r.id; if (!keepName) n.mdName = finalName; });
