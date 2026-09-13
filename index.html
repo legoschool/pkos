@@ -2718,8 +2718,8 @@
           정작 «무엇에 대한 것인지» 는 이름 한가운데에 묻힌다. 폴더가 이미 날짜별로
           갈리지 않는 이 앱에서는 «무엇» 이 먼저 오는 편이 찾기 쉽다. */
     shortNamesVersion: 1,
-    filePattern: "{폴더명}",
-    mdPattern: "{폴더명}",
+    filePattern: "{폴더명}-{태그}-{원본이름}",
+    mdPattern: "{폴더명}-{태그}-{제목}",
     // 드라이브 정리 방식: perEntry(기록마다 폴더) | materials(자료만 따로) | monthly(월별) | flat(한 폴더)
     folderMode: "perEntry",
     folderPattern: "{제목}",
@@ -2798,8 +2798,7 @@
      «다른 넷이 더 나았을까» 가 남는다. 정작 이 앱에서 자리를 정하는 일은
      「한 편을 한 폴더에 담을까, 말까」 하나뿐이다. 그 하나만 묻는다. */
   var FOLDER_MODES = [
-    { key: "perEntry", label: "기록마다 폴더 생성", desc: "" },
-    { key: "tag", label: "태그별로 폴더 생성", desc: "" }
+    { key: "perEntry", label: "기록마다 폴더 생성", desc: "" }
   ];
   /* 목록에서는 뺐지만 «쓰던 사람» 은 그대로 돈다.
      ⚠️ 여기서 지우면 그 방식을 쓰던 사람의 설정이 기본값으로 되돌아가고,
@@ -3131,13 +3130,10 @@
         };
       });
     }
-    // ⚠️ 옛 방식(materials·monthly·tag)도 그대로 받는다. 여기서 걸러 내면 쓰던 사람의 정리가 바뀐다
-    if (ALL_FOLDER_MODES.some(function (m) { return m.key === s.folderMode; })) out.folderMode = s.folderMode;
-    else if (s.folderMode === undefined && s.version) {
-      // 구버전 설정: useSubfolder 켜져 있었으면 '자료 분리', 아니면 '한 폴더'
-      out.folderMode = s.useSubfolder ? "materials" : "flat";
-      if (s.subfolderName) out.materialsFolderName = s.subfolderName;
-    }
+    // New saves use one folder per record. Existing record locations remain authoritative.
+    out.folderMode = "perEntry";
+    out.mdPattern = "{폴더명}-{태그}-{제목}";
+    out.filePattern = "{폴더명}-{태그}-{원본이름}";
     // 관계망(modal)은 «골라 두는 보기» 가 아니라서 저장된 값으로 받아들이지 않는다
     if (VIEW_MODES.some(function (v) { return !v.modal && v.key === s.viewMode; })) out.viewMode = s.viewMode;
     /* 모양은 레고 하나다. 옛 모양(play·paper …)을 쓰던 사람은 그대로 레고로 서되,
@@ -4387,7 +4383,7 @@
     });
     out = safeName(out, 110);
     // 빈 토큰 때문에 생긴 중복 구분자를 정리한다 (예: 폴더 미연결 시 "_2026-08-16_…")
-    out = out.replace(/_{2,}/g, "_").replace(/^[_\s-]+/, "").replace(/[_\s-]+$/, "");
+    out = out.replace(/-{2,}/g, "-").replace(/_{2,}/g, "_").replace(/^[_\s-]+/, "").replace(/[_\s-]+$/, "");
     return out || "무제";
   }
   /* 태그는 여러 개일 수 있다. 파일 이름에는 «첫 태그» 만 넣는다.
@@ -4422,7 +4418,7 @@
     var ext = extOf(original);
     var ctx = nameContext(entry, order, original, ext, block && block.caption);
     if (!ctx.stem) ctx.stem = "파일";
-    if (block && block.kind === "image") return (safeName(entry.title,60) || "사진") + ext;
+
     var name = applyPattern(settings.filePattern, ctx);
     if (settings.filePattern.indexOf("{확장자}") < 0) name += ext;
     return name;
@@ -4438,7 +4434,7 @@
       date: dateStamp(), time: timeStamp(),
       type: typeOf(currentType).label,
       title: safeName($("title") && $("title").value, 40) || "수업 회고",
-      tag: safeName((($("tags") && $("tags").value) || "").split(",")[0].trim(), 24) || "수업설계",
+      tag: safeName((($("tags") && $("tags").value) || "").split(",")[0].trim(), 24),
       caption: isMd ? "" : "칠판 정리",
       no: "01", stem: "IMG_4821", ext: isMd ? ".md" : ".png"
     };
@@ -6393,7 +6389,7 @@
           : newBlock("file", { caption: "", original: L.name, name: L.name, mime: mime, size: 0, fileId: L.id });
         var e = {
           id: uid("k_"), type: materialType, title: stemOf(L.name) || L.name,
-          tags: L.parts.slice(-3).map(function (x) { return safeName(x, 40); }).filter(Boolean),
+          tags: [],
           blocks: [block], relations: [], createdAt: mod || Date.now(), updatedAt: mod || Date.now(),
           srcId: L.id, srcPath: L.parts.slice(), localDir: L.parts.join("/"), _imported: true
         };
@@ -9993,24 +9989,9 @@
     if (!made.length) return Promise.resolve();
     insertBlocks(made, afterBlock);    // 커서 자리에 · 글 사이에 그대로 박힌다
     toast(made.length + "개를 넣었습니다.");
-    var targetRoot = localOn ? localRoot : null;
-    var owner = entries.find(function (n) { return n.id === editingId; });
-    var parts = owner && owner.localDir ? owner.localDir.split("/") : ["받은 파일"];
     attachmentSaves++;
     var task = attachmentSaveQueue.then(async function () {
-      for (var b of made) {
-        await idbPut(b.id, b.blob);
-        if (targetRoot) {
-          try {
-            if (!localOn || localRoot !== targetRoot) throw new Error("저장 폴더 연결이 바뀌었습니다");
-            var name = await localUnique(parts, b.original);
-            if (!localOn || localRoot !== targetRoot) throw new Error("저장 폴더 연결이 바뀌었습니다");
-            b.fileId = await localWrite(parts, name, b.blob); b.name = name;
-            await expandIncomingZip(b.fileId,name);
-            refreshAtom(b.id);
-          } catch (e) { toast("폴더 저장 실패: " + e.message + ". 첨부를 임시 보관합니다."); await idbPut(b.id, b.blob); }
-        }
-      }
+      for (var b of made) await idbPut(b.id, b.blob);
       touchDraft(); saveDraft();
     }).finally(function () { attachmentSaves--; });
     attachmentSaveQueue = task.catch(function (e) { toast("첨부 저장을 마치지 못했습니다. " + e.message); });
@@ -13378,7 +13359,7 @@
     clearDraft(true);
     resetComposer();
     if (tpl.type) { currentType = tpl.type; renderTypeChips(); }
-    if (tpl.tags) $("tags").value = tpl.tags; renderTagChips();
+    $("tags").value = ""; renderTagChips();
     blocks = (tpl.blocks || []).map(function (t) {
       var b = newBlock(t.kind || "text");
       if (t.text != null) b.text = fillTplText(t.text);
@@ -14596,10 +14577,7 @@
         size: Number(f.size || 0), fileId: f.id
       });
     }
-    // 거쳐 온 폴더 이름을 태그로 삼는다. 「2019/3학년/과학」 이 그대로 찾는 길이 된다
-    var tags = (f._path || []).slice(-IMPORT_TAG_DEPTH)
-      .map(function (s) { return safeName(s, 40); })
-      .filter(Boolean);
+    var tags = [];
     var created = Date.parse(f.createdTime) || Date.now();
     var deep = f._parent !== folder.id;
     return {
@@ -16377,24 +16355,8 @@
       f3.appendChild(el("label", null, "폴더 구성"));
       /* 예전에는 «고르는 목록(select)» 이었는데, 목록을 펼치면 그 아래 폴더 그림을 통째로 가렸다.
          정작 봐야 할 것을 가리는 셈이라, 그림과 함께 펼쳐 놓는다. */
-      var modeGrid = el("div", "modegrid");
-      function paintMode() {
-        modeGrid.innerHTML = "";
-        var show = FOLDER_MODES.slice();
-        show.forEach(function (fm) {
-          var card = el("button", "modecard" + (draft.folderMode === fm.key ? " on" : ""));
-          card.type = "button";
-          var h = el("div", "modehead");
-          h.appendChild(el("strong", null, fm.label));
-          if (draft.folderMode === fm.key) h.appendChild(el("span", "badge", "고름"));
-          card.appendChild(h);
-          card.setAttribute("aria-pressed", String(draft.folderMode === fm.key));
-          card.addEventListener("click", function () { draft.folderMode = fm.key; paintMode(); });
-          modeGrid.appendChild(card);
-        });
-      }
-      paintMode();
-      f3.appendChild(modeGrid);
+      draft.folderMode="perEntry";
+      f3.appendChild(el("div","inp","기록마다 폴더 생성"));
 
       body.appendChild(f3);
 
@@ -16523,9 +16485,10 @@
       });
       body.appendChild(ff);
 
-      var rule=el('div','field');rule.appendChild(el('label',null,'기록 파일 이름'));
-      [['{폴더명}','폴더 이름'],['{제목}','글 제목']].forEach(function(option){var label=el('label','checkline'),radio=el('input');radio.type='radio';radio.name='recordNameRule';radio.value=option[0];radio.checked=draft.mdPattern===option[0];radio.onchange=function(){draft.mdPattern=option[0];draft.filePattern='{폴더명}';};label.appendChild(radio);label.appendChild(document.createTextNode(option[1]));rule.appendChild(label);});
-      rule.appendChild(previewRow('사진','글 제목.png'));body.appendChild(rule);
+      var rule=el('div','field');rule.appendChild(el('label',null,'파일 이름'));
+      rule.appendChild(el('div','inp','폴더명-태그(선택)-파일명'));
+      rule.appendChild(previewRow('태그 미설정','수업회고-칠판.png'));
+      rule.appendChild(previewRow('태그 설정','수업회고-수업-칠판.png'));body.appendChild(rule);
       /* 남길 것은 «되돌릴 수 없는 것» 과 «안 되는 것» 뿐이다.
          같은 이름이 겹치면 -2, -3 이 붙는 것은 사람이 알아야 하는 «안 되는 것» 이 아니라
          저절로 되는 일이라 적지 않는다. */
