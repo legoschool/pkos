@@ -201,7 +201,16 @@ def make_server(store, app, port=8788):
                 if request.path == "/api/presentation-preview":
                     with store.lock:
                         store.recover_rename()
-                        return self.reply(202, previews.start(query.get("path", [""])[0]))
+                        from presentation_preview import PreviewBusy
+                        try:
+                            return self.reply(202, previews.start(query.get("path", [""])[0]))
+                        except PreviewBusy:
+                            return self.reply(409, {"state":"busy", "code":"preview_busy"})
+                if request.path == "/api/extract-zip":
+                    from extract_zip import extract
+                    with store.lock:
+                        store.recover_rename()
+                        return self.reply(200, extract(store, query.get("path", [""])[0]))
                 if request.path == "/api/rename":
                     from rename_ops import rename
                     length = int(self.headers.get("Content-Length", "0"))
