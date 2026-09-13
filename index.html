@@ -2391,6 +2391,24 @@
 [data-tone="plain"] #title::placeholder, [data-tone="plain"] #tags::placeholder, [data-tone="plain"] input::placeholder, [data-tone="plain"] textarea::placeholder, [data-tone="plain"] .paper.blank::before { color:var(--ink-soft); opacity:1; }
 [data-tone="plain"] .entry .head h3 { color:var(--ink); font-weight:600; }
 
+/* 기본 모드의 검색과 실행 버튼은 윤곽을 유지한다. */
+:root[data-tone="plain"] { --ink:#17212f; --ink-soft:#374151; --line-soft:#9aa6b5; --btn-line:#7c899b; }
+:root[data-tone="plain"][data-dark="true"] { --ink:#f1f4f8; --ink-soft:#d1d9e4; --line-soft:#728096; --btn-line:#8998ac; }
+[data-tone="plain"] .btn:not(.primary):not(.fbbtn),
+[data-tone="plain"] .emptybtn, [data-tone="plain"] .cfoldbtn {
+  border:1px solid var(--btn-line); color:var(--ink); font-weight:600;
+}
+[data-tone="plain"] header.top .btn.sm,
+[data-tone="plain"] header.top .btn.sm.primary {
+  border:1px solid var(--btn-line); background:var(--btn-bg); color:var(--ink); font-weight:600;
+}
+[data-tone="plain"] header.top .btn.sm:hover { border-color:var(--ink-soft); background:var(--btn-hover); }
+[data-tone="plain"] header.top .topsearch {
+  border:1px solid var(--btn-line); background:var(--inp-bg); color:var(--ink); text-align:left;
+}
+[data-tone="plain"] .edbar .btn { border-color:var(--btn-line); }
+[data-tone="plain"] .btn:disabled { opacity:.5; }
+
 </style>
 </head>
 <body>
@@ -3163,7 +3181,7 @@
     root.style.setProperty('--font-body',fonts[opt.fontFamily]||fonts.gothic);root.style.setProperty('--font-title',fonts[opt.fontFamily]||fonts.gothic);
     root.setAttribute('data-font',opt.fontFamily||'gothic');
     root.setAttribute('data-dark',String(opt.mode==='dark'||(!opt.mode&&matchMedia('(prefers-color-scheme: dark)').matches)));
-    root.style.setProperty('--line',root.dataset.dark==='true'?'#515965':'#bfc6d0');
+    root.style.setProperty('--line',root.dataset.tone==='plain'?(root.dataset.dark==='true'?'#728096':'#9aa6b5'):(root.dataset.dark==='true'?'#515965':'#bfc6d0'));
 
     // 색감 · 안 고르면 그 모양이 태어날 때의 색
     root.setAttribute("data-tone", toneOf(t.key, opt.tone));
