@@ -265,6 +265,19 @@ try {
  await evaluate(`const card=Array.from(document.querySelectorAll('.entry')).find(c=>c.textContent.includes('Photo'));card.querySelector('.dots').click();Array.from(document.querySelectorAll('.menupop button')).find(b=>b.textContent.includes('편집')).click();document.querySelector('[aria-label="자료 태그 삭제"]').click();document.querySelector('#btnSave').click()`);await wait(800);
  await send('Page.reload');await wait(2400);
  check('deleted migrated type tag stays deleted',await evaluate(`(()=>{const n=pkosLocal.entries().find(n=>n.id==='photo-test');return n.type===''&&!n.tags.includes('자료');})()`));
+ await evaluate(`document.querySelector('#btnCancelEdit').click();Array.from(document.querySelectorAll('#typeChips button')).find(b=>b.textContent==='test').click();document.querySelector('[data-go="settings"]').click();Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='태그').click();document.querySelector('[aria-label="test 태그 이름"]').value='공통태그';document.querySelector('[aria-label="test 이름 변경"]').click()`);await wait(1200);
+ check('settings renames tag in records and draft',await evaluate(`pkosLocal.entries().find(n=>n.id==='photo-test').tags.includes('공통태그')&&!pkosLocal.entries().some(n=>n.tags.includes('test'))&&document.querySelector('#tags').value==='공통태그'&&!!document.querySelector('[aria-label="공통태그 태그 이름"]')`));
+ await evaluate(`document.querySelector('[aria-label="공통태그 태그 이름"]').value='';document.querySelector('[aria-label="공통태그 이름 변경"]').click()`);await wait(100);
+ check('empty rename is rejected',await evaluate(`document.querySelector('.modal').textContent.includes('태그 이름 하나를 입력')&&pkosLocal.entries().find(n=>n.id==='photo-test').tags.includes('공통태그')`));
+ await evaluate(`document.querySelector('[aria-label="공통태그 태그 이름"]').value='자료';document.querySelector('[aria-label="공통태그 이름 변경"]').click()`);await wait(1000);
+ check('rename merges existing tag without duplicates',await evaluate(`!pkosLocal.entries().some(n=>n.tags.includes('공통태그'))&&pkosLocal.entries().find(n=>n.id==='photo-test').tags.filter(t=>t==='자료').length===1`));
+ await send('Page.reload');await wait(2400);
+ check('renamed tags persist after reconnect',await evaluate(`pkosLocal.entries().find(n=>n.id==='photo-test').tags.includes('자료')&&!pkosLocal.entries().some(n=>n.tags.includes('test')||n.tags.includes('공통태그'))`));
+ await evaluate(`(async()=>{await pkosLocal.detach();document.querySelector('[data-go="settings"]').click();Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='태그').click();document.querySelector('[aria-label="자료 태그 이름"]').value='연결전변경';document.querySelector('[aria-label="자료 이름 변경"]').click();})()`);await wait(400);
+ check('rename works without folder connection',await evaluate(`!pkosLocal.isOn()&&pkosLocal.entries().find(n=>n.id==='photo-test').tags.includes('연결전변경')`));
+ await evaluate(`PKOSBridge.root().then(root=>pkosLocal.attach(root))`);await wait(1400);
+ await send('Page.reload');await wait(2400);
+ check('offline rename survives reconnect',await evaluate(`pkosLocal.entries().find(n=>n.id==='photo-test').tags.includes('연결전변경')&&!pkosLocal.entries().some(n=>n.tags.includes('자료'))`));
  check('no exceptions' ,errors.length===0,errors.join(';'));
  console.log(JSON.stringify(results));if(results.some(r=>!r.ok))process.exitCode=1;
 }finally{ws.close();edge.kill();}
