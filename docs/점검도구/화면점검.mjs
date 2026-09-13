@@ -148,7 +148,7 @@ check("자바스크립트 오류 없음", errors.length === 0, errors[0] || "");
 /* ---------- 1-2. 모양은 하나 · 조용한 종이 ----------
    예전에는 처음 온 사람에게 «어떤 모양으로 쓸까요?» 를 물었다.
    모양이 하나가 되면서 물을 것이 없어졌다 · 창이 안 떠야 한다.
-   ⚠️ 모양은 «업노트처럼» 으로 다시 잡았다. 강조색 판·레고 돌기·둥근 제목 글꼴을
+   ⚠️ 모양은 «기록 중심으로» 으로 다시 잡았다. 강조색 판·레고 돌기·둥근 제목 글꼴을
       걷어내고, 흰 종이에 머리카락 테두리만 남겼다. 색면이 크면 화면 전체가
       그 색 이야기가 되어 정작 읽어야 할 글이 뒤로 밀린다. */
 await wait(700);
@@ -171,7 +171,7 @@ check("묻지 않아도 한 모양으로 선다", lk.attr === "lego", String(lk.
 /* 돌기와 큰 모서리는 걷어냈다 · 돌아오면 안 된다 */
 check("장식 돌기가 없다", lk.stud === "none", String(lk.stud));
 check("모서리가 조용하다", parseFloat(lk.radius) <= 12, lk.radius);
-/* ⚠️ 태어날 때의 색을 «깔끔»(흰 종이에 청록)으로 옮겼다 · 업노트가 서 있는 자리다.
+/* ⚠️ 태어날 때의 색을 «깔끔»(흰 종이에 청록)으로 옮겼다 · PKOS의 색감이다.
    이미 색을 고른 사람의 설정은 안 건드린다 (settings.tone 이 이긴다). */
 check("태어날 때의 색은 깔끔이다", lk.tone === "clean", String(lk.tone));
 check("처음 오는 사람은 큰 글자로 시작한다", lk.size === "big", String(lk.size || "보통"));
@@ -1579,7 +1579,7 @@ check("폴더를 고르면 태그 칩도 그 폴더 기준으로 센다",
   !chipScope.err && (chipScope.after || []).length === 1 && /연수/.test((chipScope.after || [])[0] || ""),
   (chipScope.after || []).join(" ") || chipScope.err);
 
-/* ---------- 10-6. 업노트식 블록 여섯 ----------
+/* ---------- 10-6. 기록 편집용 블록 여섯 ----------
    할 일 · 목록 · 코드 · 표 · 접이식 · 글 안 서식.
    ⚠️ 가장 중요한 것은 «목록에서 바로 체크된다» 는 것이다. 읽다가 한 일이 생각나면
       그 자리에서 누른다. 편집으로 들어갔다 나오는 순간 그 기능은 죽은 기능이 된다. */
@@ -1616,7 +1616,7 @@ check("넣기 줄이 열 개를 안 넘는다", blockKinds.barCount <= 10, block
 
 const built = JSON.parse(await evaluate(`(() => {
   const t = document.getElementById('title');
-  t.value = '업노트식 블록'; t.dispatchEvent(new Event('input', { bubbles: true }));
+  t.value = '기록 편집용 블록'; t.dispatchEvent(new Event('input', { bubbles: true }));
   // 할 일 두 줄
   const lines = Array.from(document.querySelectorAll('#blocks .lineinp'));
   lines[0].value = '숙제 끝내기'; lines[0].dispatchEvent(new Event('input', { bubbles: true }));
@@ -1696,7 +1696,7 @@ check("목록에서 바로 체크된다", ticked.saved === true, ticked.err || "
 check("체크하면 «몇 개 했는지» 도 같이 바뀐다", ticked.before !== ticked.after,
   (ticked.before || "?") + " → " + (ticked.after || "?"));
 
-/* ---------- 10-7. 업노트식 왼쪽 기둥 ----------
+/* ---------- 10-7. 기록 편집용 왼쪽 기둥 ----------
    폴더는 «내가 어디에 두었나» 로 찾는 길이고, 똑똑한 목록은 «지금 뭘 해야 하나» 로 찾는 길이다.
    둘은 다른 물음이라 자리를 나눠 세운다. 태그는 또 다른 길이다 (폴더는 한 자리, 태그는 여러 갈래). */
 await evaluate(`(() => {
@@ -2062,7 +2062,7 @@ check("접힌 «＋ 새 기록» 이 무엇에도 안 덮인다", unfoldable.rea
 await anyPane(); await wait(400);
 
 /* ---------- 10-12. 3단 · 왼쪽 기둥 │ 가운데 목록 │ 오른쪽 편집 ----------
-   업노트의 자리 나눔이다. 핵심은 «고르면 오른쪽에서 열린다» 하나다.
+   PKOS의 영역 배치다. 핵심은 «고르면 오른쪽에서 열린다» 하나다.
    ⚠️ 세 칸이 각자 굴러야 한다. 한 덩어리로 굴리면 목록을 훑는 동안 쓰던 칸이
       화면 밖으로 사라져서 «어디에 쓰고 있었지» 가 된다. */
 await anyPane();

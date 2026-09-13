@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="description" content="글·사진·링크·파일을 블로그처럼 이어 쓰고, 내 구글 드라이브 폴더에 마크다운으로 쌓는 개인지식운영체계 PKOS (Personal Knowledge Operation System) 의 기록 도구" />
 <meta name="theme-color" content="#ffffff" />
-<!-- 글꼴 · 프리텐다드. 업노트가 서 있는 «군더더기 없는 고딕» 자리다.
+<!-- 글꼴 · 프리텐다드. PKOS가 서 있는 «군더더기 없는 고딕» 자리다.
      ⚠️ 지금까지는 이름만 적어 두어서, 이 글꼴이 «깔려 있는 기기» 에서만 떴고
         나머지는 맑은 고딕으로 떨어져 화면이 기기마다 달라 보였다. 받아 와서 맞춘다.
      못 받아 와도(오프라인·차단) 아래 시스템 글꼴로 그대로 떨어진다 · 글이 안 보이는 일은 없다. -->
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
-<!-- 남색(참고 디자인) 글꼴 · 제목은 명조(Noto Serif KR), 본문은 Noto Sans KR. 못 받아 오면 프리텐다드·시스템 글꼴로 떨어진다 -->
+<!-- 남색(이전 테마) 글꼴 · 제목은 명조(Noto Serif KR), 본문은 Noto Sans KR. 못 받아 오면 프리텐다드·시스템 글꼴로 떨어진다 -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@400;500;600&display=swap" />
@@ -145,7 +145,7 @@
   [data-theme="lego"] #sideNav { background: var(--bg); border-right: 1px solid var(--line); }
   [data-theme="lego"] .layout { background: var(--panel); }
   [data-theme="lego"] #sideNav { background: var(--bg); }
-  /* 카드 사이를 띄우는 대신 «줄» 로 가른다 · 업노트의 목록처럼 글이 이어져 읽힌다 */
+  /* 카드 사이를 띄우는 대신 «줄» 로 가른다 · PKOS의 목록처럼 글이 이어져 읽힌다 */
   [data-theme="lego"] .composer { border-color: var(--line-soft); }
   [data-theme="lego"] .banner { border-radius: var(--r-btn); }
   [data-theme="lego"] .chip { font-weight: var(--fw-body); }
@@ -184,7 +184,7 @@
      같은 것을 자리만 달리해 보여 준다 · 배우는 것이 하나여야 한다.
      ========================================================= */
   /* =========================================================
-     3단 · 업노트의 자리 나눔 · 왼쪽 기둥 │ 가운데 목록 │ 오른쪽 편집
+     3단 · PKOS의 자리 나눔 · 왼쪽 기둥 │ 가운데 목록 │ 오른쪽 편집
      ⚠️ 세 칸이 각자 스크롤해야 한다. 한 덩어리로 굴리면 목록을 훑는 동안
         쓰던 칸이 화면 밖으로 사라져서, «어디에 쓰고 있었지» 가 된다.
      좁아지면 두 칸(기둥+한 덩어리)으로, 더 좁아지면 한 칸으로 접힌다.
@@ -292,7 +292,7 @@
   .siderow.on { background: var(--brand-soft); color: var(--brand-dark); font-weight: 700; }
   .siderow.on svg, .siderow.on .cnt { color: var(--brand); }
   .siderow.d1 { padding-left: 26px; } .siderow.d2 { padding-left: 42px; } .siderow.d3 { padding-left: 58px; }
-  /* 구역 이름 · 폴더·태그·휴지통을 눈으로 갈라 준다 (업노트의 사이드바 구조) */
+  /* 구역 이름 · 폴더·태그·휴지통을 눈으로 갈라 준다 (폴더와 태그 구역) */
   /* 구역 이름 = 접기 손잡이. 태그가 곧 폴더인 사람은 폴더가 열댓 개라
      칸마다 ▸ 를 다는 것으로는 안 된다 · 구역째로 접혀야 한다. */
   .sidecap { display: flex; align-items: center; gap: 5px; width: 100%; text-align: left;
@@ -616,7 +616,7 @@
     --t3: #7A5A12; --t3s: #FBE8BE; --t4: #8F5626; --t4s: #F7DFC4;
     --t5: #8E4A60; --t5s: #F8DCE2; --t6: #4C4370; --t6s: #E5DDF0;
   }
-  /* 깔끔 · 흰 종이에 청록 (업노트가 서 있는 자리) ·
+  /* 깔끔 · 흰 종이에 청록 (PKOS가 서 있는 자리) ·
      바탕과 종이를 아주 옅게만 갈라 두어, 화면이 «색 이야기» 를 안 하게 한다 */
   [data-tone="clean"] {
     --bg: #F6F7F8; --panel: #FFFFFF; --ink: #1A1D1F; --ink-soft: #6B7280;
@@ -906,7 +906,7 @@
   @media (min-width: 1180px) {
     .top-inner { max-width: none; margin: 0; padding-left: 18px; padding-right: 18px; }
   }
-  /* ＋ 새 기록 · 머리띠에서 가장 눈에 띄는 자리 (업노트의 New Note) */
+  /* ＋ 새 기록 · 머리띠에서 가장 눈에 띄는 자리 (새 기록 버튼) */
   /* ⚠️ 둘을 1px 띄워 두었더니 테두리가 두 겹으로 서고, 모서리 굵기도 sm 단추와
      안 맞아 ▾ 만 사방이 둥근 채로 따로 떠 있었다. 붙여 세우고, 사이는
      «밝은 선 하나» 로만 가른다 · 한 단추로 읽혀야 한다.
@@ -1212,7 +1212,7 @@
   .edbar .role[data-add="mine"] { color: var(--brand); }
   .edbar .role[data-add="ai"] { color: var(--warn-ink); }
   /* 폰 · 넣기 줄이 여섯 줄을 먹으면 고르는 자리가 아니라 벽이 된다(실측 394px).
-     한 줄로 세우고 옆으로 민다 · 업노트가 폰에서 그렇게 한다. 접어 둔 것도 다 보인다. */
+     한 줄로 세우고 옆으로 민다 · PKOS가 폰에서 그렇게 한다. 접어 둔 것도 다 보인다. */
   @media (max-width: 560px) {
     .edbar { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 4px; padding: 6px 8px;
              scrollbar-width: none; }
@@ -1948,11 +1948,11 @@
   .taghint { margin: 7px 0 0; font-size: calc(12.5px * var(--fs)); line-height: 1.7; color: var(--ink-soft); }
   .taghint b { color: var(--ink); }
   /* =========================================================
-     남색 · 참고 디자인의 옷 (2026-09-11 · 기본 색감)
+     남색 · 이전 테마의 옷 (2026-09-11 · 기본 색감)
      흰 종이(새벽빛)가 기본이고, 「어둡게」 를 고르면 남색 남색로 선다.
      ⚠️ 다른 색감과 달리 «기기 따름» 이어도 밝게 선다 · 사용자가 흰 바탕을 기본으로 정했다(9/11).
      레고 브릭(로고 · 빈 화면)은 금빛으로 남긴다 · 이 도구의 서명이다.
-     ⚠️ 모양 토큰(글꼴·모서리)까지 여기서 덮는다. 참고 디자인는 «색과 모양이 한 벌» 이라서다.
+     ⚠️ 모양 토큰(글꼴·모서리)까지 여기서 덮는다. 이전 테마는 «색과 모양이 한 벌» 이라서다.
      ========================================================= */
   [data-tone="calm"] {
     color-scheme: light;
@@ -2032,7 +2032,7 @@
   [data-tone="calm"] :focus-visible { outline-color: var(--brand); }
   [data-tone="calm"] ::selection { background: #d9bf9140; }
   /* =========================================================
-     참고 디자인의 뼈대 · 왼쪽 기둥 + 머리띠 + 오늘의 작업실 (2026-09-11)
+     이전 테마의 뼈대 · 왼쪽 기둥 + 머리띠 + 오늘의 작업실 (2026-09-11)
      ⚠️ 기둥은 화면에 고정(fixed)이고 몸통(body)이 그 너비만큼 비켜 선다.
         기존 3단(.layout)은 손대지 않는다 · 기둥 자리(--col-nav)만 비웠다(data-nav=1).
      ========================================================= */
@@ -2385,7 +2385,7 @@
 <div id="progress"></div>
 
 <!-- =========================================================
-     왼쪽 기둥 · 참고 디자인의 뼈대 (2026-09-11)
+     왼쪽 기둥 · 이전 테마의 뼈대 (2026-09-11)
      브랜드 · 작업실(저장 폴더) · 메뉴 · (기록·자료실일 때) 폴더 나무 · 설정 · 저장 상태.
      PC 에서는 늘 서 있고, 폰에서는 ☰ 로 여는 서랍이다.
      ⚠️ #sideNav(폴더 나무)는 .layout 에서 여기로 옮겨 왔다. JS 는 id 로만 찾으므로 그대로 돈다.
@@ -2429,7 +2429,7 @@
     <button id="btnMore" class="btn sm" title="설정·도움말·앱 설치">⋯</button>
     <!-- ⚠️ 「＋ 새 기록」 은 머리띠에 산다. 기둥 맨 아래에 두었더니 폴더가 열댓 개인
          사람에게는 화면 밖으로 밀려나 «어떻게 쓰냐» 가 됐다. 가장 자주 누르는 단추는
-         목록 길이에 밀리지 않는 자리에 있어야 한다 (업노트도 머리띠에 둔다). -->
+         목록 길이에 밀리지 않는 자리에 있어야 한다 (PKOS도 머리띠에 둔다). -->
     <span id="topNewWrap" class="topnew">
       <button id="topNew" class="btn sm primary">＋ 새 기록</button>
       <button id="topNewMore" class="btn sm primary tnmore" aria-label="양식·다른 폴더">▾</button>
@@ -2450,7 +2450,7 @@
 <!-- 접었을 때 남는 세로 띠 · 펴는 길이 눈에 보여야 접어도 무섭지 않다 -->
 
 
-<!-- 가운데 칸 · 기록 목록. 업노트의 «노트 목록» 자리다 -->
+<!-- 가운데 칸 · 기록 목록. PKOS의 «노트 목록» 자리다 -->
 <div id="listcol" class="listcol">
   <div class="toolbar">
     <h2 id="listTitle">기록</h2>
@@ -2726,7 +2726,7 @@
     { key: "ink",    label: "먹",       sub: "회백 종이에 먹" },
     { key: "blue",   label: "청사진",   sub: "청회 바탕에 청록" }
   ];
-  /* 태어날 때의 색 · 색감을 따로 안 고르면 «남색»(참고 디자인의 옷)로 선다 (9/11).
+  /* 태어날 때의 색 · 색감을 따로 안 고르면 «남색»(이전 테마의 옷)로 선다 (9/11).
      ⚠️ 이미 고른 사람의 색은 안 건드린다. settings.tone 이 적혀 있으면 그것이 이긴다.
      옛 모양을 쓰던 사람이 넘어올 때는 그 모양이 입던 색을 잇는다. */
   var TONE_OF = { lego: "plain", play: "sunny", memo: "craft", brick: "craft", note: "craft",
@@ -6788,7 +6788,7 @@
      8. 종이 편집기 · 한 장에 이어 쓰고, 그 자리에 사진·영상·링크를 넣는다
      ---------------------------------------------------------
      예전에는 «블록을 하나씩 세우는» 칸이었다. 글 한 칸, 사진 한 칸, 또 글 한 칸.
-     업노트·블로그처럼 «그냥 쓰다가» 그 자리에 사진을 떨어뜨리는 것과는 달랐다.
+     PKOS·블로그처럼 «그냥 쓰다가» 그 자리에 사진을 떨어뜨리는 것과는 달랐다.
      이제 적는 자리는 종이 한 장(contenteditable)이다.
        · 글·소제목·인용·목록·할 일은 종이 위에서 바로 친다
        · 사진·영상·파일·링크·표·코드·접이식은 «덩어리(atom)» 로 커서 자리에 박힌다
@@ -6880,7 +6880,7 @@
     ta.focus();
     if (onDone) onDone(ta.value);
   }
-  /* 형광펜 여섯 색 · 업노트가 쓰는 여섯 자리를 우리 색감 위에서도 읽히는 값으로 잡았다.
+  /* 형광펜 여섯 색 · PKOS가 쓰는 여섯 자리를 우리 색감 위에서도 읽히는 값으로 잡았다.
      밝을 때와 어두울 때 모두 검은 글자가 읽혀야 해서, 흐린 파스텔로만 고른다. */
   var HL_COLORS = [
     ["#FBE2C8", "주황"], ["#FBCFCF", "빨강"], ["#CFE6FB", "파랑"],
@@ -11325,7 +11325,7 @@
       } else if (b.kind === "quote") {
         host.appendChild(quoteView(b));
       } else if (b.kind === "todo") {
-        /* 업노트에서 가장 몸에 붙는 것이 이것이다 · 목록에서 «바로» 체크된다.
+        /* PKOS에서 가장 몸에 붙는 것이 이것이다 · 목록에서 «바로» 체크된다.
            읽다가 한 일이 생각나면 그 자리에서 누른다. 편집으로 들어갔다 나오지 않는다.
            ⚠️ 누른 즉시 드라이브까지 올라가야 한다. 안 그러면 다른 기기에서 안 눌린 채로 있다. */
         var ul = el("ul", "todolist");
@@ -13337,7 +13337,7 @@
      이 도구는 쓰는 도구다. 그런데 화면 맨 위를 작성칸이 한 장 반 먹고 있어서,
      왼쪽에서 폴더를 눌러도 «아무 일도 안 일어난 것» 처럼 보였다.
      좁혀진 목록이 안 보이는 자리에 있었을 뿐이다. 그래서 볼 때는 접고, 쓸 때는 편다. */
-  /* 폰·2단에서는 목록부터 보여 준다 · 업노트도 «노트 목록» 에서 시작한다.
+  /* 폰·2단에서는 목록부터 보여 준다 · PKOS도 «노트 목록» 에서 시작한다.
      쓸 것이 있으면 ＋ 를 누른다. 3단에서는 오른쪽 칸이 늘 편집기라 접지 않는다. */
   var composerFolded = false;
   function composerBusy() {
@@ -13598,7 +13598,7 @@
     // 고정한 기록을 맨 위로. 나머지 순서(최신순)는 그대로 둔다
     shown.sort(function (a, b) { return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0); });
     /* 가운데 칸 제목 · 지금 무엇을 보고 있는지 그 자리에 적는다.
-       업노트에서 이 자리는 «지금 연 노트북 이름» 이다. */
+       PKOS에서 이 자리는 «지금 연 노트북 이름» 이다. */
     var lt = $("listTitle");
     if (lt) {
       lt.textContent =
@@ -13875,7 +13875,7 @@
   }
 
   /* =========================================================
-     10-9. 참고 디자인의 뼈대 · 쪽(page) · 왼쪽 기둥 · 오늘의 작업실
+     10-9. 이전 테마의 뼈대 · 쪽(page) · 왼쪽 기둥 · 오늘의 작업실
      쪽은 둘이다 · home(오늘의 작업실) · library(기록·자료실 = 기존 3단).
      지식맵·할 일·설정·안내는 쪽이 아니라 «가는 길» 이라 data-go 로 잇는다.
      ========================================================= */
