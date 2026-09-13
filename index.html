@@ -2378,6 +2378,19 @@
 :root[data-layout] .siderow.on{outline:1px solid var(--brand);outline-offset:-1px}
 :root[data-layout] .inp,:root[data-layout] .btn,:root[data-layout] .knowledge-card{border-color:var(--line)}
 :root[data-font] body,:root[data-font] button,:root[data-font] input,:root[data-font] select,:root[data-font] textarea{font-family:var(--font-body)}
+/* 기본 화면의 구분선과 글자 대비 */
+:root[data-tone="plain"] { --ink:#202936; --ink-soft:#4b5563; --line-soft:#c7ced8; --btn-line:#aab4c2; --nav-bg:#f1f4f8; --btn-hover:#e4ebf4; }
+:root[data-tone="plain"][data-dark="true"] { --ink:#f1f4f8; --ink-soft:#c4ccd8; --line-soft:#596575; --btn-line:#667487; --nav-bg:#202630; --btn-hover:#303c4b; }
+[data-tone="plain"] #appNav, [data-tone="plain"] .listcol { border-right:1px solid var(--line); }
+[data-tone="plain"] header.top { border-bottom:1px solid var(--line); }
+[data-tone="plain"] .storage-chip { border-top:1px solid var(--line-soft); }
+[data-tone="plain"] .listcol .entry, [data-tone="plain"] .listcol .entry:hover { border-bottom:1px solid var(--line-soft); border-radius:0; }
+[data-tone="plain"] .listcol .entry.sel, [data-tone="plain"] .nav-item.on, [data-tone="plain"] .siderow.on { background:var(--brand-soft); box-shadow:inset 3px 0 var(--brand); }
+[data-tone="plain"] .edbar { border:1px solid var(--line); padding:6px; }
+[data-tone="plain"] .composer-actions { border-top:1px solid var(--line); }
+[data-tone="plain"] #title::placeholder, [data-tone="plain"] #tags::placeholder, [data-tone="plain"] input::placeholder, [data-tone="plain"] textarea::placeholder, [data-tone="plain"] .paper.blank::before { color:var(--ink-soft); opacity:1; }
+[data-tone="plain"] .entry .head h3 { color:var(--ink); font-weight:600; }
+
 </style>
 </head>
 <body>
