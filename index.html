@@ -2742,7 +2742,7 @@
   var OLD_FOLDER_MODES = [
     { key: "materials", label: "글과 자료를 분리", desc: ".md 는 맨 위, 사진·파일은 자료/ 폴더에" },
     { key: "monthly", label: "월별 폴더", desc: "2026-08/ 안에 그 달 기록과 자료를 모아서" },
-    { key: "tag", label: "태그가 곧 폴더", desc: "#수업설계/ 처럼 태그 이름이 폴더가 된다. 태그가 여럿이면 나머지에는 바로가기" }
+    { key: "tag", label: "태그별 폴더", desc: "#수업설계/ 처럼 태그 이름이 폴더가 된다. 태그가 여럿이면 나머지에는 바로가기" }
   ];
   var ALL_FOLDER_MODES = FOLDER_MODES.concat(OLD_FOLDER_MODES);
   function folderModeLabel(key) {
@@ -2980,7 +2980,7 @@
     } catch (e) {}
   }
   function deskLabel(d) {
-    if (!d) return (folder.name || "기본 폴더") + " (기본 자리)";
+    if (!d) return (folder.name || "기본 폴더");
     return (d.path && d.path.length) ? d.path.join(" › ") : (d.name || "고른 폴더");
   }
   function rememberDesk(d) {
@@ -3051,6 +3051,7 @@
       out.mdPattern = "{폴더명}";
       out.folderPattern = "{제목}";
     }
+    ['mdPattern','filePattern','folderPattern'].forEach(function(k){out[k]=String(out[k]||'{제목}').replace(/\{날짜\}[_ -]*/g,'').replace(/^[_ -]+|[_ -]+$/g,'')||'{제목}';});
     out.shortNamesVersion = 1;
     out.useSubfolder = !!s.useSubfolder;
     // 양식 · 사람이 지운 것도 뜻이므로, 배열이 있으면 «비어 있어도» 그대로 받는다
@@ -6433,8 +6434,8 @@
     if(!docs.length)return Promise.resolve(files);
     return new Promise(function(resolve){
       var bg=el('div','modal-bg'),box=el('div','card modal');bg.style.zIndex='260';box.style.maxWidth='560px';box.setAttribute('role','dialog');box.setAttribute('aria-label','저장할 파일 이름');
-      var body=el('div','mbody');body.appendChild(el('h3',null,'저장할 파일 이름'));body.appendChild(el('p','desc','이름을 바꾸거나 그대로 저장하세요. 가져온 원본 파일은 바뀌지 않습니다.'));
-      var inputs=docs.map(function(f){var ext=(f.name.match(/\.[^.]+$/)||[''])[0];var label=el('label',null,f.name);var input=el('input','inp');input.value=ext?f.name.slice(0,-ext.length):f.name;input.setAttribute('aria-label',f.name+' 저장 이름');label.appendChild(input);label.appendChild(el('span','desc',ext+' 유지'));body.appendChild(label);return {file:f,input:input,ext:ext};});
+      var body=el('div','mbody');body.appendChild(el('h3',null,'저장할 파일 이름'));
+      var inputs=docs.map(function(f){var ext=(f.name.match(/\.[^.]+$/)||[''])[0];var label=el('label',null,f.name);var input=el('input','inp');input.value=(ext?f.name.slice(0,-ext.length):f.name).replace(/^\d{4}[-_.]\d{2}[-_.]\d{2}[_ -]+/,'')||'자료';input.setAttribute('aria-label',f.name+' 저장 이름');label.appendChild(input);label.appendChild(el('span','desc',ext+' 유지'));body.appendChild(label);return {file:f,input:input,ext:ext};});
       var status=el('p',null,'');body.appendChild(status);box.appendChild(body);var foot=el('div','mfoot'),cancel=el('button','btn','취소'),save=el('button','btn primary','이 이름으로 저장');save.dataset.incomingSave='1';cancel.onclick=function(){bg.remove();resolve([]);};
       save.onclick=function(){var renamed=new Map();for(var row of inputs){var name=row.input.value.trim();if(!name||/[\\/:*?"<>|]/.test(name)||name==='.'||name==='..'||/[. ]$/.test(name)){status.textContent='파일 이름을 확인해 주세요.';return;}if(row.ext&&!name.toLowerCase().endsWith(row.ext.toLowerCase()))name+=row.ext;renamed.set(row.file,new File([row.file],name,{type:row.file.type,lastModified:row.file.lastModified}));}bg.remove();resolve(files.map(function(f){return renamed.get(f)||f;}));};bg.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key==='Escape'){e.preventDefault();e.stopPropagation();if(e.key==='Escape')cancel.click();else save.click();}});foot.appendChild(cancel);foot.appendChild(save);box.appendChild(foot);bg.appendChild(box);document.body.appendChild(bg);inputs[0].input.focus();inputs[0].input.select();
     });
@@ -16150,7 +16151,7 @@
         if (localOn) {
           var r01 = el("div", "row");
           var impL = el("button", "btn", "📥 폴더 훑어서 가져오기");
-          impL.addEventListener("click", function () { impL.disabled = true; localImport(status).then(function () { impL.disabled = false; }); });
+          impL.addEventListener("click", function () { impL.disabled = true; localImport(status).catch(function(e){status.textContent="가져오기 실패: "+e.message;}).finally(function () { impL.disabled = false; }); });
           r01.appendChild(impL);
           f0.appendChild(r01);
 
@@ -16221,7 +16222,7 @@
       body.appendChild(f2);
 
       var f3 = el("div", "field");
-      f3.appendChild(el("label", null, "3단계 · 한 편을 한 폴더에 담을까요?"));
+      f3.appendChild(el("label", null, "폴더 구성"));
       /* 예전에는 «고르는 목록(select)» 이었는데, 목록을 펼치면 그 아래 폴더 그림을 통째로 가렸다.
          정작 봐야 할 것을 가리는 셈이라, 그림과 함께 펼쳐 놓는다. */
       var modeGrid = el("div", "modegrid");
@@ -16285,7 +16286,7 @@
     function paintTypes() {
       var f = el("div", "field");
       f.appendChild(el("label", null, "기록 유형"));
-
+      var row=el("div","chips");draft.types.forEach(function(t){row.appendChild(el("span","chip",t.label));});f.appendChild(row);
       body.appendChild(f);
     }
 
@@ -16304,7 +16305,7 @@
     }
     function makeNameField() {
       var f = el("div", "field");
-      f.appendChild(el("label", null, "파일 이름에 무엇을 넣을까요?"));
+      f.appendChild(el("label", null, "파일 이름"));
       var on = namePartsOf(draft);
       var rows = el("div");
       var pv = el("div", "preview");
@@ -16382,7 +16383,7 @@
 
     function paintNaming() {
       var ff = el("div", "field");
-      ff.appendChild(el("label", null, "저장 형식 · 무엇으로 남길까요?"));
+      ff.appendChild(el("label", null, "저장 형식"));
       [["alsoGdoc", "📄 구글 문서로도 저장", "드라이브에서 클릭 한 번에 열립니다. 제목·소제목·인용이 서식으로 보입니다. (가장 읽기 편함)"],
        ["alsoHtml", "🌐 HTML 파일로도 저장", "브라우저로 열어 보거나 그대로 웹에 올릴 수 있습니다."]
       ].forEach(function (opt) {
@@ -16393,14 +16394,15 @@
         cb.addEventListener("change", function () { draft[opt[0]] = cb.checked; });
         var txt = el("span");
         txt.appendChild(el("b", null, opt[1]));
-        txt.appendChild(el("small", "desc", opt[2]));
-        txt.querySelector("small").style.display = "block";
+
         lab.appendChild(cb); lab.appendChild(txt);
         ff.appendChild(lab);
       });
       body.appendChild(ff);
 
-      body.appendChild(simpleNaming(draft) ? makeNameField() : makeOldNameField());
+      var rule=el('div','field');rule.appendChild(el('label',null,'기록 파일 이름'));
+      [['{폴더명}','폴더 이름'],['{제목}','글 제목']].forEach(function(option){var label=el('label','checkline'),radio=el('input');radio.type='radio';radio.name='recordNameRule';radio.value=option[0];radio.checked=draft.mdPattern===option[0];radio.onchange=function(){draft.mdPattern=option[0];draft.filePattern='{폴더명}';};label.appendChild(radio);label.appendChild(document.createTextNode(option[1]));rule.appendChild(label);});
+      rule.appendChild(previewRow('사진','글 제목.png'));body.appendChild(rule);
       /* 남길 것은 «되돌릴 수 없는 것» 과 «안 되는 것» 뿐이다.
          같은 이름이 겹치면 -2, -3 이 붙는 것은 사람이 알아야 하는 «안 되는 것» 이 아니라
          저절로 되는 일이라 적지 않는다. */
@@ -16410,6 +16412,11 @@
        폴더에 쌓아 둔 십삼 년치를 끌어오는 길이다. 전에는 «고급» 안에 묻혀 있었다.
        묻어 두면 그 길이 있는 줄도 모른다. */
     function paintImport() {
+      if(localOn){
+        var group=el('div','field');group.appendChild(el('label',null,localName||'연결된 폴더'));var row=el('div','row');
+        var scan=el('button','btn primary','폴더 다시 읽기');scan.onclick=async function(){scan.disabled=true;try{await localImport(status);render();}catch(e){status.textContent='가져오기 실패: '+e.message;}finally{scan.disabled=false;}};
+        var pick=el('button','btn','파일 가져오기'),input=el('input');input.type='file';input.multiple=true;input.hidden=true;pick.onclick=function(){input.click();};input.onchange=function(){var files=Array.from(input.files);closeModal();setPage('library');openComposer();acceptFiles(files).catch(function(e){toast('가져오기 실패: '+e.message);});};row.appendChild(scan);row.appendChild(pick);row.appendChild(input);group.appendChild(row);body.appendChild(group);return;
+      }
       var fImp = el("div", "field");
       fImp.appendChild(el("label", null, "폴더에 있는데 목록에 없는 것 가져오기"));
 
@@ -16422,10 +16429,7 @@
       var rImp = el("div", "row");
       function runImport() {
         imp.disabled = true;
-        importFromFolder(status).then(function (n) {
-          imp.disabled = false;
-          if (n) toast(n + "개를 가져왔습니다.");
-        });
+        importFromFolder(status).then(function(n){if(n)status.textContent=n+'개 가져옴';}).catch(function(e){status.textContent='가져오기 실패: '+e.message;}).finally(function(){imp.disabled=false;});
       }
       var imp = el("button", "btn primary", "📥 폴더 훑어서 가져오기");
       imp.disabled = !connected;

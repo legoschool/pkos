@@ -141,7 +141,7 @@ try {
  if(process.argv.includes('--reopen')) {
   check('앱 종료 중 추가된 파일을 다시 열어 표시',await evaluate(`pkosLocal.entries().some(n=>(n.blocks||[]).some(b=>b.fileId==='local:while-closed.txt'))`));
  } else {
-  await evaluate(`(()=>{document.querySelector('.hm-quick input').value='PC 연결 저장';document.querySelector('.hm-quick').requestSubmit();const dt=new DataTransfer();dt.items.add(new File(['BRIDGE-ORIGINAL'],'bridge.txt',{type:'text/plain'}));document.querySelector('#blocks').dispatchEvent(new DragEvent('drop',{dataTransfer:dt,bubbles:true,cancelable:true}));})()`);
+  await evaluate(`(()=>{document.querySelector('#topNew').click();document.querySelector('#title').value='PC 연결 저장';const dt=new DataTransfer();dt.items.add(new File(['BRIDGE-ORIGINAL'],'bridge.txt',{type:'text/plain'}));document.querySelector('#blocks').dispatchEvent(new DragEvent('drop',{dataTransfer:dt,bubbles:true,cancelable:true}));})()`);
  await evaluate(`(()=>{const input=document.querySelector('[aria-label="저장할 파일 이름"] input');if(!input)throw Error('filename dialog missing');input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',ctrlKey:true,bubbles:true,cancelable:true}));})()`);
  for(let i=0;i<50&&!await evaluate(`document.querySelectorAll('#blocks figure.atom').length>0`);i++)await wait(100);
  check('이름 확인 중 기록은 저장하지 않음',await evaluate(`document.querySelector('#title').value!==''&&!document.querySelector('[aria-label="저장할 파일 이름"]')`));
