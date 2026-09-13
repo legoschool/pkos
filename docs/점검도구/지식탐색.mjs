@@ -139,6 +139,9 @@ await wait(2500);
 try {
  for(let i=0;i<60;i++){if(await evaluate('window.pkosLocal?.isOn()'))break;await wait(200);}
  check('new default has no selected record type',await evaluate(`!document.querySelector('#typeChips .on')`));
+ check('untagged import does not infer folder tags',await evaluate(`pkosLocal.entries().find(n=>n.id==='untagged-source').tags.length===0`));
+ await evaluate(`pkosLocal.entries().find(n=>n.id==='untagged-source').tags=['삭제한태그'];pkosLocal.importAll(null,{quiet:false})`);
+ check('cached deleted tag reconciles without mtime change',await evaluate(`pkosLocal.entries().find(n=>n.id==='untagged-source').tags.length===0&&!document.querySelector('#sideNav').textContent.includes('삭제한태그')`));
  check('startup editor',await evaluate(`document.body.dataset.page==='library'`));
  await evaluate(`document.getElementById('btnHome').click()`);await wait(200);
  check('brand opens knowledge home',await evaluate(`document.body.dataset.page==='home'&&document.getElementById('homePage').textContent.includes('연결이 많은 기록')&&document.getElementById('homePage').textContent.includes('전체 자료')`));

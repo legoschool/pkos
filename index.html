@@ -6279,6 +6279,7 @@
     var final = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(file.size + ":" + hashes.join("")));
     return "chunks-v1:" + Array.from(new Uint8Array(final), function (v) { return v.toString(16).padStart(2, "0"); }).join("");
   }
+  var localTagChecked = new WeakSet();
   async function localImportRun(status, opt) {
     if (localWriteTask) await localWriteTask;
     if (!localOn) return 0;
@@ -6316,11 +6317,11 @@
         var have = byMd[id];
         if (have) {
           // ② 밖에서 고친 글 · 앱이 아직 안 쓴 변경이 없을 때만 파일 쪽을 믿는다
-          if (!have._dirty && have.id !== editingId && file.lastModified !== have.localMtime) {
+          if (!have._dirty && have.id !== editingId && (file.lastModified !== have.localMtime || !localTagChecked.has(have) || !opt.quiet)) {
             var p2 = parseFrontMatter(await file.text()), fm2 = p2.fm;
             have.title = unquote(fm2.title) || (/^#\s+(.*)$/m.exec(p2.body) || [])[1] || stemOf(f.name);
-            have.tags = parseListValue(fm2.tags);
-            var wanted2 = unquote(fm2.type); settings.types.forEach(function (tp) { if (tp.label === wanted2) have.type = tp.key; });
+            have.tags = parseListValue(fm2.tags); localTagChecked.add(have);
+            var wanted2 = unquote(fm2.type); if (wanted2 === "미선택") have.type = ""; settings.types.forEach(function (tp) { if (tp.label === wanted2) have.type = tp.key; });
             have.blocks = bodyToBlocks(p2.body, siblings, parts);
             have.updatedAt = file.lastModified; have.localMtime = file.lastModified;
             (have.blocks || []).forEach(function (b) { if (b.fileId) known[b.fileId] = 1; });
@@ -6369,7 +6370,7 @@
           await localWrite(parts, f.name, headerMatch[1] + revisedHeader + headerMatch[3] + originalCopy.slice(headerMatch[0].length));
           e.localMtime = (await f.handle.getFile()).lastModified;
         }
-        if (!e.tags.length && parts.length) e.tags = parts.slice(-3);
+        localTagChecked.add(e); // Folder paths never imply tags, including an explicit empty tag list.
         (e.blocks || []).forEach(function (b) { if (b.fileId) known[b.fileId] = 1; });
         tombstones = tombstones.filter(function (tb) { return tb.id !== e.id; });
         byId[e.id] = e; byMd[id] = e; known[id] = 1; entries.push(e); added++;
@@ -13768,6 +13769,8 @@
   })();
 
   function render() {
+    var availableTags = new Set(knowledgeEntries().flatMap(function(n){return n.tags||[];}));
+    filterTags = filterTags.filter(function(tag){return availableTags.has(tag);});
     invalidateLinks();
     renderFilters();
     renderSearchGroups();
@@ -16823,7 +16826,7 @@
   $('tagEntry').addEventListener('compositionend',function(){tagComposing=false;});
   $('tagEntry').addEventListener('keydown',function(e){if(tagComposing||e.isComposing||e.keyCode===229)return;if(e.key==='Enter'||e.key===','||e.key==='，'){e.preventDefault();commitTag();}});
   $('tagEntry').addEventListener('blur',function(){if(!tagComposing)commitTag();});
-  $('tagEntry').addEventListener('input',function(){touchDraft();var host=$('tagSuggestions');host.replaceChildren();var q=this.value.trim(),selected=cleanTags($('tags').value);if(!q)return;var all=[];liveEntries().forEach(function(n){(n.tags||[]).forEach(function(t){if(!all.includes(t))all.push(t);});});all.filter(function(t){return !selected.includes(t)&&t.toLowerCase().includes(q.toLowerCase());}).slice(0,8).forEach(function(tag){var b=el('button','btn sm',tag);b.type='button';b.onpointerdown=function(e){e.preventDefault();};b.onclick=function(){$('tagEntry').value=tag;commitTag();$('tagEntry').focus();};host.appendChild(b);});});
+  $('tagEntry').addEventListener('input',function(){touchDraft();var host=$('tagSuggestions');host.replaceChildren();var q=this.value.trim(),selected=cleanTags($('tags').value);if(!q)return;var all=[];knowledgeEntries().forEach(function(n){(n.tags||[]).forEach(function(t){if(!all.includes(t))all.push(t);});});all.filter(function(t){return !selected.includes(t)&&t.toLowerCase().includes(q.toLowerCase());}).slice(0,8).forEach(function(tag){var b=el('button','btn sm',tag);b.type='button';b.onpointerdown=function(e){e.preventDefault();};b.onclick=function(){$('tagEntry').value=tag;commitTag();$('tagEntry').focus();};host.appendChild(b);});});
   $('tags').addEventListener('input',function(){renderTagChips();touchDraft();});
   renderTagChips();
 
