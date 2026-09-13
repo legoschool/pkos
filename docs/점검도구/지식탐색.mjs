@@ -142,6 +142,7 @@ try {
  check('untagged import does not infer folder tags',await evaluate(`pkosLocal.entries().find(n=>n.id==='untagged-source').tags.length===0`));
  await evaluate(`pkosLocal.entries().find(n=>n.id==='untagged-source').tags=['삭제한태그'];pkosLocal.importAll(null,{quiet:false})`);
  check('cached deleted tag reconciles without mtime change',await evaluate(`pkosLocal.entries().find(n=>n.id==='untagged-source').tags.length===0&&!document.querySelector('#sideNav').textContent.includes('삭제한태그')`));
+ check('sidebar and composer share saved tags',await evaluate(`JSON.stringify(Array.from(document.querySelectorAll('#sideNav .tagrow .n')).map(n=>n.textContent))===JSON.stringify(Array.from(document.querySelectorAll('#typeChips button')).map(n=>n.textContent))&&!document.querySelector('#typeChips').textContent.includes('연수')`));
  check('startup editor',await evaluate(`document.body.dataset.page==='library'`));
  await evaluate(`document.getElementById('btnHome').click()`);await wait(200);
  check('brand opens knowledge home',await evaluate(`document.body.dataset.page==='home'&&document.getElementById('homePage').textContent.includes('연결이 많은 기록')&&document.getElementById('homePage').textContent.includes('전체 자료')`));
@@ -181,7 +182,7 @@ try {
  await evaluate(`Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent.includes('가져오기')).click()`);check('local import enabled without Google',await evaluate(`Array.from(document.querySelectorAll('.modal button')).some(b=>b.textContent==='폴더 다시 읽기'&&!b.disabled)&&Array.from(document.querySelectorAll('.modal button')).some(b=>b.textContent==='파일 가져오기'&&!b.disabled)`));
  await evaluate(`Array.from(document.querySelectorAll('.modal button')).find(b=>b.textContent==='폴더 다시 읽기').click()`);await wait(500);check('local import button recovers',await evaluate(`!Array.from(document.querySelectorAll('.modal button')).find(b=>b.textContent==='폴더 다시 읽기').disabled`));
  await evaluate(`Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='태그').click()`);
- check('tag presets visible',await evaluate(`document.querySelector('.modal [aria-label="빠른 선택 태그"]').value.includes('연수')&&!document.querySelector('.modal input[name="defaultRecordType"]')`));
+ check('tag presets visible',await evaluate(`document.querySelector('.modal .mbody').textContent.includes('사용 중인 태그')&&!document.querySelector('.modal input[name="defaultRecordType"]')`));
  await evaluate(`Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='파일 이름').click()`);check('naming shows optional tag rule',await evaluate(`document.querySelector('.modal .mbody').textContent.includes('폴더명-태그(선택)-파일명')&&!document.querySelector('input[name="recordNameRule"]')`));
  await evaluate(`Array.from(document.querySelectorAll('.modal .mfoot button')).find(b=>b.textContent==='저장').click();document.querySelector('[data-go="settings"]').click();Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='파일 이름').click()`);check('naming setting persists',await evaluate(`document.querySelector('.modal .mbody').textContent.includes('태그 미설정')`));
  await evaluate(`Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='모양').click()`);
@@ -250,17 +251,17 @@ try {
  check('unselected record type saves without material fallback',await evaluate(`pkosLocal.entries().find(n=>n.title==='유형 미선택 저장 시험').type===''`));
  await send('Page.reload');await wait(2400);
  check('unselected type survives folder reload',await evaluate(`pkosLocal.entries().find(n=>n.title==='유형 미선택 저장 시험')?.type===''`));
- await evaluate(`document.querySelector('#btnCancelEdit').click();document.querySelector('#title').value='태그 통합 저장 검사';const buttons=Array.from(document.querySelectorAll('#typeChips button'));buttons.find(b=>b.textContent==='연수').click();buttons.find(b=>b.textContent==='아이디어')?.click();`);
+ await evaluate(`document.querySelector('#btnCancelEdit').click();document.querySelector('#title').value='태그 통합 저장 검사';const buttons=Array.from(document.querySelectorAll('#typeChips button'));buttons.find(b=>b.textContent==='test').click();buttons.find(b=>b.textContent==='자료')?.click();`);
  // Query again after the first toggle rerenders the button group.
- await evaluate(`if(!document.querySelector('#tags').value.includes('아이디어'))Array.from(document.querySelectorAll('#typeChips button')).find(b=>b.textContent==='아이디어').click()`);
- check('former types select multiple real tags',await evaluate(`document.querySelector('#tags').value==='연수, 아이디어'&&document.querySelectorAll('#tagChips .chip').length===2`));
- await evaluate(`document.querySelector('[aria-label="연수 태그 삭제"]').click()`);
- check('tag removal updates quick selection',await evaluate(`!Array.from(document.querySelectorAll('#typeChips button')).find(b=>b.textContent==='연수').classList.contains('on')`));
+ await evaluate(`if(!document.querySelector('#tags').value.includes('자료'))Array.from(document.querySelectorAll('#typeChips button')).find(b=>b.textContent==='자료').click()`);
+ check('saved tags select multiple real tags',await evaluate(`document.querySelector('#tags').value==='test, 자료'&&document.querySelectorAll('#tagChips .chip').length===2`));
+ await evaluate(`document.querySelector('[aria-label="test 태그 삭제"]').click()`);
+ check('tag removal updates quick selection',await evaluate(`!Array.from(document.querySelectorAll('#typeChips button')).find(b=>b.textContent==='test').classList.contains('on')`));
  await evaluate(`document.querySelector('#btnSave').click()`);await wait(800);
- check('unified tag is saved in filename and record',await evaluate(`(()=>{const n=pkosLocal.entries().find(n=>n.title==='태그 통합 저장 검사');return n.type===''&&n.tags.join(',')==='아이디어'&&n.mdName.includes('-아이디어-');})()`));
+ check('unified tag is saved in filename and record',await evaluate(`(()=>{const n=pkosLocal.entries().find(n=>n.title==='태그 통합 저장 검사');return n.type===''&&n.tags.join(',')==='자료'&&n.mdName.includes('-자료-');})()`));
  await send('Page.reload');await wait(2400);
  check('legacy type becomes tag once',await evaluate(`(()=>{const n=pkosLocal.entries().find(n=>n.id==='photo-test');return n.type===''&&n.tags.filter(t=>t==='자료').length===1;})()`));
- check('unified tags survive reconnect',await evaluate(`pkosLocal.entries().find(n=>n.title==='태그 통합 저장 검사').tags.join(',')==='아이디어'`));
+ check('unified tags survive reconnect',await evaluate(`pkosLocal.entries().find(n=>n.title==='태그 통합 저장 검사').tags.join(',')==='자료'`));
  await evaluate(`const card=Array.from(document.querySelectorAll('.entry')).find(c=>c.textContent.includes('Photo'));card.querySelector('.dots').click();Array.from(document.querySelectorAll('.menupop button')).find(b=>b.textContent.includes('편집')).click();document.querySelector('[aria-label="자료 태그 삭제"]').click();document.querySelector('#btnSave').click()`);await wait(800);
  await send('Page.reload');await wait(2400);
  check('deleted migrated type tag stays deleted',await evaluate(`(()=>{const n=pkosLocal.entries().find(n=>n.id==='photo-test');return n.type===''&&!n.tags.includes('자료');})()`));

@@ -3110,7 +3110,6 @@
   function normalizeSettings(s) {
     var out = JSON.parse(JSON.stringify(DEFAULTS));
     out.savedSearches = [];
-    out.tagPresets = ["연수", "아이디어", "자료"];
     if (!s) return out;
     if (Array.isArray(s.savedSearches)) out.savedSearches = s.savedSearches.filter(function (x) { return x && typeof x.name === "string" && x.name.trim(); }).map(function (x) {
       return { id: typeof x.id === "string" ? x.id : uid("search_"), name: x.name.trim().slice(0, 80),
@@ -3170,7 +3169,6 @@
     out.fontFamily=["gothic","serif","system","rounded","mono"].includes(s.fontFamily)?s.fontFamily:"gothic";
     out.defaultType=s.typeSelectionVersion===1&&["experience","idea","material"].includes(s.defaultType)?s.defaultType:"";
     out.typeSelectionVersion=1; out.defaultType="";
-    out.tagPresets=Array.isArray(s.tagPresets)?cleanTags(s.tagPresets.join(",")):["연수","아이디어","자료"];
     if (typeof s.maskGrain === "number" && s.maskGrain >= 0 && s.maskGrain <= 2) out.maskGrain = s.maskGrain | 0;
     if (typeof s.alsoGdoc === "boolean") out.alsoGdoc = s.alsoGdoc;
     if (typeof s.alsoHtml === "boolean") out.alsoHtml = s.alsoHtml;
@@ -10657,10 +10655,26 @@
     });
   }
 
+  function savedTagChoices() {
+    var tcount = {};
+    knowledgeEntries().forEach(function (n) {
+      var seen = {};
+      (n.tags || []).forEach(function (t) {
+        if (!t || seen[t]) return; seen[t] = 1;
+        tcount[t] = (tcount[t] || 0) + 1;
+      });
+    });
+    var tnames = Object.keys(tcount).sort(function (a, b) {
+      if (tcount[b] !== tcount[a]) return tcount[b] - tcount[a];
+      return a.localeCompare(b, "ko");
+    });
+    return {counts:tcount,names:tnames};
+  }
+
   function renderTypeChips() {
     var host=$("typeChips");host.innerHTML="";host.setAttribute("aria-label","빠른 태그 선택");
     var selected=cleanTags($("tags").value);
-    (settings.tagPresets||[]).forEach(function(tag){
+    savedTagChoices().names.forEach(function(tag){
       var on=selected.includes(tag),button=el("button","chip"+(on?" on":""),tag);button.type="button";
       button.setAttribute("aria-pressed",String(on));button.onclick=function(){
         var tags=cleanTags($("tags").value);$("tags").value=(tags.includes(tag)?tags.filter(t=>t!==tag):tags.concat(tag)).join(", ");
@@ -13374,18 +13388,7 @@
     /* ---- 태그 · 폴더와 다른 길이다.
        폴더는 «한 자리», 태그는 «여러 갈래». 같은 기록이 둘 다에 걸린다.
        위의 거르개 칩과 같은 filterTags 를 쓴다 · 같은 일은 같은 길로. ---- */
-    var tcount = {};
-    knowledgeEntries().forEach(function (n) {
-      var seen = {};
-      (n.tags || []).forEach(function (t) {
-        if (!t || seen[t]) return; seen[t] = 1;
-        tcount[t] = (tcount[t] || 0) + 1;
-      });
-    });
-    var tnames = Object.keys(tcount).sort(function (a, b) {
-      if (tcount[b] !== tcount[a]) return tcount[b] - tcount[a];
-      return a.localeCompare(b, "ko");
-    });
+    var choices=savedTagChoices(),tcount=choices.counts,tnames=choices.names;
     if (tnames.length) {
       var tagOpen = capRow("태그", "tags", tnames.length);
       var SIDE_TAGS = 8;
@@ -13782,6 +13785,7 @@
     var host = $("list");
     host.innerHTML = "";
     host.className = "";
+    renderTypeChips();
     renderSideNav();   // 왼쪽 폴더 구조도 같은 눈으로 그린다
     renderDeskLine();  // 「이 기록이 갈 자리」 도 같은 눈으로
     renderAppNav();    // 기둥의 작업실·저장 상태
@@ -16435,10 +16439,10 @@
     }
 
     function paintTypes() {
-      var f=el("div","field");f.appendChild(el("label",null,"빠른 선택 태그"));
-      var input=el("input","inp");input.setAttribute("aria-label","빠른 선택 태그");input.value=(draft.tagPresets||[]).join(", ");
-      input.oninput=function(){draft.tagPresets=cleanTags(input.value);};f.appendChild(input);
-      f.appendChild(el("p","desc","쉼표로 구분합니다. 새 기록은 태그 미선택으로 시작합니다."));body.appendChild(f);
+      var f=el("div","field");f.appendChild(el("label",null,"사용 중인 태그"));
+      var names=savedTagChoices().names;
+      f.appendChild(el("p","desc",names.length?names.join(", "):"아직 저장된 태그가 없습니다."));
+      f.appendChild(el("p","desc","작성 화면과 왼쪽 목록은 저장된 기록의 태그를 함께 사용합니다. 새 태그는 작성 화면에서 추가하고 기록을 저장하면 목록에 나타납니다."));body.appendChild(f);
     }
 
     /* 📛 파일 이름 조각 다섯을 켜고 끈다.
