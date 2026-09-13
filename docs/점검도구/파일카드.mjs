@@ -150,25 +150,27 @@ try {
  check('save bar is in document flow',await evaluate(`getComputedStyle(document.querySelector('.composer-actions')).position==='static'`));
  await evaluate(`document.getElementById('title').value='Saved card record';document.getElementById('btnSave').click()`);await wait(1000);
  check('edit saved',await evaluate(`pkosLocal.entries().some(n=>n.title==='Saved card record')`));
+ await evaluate(`document.querySelector('.viewer .vtop button').click()`);await wait(150);
  for(const width of [1920,1280]){
   await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:false});
   await evaluate(`document.getElementById('btnListFold').click()`);await wait(150);
-  check('fold layout '+width,await evaluate(`(()=>{const r=document.getElementById('listRail'),c=document.getElementById('composer'),l=document.getElementById('listcol');return getComputedStyle(l).display==='none'&&getComputedStyle(r.querySelector('.lr-t')).writingMode==='horizontal-tb'&&r.getBoundingClientRect().width>90&&r.getBoundingClientRect().height<70&&c.getBoundingClientRect().right<=innerWidth+1;})()`));
+  check('fold layout '+width,await evaluate(`(()=>{const r=document.getElementById('btnListFold'),c=document.getElementById('composer'),l=document.getElementById('listcol');return getComputedStyle(l).display==='none'&&r.textContent==='목록 펼치기'&&r.getBoundingClientRect().width>60&&r.getBoundingClientRect().height<70&&c.getBoundingClientRect().right<=innerWidth+1;})()`));
   check('no fold popup '+width,await evaluate(`!document.getElementById('toast').textContent.includes('옆의 띠')`));
-  await evaluate(`document.getElementById('listRail').click()`);await wait(150);
+  await evaluate(`document.getElementById('btnListFold').click()`);await wait(150);
   check('unfold '+width,await evaluate(`getComputedStyle(document.getElementById('listcol')).display!=='none'&&getComputedStyle(document.getElementById('listRail')).display==='none'`));
  }
  await evaluate(`document.getElementById('btnListFold').click()`);
  await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await wait(150);
- check('mobile restore available',await evaluate(`getComputedStyle(document.getElementById('listRail')).display!=='none'&&document.getElementById('listRail').getBoundingClientRect().width>90`));
- await evaluate(`document.getElementById('listRail').click()`);
+ check('mobile toolbar buttons stay inside toolbar',await evaluate(`(()=>{const bar=document.querySelector('.edbar'),r=bar.getBoundingClientRect();return Array.from(bar.querySelectorAll('button')).filter(b=>b.getBoundingClientRect().width).every(b=>{const p=b.getBoundingClientRect();return p.left>=r.left&&p.right<=r.right+1;});})()`));
+ const auditShot=await send('Page.captureScreenshot',{format:'png'});(await import('node:fs')).writeFileSync('local-service/runtime/audit-mobile-library.png',Buffer.from(auditShot.data,'base64'));
+ check('mobile restore available',await evaluate(`(()=>{const b=document.getElementById('btnListFold'),r=b.getBoundingClientRect();return b.textContent==='목록 펼치기'&&r.width>60&&r.x>=0&&r.right<=innerWidth&&b.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));})()`));
+ await evaluate(`document.getElementById('btnListFold').click()`);
  await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
  await evaluate(`(()=>{const ns=pkosLocal.entries();const base=ns[0];ns.push({...base,id:'test-trash',title:'Trash fixture',trashed:true,localMissing:false,type:'material'});ns.push({...base,id:'test-missing',title:'Missing fixture',trashed:true,localMissing:true,type:'material'});ns.push({...base,id:'test-inbox',title:'Inbox fixture',trashed:false,localMissing:false,type:'material',tags:[],inbox:true});document.getElementById('typeFilters').querySelector('button').click();})()`);
  await evaluate(`(()=>{const input=document.getElementById('search');input.value='nonmatching-query';input.dispatchEvent(new Event('input'));})()`);await wait(200);
  await evaluate(`Array.from(document.querySelectorAll('.smartrow')).find(b=>b.textContent.includes('휴지통')).click()`);await wait(200);
  check('trash count excludes missing and clears search',await evaluate(`document.getElementById('search').value===''&&Array.from(document.querySelectorAll('.smartrow')).find(b=>b.textContent.includes('휴지통')).querySelector('.cnt').textContent==='1'&&document.getElementById('countText').textContent==='1개'`));
- await evaluate(`Array.from(document.querySelectorAll('.smartrow')).find(b=>b.textContent.includes('미정리함')).click()`);await wait(200);
- check('inbox counter matches list',await evaluate(`(()=>{const count=Array.from(document.querySelectorAll('.smartrow')).find(b=>b.textContent.includes('미정리함')).querySelector('.cnt').textContent;return document.getElementById('typeFilters').querySelector('button').textContent==='전체 '+count;})()`));
+ check('removed inbox stays absent',await evaluate(`!Array.from(document.querySelectorAll('.smartrow')).some(b=>b.textContent.includes('미정리함'))`));
  check('toolbar has opaque background',await evaluate(`getComputedStyle(document.querySelector('.edbar')).backgroundColor!=='rgba(0, 0, 0, 0)'`));
  check('no script exceptions',errors.length===0,errors.join(';'));
  console.log(JSON.stringify(results));if(results.some(r=>!r.ok))process.exitCode=1;

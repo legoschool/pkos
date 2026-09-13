@@ -145,7 +145,7 @@ try {
   check(ext+' preview button',await evaluate(`!!document.querySelector('.viewer [data-presentation-preview]')`));
   await evaluate(`document.querySelector('.viewer [data-presentation-preview]').click()`);
   for(let i=0;i<120;i++){if(await evaluate(`!!document.querySelector('.viewer [data-pdf-rendered],.viewer [data-legacy-rendered]')`))break;await wait(350);}
-  check(ext+' renders actual body',await evaluate(`(()=>{const v=document.querySelector('.viewer');return ${JSON.stringify(ext)}==='doc' ? !!v.querySelector('canvas')?.title.includes('PKOS DOC body test') : v.textContent.includes(${JSON.stringify(ext==='xls'?'PKOS XLS first sheet':'제목을 입력하세요.')});})()`));
+  check(ext+' renders actual body',await evaluate(`(()=>{const v=document.querySelector('.viewer');return ${JSON.stringify(ext)}==='doc' ? !!v.querySelector('canvas')?.title.includes('PKOS DOC body test') : v.textContent.includes(${JSON.stringify(ext==='xls'?'PKOS XLS first sheet':process.argv[4])});})()`));
   if(ext==='xls') {
    await evaluate(`document.querySelector('.viewer .media-slide-nav button:last-child').click()`);
    check('XLS later rows',await evaluate(`document.querySelector('.viewer').textContent.includes('LASTROW XLS TOKEN')`));
@@ -155,7 +155,7 @@ try {
   const shot=await send('Page.captureScreenshot',{format:'png'});(await import('node:fs')).writeFileSync(new URL('../../local-service/runtime/legacy-'+ext+'.png',import.meta.url),Buffer.from(shot.data,'base64'));
   await evaluate(`document.querySelector('.viewer .vtop button').click()`);
  }
- for(const phrase of ['PKOS DOC body test','LASTROW XLS TOKEN','제목을 입력하세요.']){await query(phrase);await finishSearch();check('Body search '+phrase,await evaluate(`document.querySelectorAll('.card.entry').length===1`));}
+ for(const phrase of ['PKOS DOC body test','LASTROW XLS TOKEN',process.argv[4]]){await query(phrase);await finishSearch();check('Body search '+phrase,await evaluate(`document.querySelectorAll('.card.entry').length===1`));}
  await query('');
  const zipped=process.argv[3];
  await evaluate(`(()=>{const bytes=Uint8Array.from(atob(${JSON.stringify(zipped)}),c=>c.charCodeAt(0));const dt=new DataTransfer();dt.items.add(new File([bytes],'bundle.zip',{type:'application/zip'}));window.dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:dt}));})()`);await wait(300);

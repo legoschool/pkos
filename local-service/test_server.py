@@ -153,7 +153,9 @@ class BridgeTests(unittest.TestCase):
         url = self.url + "/?localBridge=1"
         first = subprocess.run(["node", str(test), url], capture_output=True, text=True, encoding="utf-8", timeout=60)
         self.assertEqual(first.returncode, 0, first.stdout + first.stderr)
-        self.assertEqual((self.root / "받은 파일" / "bridge.txt").read_text(), "BRIDGE-ORIGINAL")
+        attachments = [p for p in self.root.rglob("*.txt") if p.read_text() == "BRIDGE-ORIGINAL"]
+        self.assertEqual(len(attachments), 1)
+        self.assertNotEqual(attachments[0].parent, self.root)
         self.assertTrue((self.root / "PKOS-index.json").is_file())
         # The browser process has exited; change a real disk file before reopening.
         (self.root / "while-closed.txt").write_text("ADDED-WITHOUT-BROWSER", encoding="utf-8")
