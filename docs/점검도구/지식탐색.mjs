@@ -138,6 +138,7 @@ await wait(2500);
 
 try {
  for(let i=0;i<60;i++){if(await evaluate('window.pkosLocal?.isOn()'))break;await wait(200);}
+ check('new default has no selected record type',await evaluate(`!document.querySelector('#typeChips .on')`));
  check('startup editor',await evaluate(`document.body.dataset.page==='library'`));
  await evaluate(`document.getElementById('btnHome').click()`);await wait(200);
  check('brand opens knowledge home',await evaluate(`document.body.dataset.page==='home'&&document.getElementById('homePage').textContent.includes('연결이 많은 기록')&&document.getElementById('homePage').textContent.includes('전체 자료')`));
@@ -239,6 +240,12 @@ try {
  await evaluate(`Array.from(document.querySelectorAll('#tagChips button')).forEach(b=>b.click());document.querySelector('#btnSave').click()`);await wait(800);
  check('record saves with all tags removed',await evaluate(`pkosLocal.entries().find(n=>n.title==='태그 저장 검사').tags.length===0`));
  check('empty tag does not leave double separators',await evaluate(`(()=>{const n=pkosLocal.entries().find(n=>n.title==='태그 저장 검사');return !!n.mdName&&!n.mdName.includes('--')&&!n.mdName.includes('태그없음');})()`));
+ await evaluate(`document.querySelector('#btnCancelEdit').click();document.querySelector('#typeChips .on')?.click();document.querySelector('#title').value='유형 미선택 저장 시험';document.querySelector('#title').dispatchEvent(new Event('input',{bubbles:true}));`);
+ check('record type can be deselected',await evaluate(`!document.querySelector('#typeChips .on')`));
+ await evaluate(`document.querySelector('#btnSave').click()`);await wait(700);
+ check('unselected record type saves without material fallback',await evaluate(`pkosLocal.entries().find(n=>n.title==='유형 미선택 저장 시험').type===''`));
+ await send('Page.reload');await wait(2400);
+ check('unselected type survives folder reload',await evaluate(`pkosLocal.entries().find(n=>n.title==='유형 미선택 저장 시험')?.type===''`));
  check('no exceptions' ,errors.length===0,errors.join(';'));
  console.log(JSON.stringify(results));if(results.some(r=>!r.ok))process.exitCode=1;
 }finally{ws.close();edge.kill();}

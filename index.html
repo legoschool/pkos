@@ -3032,7 +3032,7 @@
 
   var blocks = [];          // 작성 중인 블록
   var editingId = null;
-  var currentType = settings.defaultType || (settings.types[0] ? settings.types[0].key : "");
+  var currentType = settings.defaultType || "";
   var filterType = "all";
   var filterTags = [];      // 태그로 좁혀 보기 (여러 개 고르면 모두 가진 기록만)
   var selectedFolders=[], folderAnchor=null;
@@ -3167,7 +3167,8 @@
     if (s.mode === "" || s.mode === "light" || s.mode === "dark") out.mode = s.mode;
     if (["","tiny","small","big","huge"].includes(s.fontSize)) out.fontSize = s.fontSize;
     out.fontFamily=["gothic","serif","system","rounded","mono"].includes(s.fontFamily)?s.fontFamily:"gothic";
-    out.defaultType=["experience","idea","material"].includes(s.defaultType)?s.defaultType:"experience";
+    out.defaultType=s.typeSelectionVersion===1&&["experience","idea","material"].includes(s.defaultType)?s.defaultType:"";
+    out.typeSelectionVersion=1;
     if (typeof s.maskGrain === "number" && s.maskGrain >= 0 && s.maskGrain <= 2) out.maskGrain = s.maskGrain | 0;
     if (typeof s.alsoGdoc === "boolean") out.alsoGdoc = s.alsoGdoc;
     if (typeof s.alsoHtml === "boolean") out.alsoHtml = s.alsoHtml;
@@ -3176,6 +3177,7 @@
     return out;
   }
   function typeOf(key) {
+    if (key === "") return {key:"",label:"미선택",icon:""};
     if (!["experience", "idea", "material"].includes(key)) key = "material";
     for (var i = 0; i < settings.types.length; i++) if (settings.types[i].key === key) return settings.types[i];
     return { key: key || "", label: "미분류", icon: "🏷️" };
@@ -3732,7 +3734,7 @@
   // 예전 버전(본문+첨부 분리)을 블록 구조로 변환
   function migrate(list) {
     return (list || []).map(function (n) {
-      if (!["experience", "idea", "material"].includes(n.type)) {
+      if (!["", "experience", "idea", "material"].includes(n.type)) {
         if (n.type) n.previousType = n.type;
         n.type = "material";
       }
@@ -6346,7 +6348,7 @@
           duplicateId = true;
         }
         var title = unquote(fm.title) || (/^#\s+(.*)$/m.exec(parsed.body) || [])[1] || stemOf(f.name);
-        var typeKey = "material", wanted = unquote(fm.type);
+        var wanted = unquote(fm.type), typeKey = wanted === "미선택" ? "" : "material";
         settings.types.forEach(function (tp) { if (tp.label === wanted) typeKey = tp.key; });
         var created = Date.parse(fm.created) || file.lastModified || Date.now();
         var updated = Date.parse(fm.updated) || file.lastModified || created;
@@ -6826,7 +6828,7 @@
       .then(function (remoteSettings) {
         if (remoteSettings) { settings = normalizeSettings(remoteSettings); saveSettingsLocal(); }
         else saveSettingsRemote();
-        if (!typeOf(currentType) || typeOf(currentType).label === "미분류") currentType = settings.types[0].key;
+        if (currentType && !settings.types.some(t=>t.key===currentType)) currentType = "";
         renderTypeChips();
         return loadIndex();
       })
@@ -10121,7 +10123,7 @@
     if (!hasText) { localStorage.removeItem(LS.draft); return false; }
 
     editingId = d.editingId || null;
-    currentType = d.type || currentType;
+    currentType = typeof d.type === "string" ? d.type : "";
     $("title").value = d.title || "";
     $("tags").value = d.tags || ""; renderTagChips();
     if ($("inboxChk")) $("inboxChk").checked = !!d.inbox;
@@ -10187,7 +10189,7 @@
   function resetComposer() {
     lectureDraftVersion++;
     editingId = null;
-    currentType = settings.defaultType || (settings.types[0] ? settings.types[0].key : "");
+    currentType = settings.defaultType || "";
     $("title").value = ""; $("tags").value = ""; renderTagChips();
     if ($("inboxChk")) $("inboxChk").checked = false;
     blocks = [];
@@ -10306,7 +10308,7 @@
     }
 
     var renamedFrom = n.title && findByTitle(n.title) === n ? n.title : "";
-    n.type = ["experience", "idea", "material"].includes(currentType) ? currentType : "material";
+    n.type = ["experience", "idea", "material"].includes(currentType) ? currentType : "";
     n.title = title || "(제목 없음)";
     n.tags = cleanTags($("tags").value);
     n.inbox = !!($("inboxChk") && $("inboxChk").checked);
@@ -10648,7 +10650,8 @@
     settings.types.forEach(function (t) {
       var b = paintType(el("button", "chip" + (t.key === currentType ? " on" : ""), t.icon + " " + t.label), t.key);
       b.type = "button";
-      b.addEventListener("click", function () { currentType = t.key; renderTypeChips(); refreshAtomNames(); });
+      b.setAttribute("aria-pressed",String(t.key===currentType));
+      b.addEventListener("click", function () { currentType = currentType === t.key ? "" : t.key; renderTypeChips(); refreshAtomNames(); touchDraft(); saveDraft(); });
       host.appendChild(b);
     });
 
@@ -14712,6 +14715,7 @@
           stemOf(f.name);
         var typeKey = settings.types[0] ? settings.types[0].key : "";
         var wanted = unquote(fm.type);
+        if (wanted === "미선택") typeKey = "";
         settings.types.forEach(function (t) { if (t.label === wanted) typeKey = t.key; });
 
         var siblings = files.filter(function (x) { return x._parent === f._parent && x.id !== f.id; });
@@ -16209,7 +16213,7 @@
       saveSettingsLocal();
       applyTheme(settings.theme || "base");
       subFolderId = null; folderCache = {};
-      if (!settings.types.some(function (t) { return t.key === currentType; })) currentType = settings.types[0].key;
+      if (currentType && !settings.types.some(function (t) { return t.key === currentType; })) currentType = "";
       renderTypeChips(); syncFromPaper(); renderBlocks(); render(); updateChrome();
       saveSettingsRemote();
       toast("설정을 저장했습니다.");
@@ -16441,7 +16445,7 @@
     function paintTypes() {
       var f = el("div", "field");
       f.appendChild(el("label", null, "기록 유형"));
-      var row=el('div');draft.types.forEach(function(t){var line=el('label','checkline'),radio=el('input');radio.type='radio';radio.name='defaultRecordType';radio.value=t.key;radio.checked=(draft.defaultType||'experience')===t.key;radio.onchange=function(){draft.defaultType=t.key;};line.appendChild(radio);line.appendChild(document.createTextNode(t.label));row.appendChild(line);});f.appendChild(el('label',null,'새 기록 기본 유형'));f.appendChild(row);
+      var row=el('div');[{key:'',label:'미선택'}].concat(draft.types).forEach(function(t){var line=el('label','checkline'),radio=el('input');radio.type='radio';radio.name='defaultRecordType';radio.value=t.key;radio.checked=(draft.defaultType||'')===t.key;radio.onchange=function(){draft.defaultType=t.key;};line.appendChild(radio);line.appendChild(document.createTextNode(t.label));row.appendChild(line);});f.appendChild(el('label',null,'새 기록 기본 유형'));f.appendChild(row);
       body.appendChild(f);
     }
 
