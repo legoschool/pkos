@@ -2414,6 +2414,22 @@
 .photo-grid { display:grid!important;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px; }
 .photo-grid img { width:100%;height:160px;object-fit:contain; }
 
+/* 상단 목록 토글과 탐색 메뉴의 일관된 배치 */
+#btnListFold { display:inline-flex!important;align-items:center;justify-content:center;width:106px;min-width:106px;height:36px;flex-shrink:0; }
+#listRail { display:none!important; }
+#wsChip { display:none; }
+#banner[hidden] { display:none!important; }
+#webTools { padding:4px 0; }
+#webTools .site-add { width:100%;display:flex;align-items:center;gap:10px;text-align:left;border:0;background:transparent;color:var(--ink);font:inherit;border-radius:4px;padding:5px 8px; }
+#webTools .site-add:hover { background:var(--btn-hover); }
+#webTools .site-add svg { width:16px;height:16px;flex-shrink:0; }
+.siderow .sidetog.none { display:none; }
+[data-tone="plain"] .siderow.on { box-shadow:none;border-color:transparent; }
+:root[data-layout] .siderow.on { outline:none; }
+:root[data-layout] .siderow:focus-visible { outline:2px solid var(--brand);outline-offset:1px; }
+.layout[data-listcol="off"] .listcol { display:none!important; }
+@media(max-width:600px){#btnListFold{font-size:12px;width:94px;min-width:94px;} .top-inner #crumb{display:none;} }
+
 </style>
 </head>
 <body>
@@ -13493,10 +13509,10 @@
       host.classList.add("hidden");
       return;
     }
-    host.appendChild(document.createTextNode("저장 위치: "));
-    host.appendChild(el("b", null, deskLabel(desk)));
+    host.appendChild(document.createTextNode("저장 폴더: "));
+    host.appendChild(el("b", null, storageKind()==='브라우저'?'브라우저':deskLabel(desk)));
     host.appendChild(el("span", "spacer"));
-    var b = el("button", "btn xs", "자리 바꾸기");
+    var b = el("button", "btn xs", "폴더 변경");
     b.type = "button";
     b.addEventListener("click", function (e) {
       e.stopPropagation();
@@ -13542,7 +13558,7 @@
       else l.removeAttribute("data-listcol");
     }
     var b = $("btnListFold");
-    if (b) { b.title = "기록 목록 접기"; b.setAttribute("aria-label", "기록 목록 접기"); }
+    if (b) { b.textContent=listFolded?"목록 펼치기":"목록 접기";b.title=b.textContent;b.setAttribute("aria-label",b.textContent);b.setAttribute("aria-expanded",String(!listFolded)); }
   }
   function setListFold(on) {
     listFolded = !!on;
@@ -13656,7 +13672,7 @@
     applyNavStage();
 
     var fold = $("btnListFold"), rail = $("listRail");
-    if (fold) fold.addEventListener("click", function () { setListFold(true); $("listRail").focus(); });
+    if (fold) { document.querySelector(".top-inner").insertBefore(fold,$("crumb"));fold.addEventListener("click", function () { setListFold(!listFolded);fold.focus(); }); }
     if (rail) rail.addEventListener("click", function () { setListFold(false); $("btnListFold").focus(); });
     applyListFold();
   })();
@@ -13972,17 +13988,14 @@
     closeDrawer();
     if (page === "home") { renderHome(); window.scrollTo({ top: 0 }); }
   }
+  function storageKind(){return localOn||localPending?'로컬 폴더':folder.id?'구글 드라이브':'브라우저';}
   function renderAppNav() {
-    var ws = $("wsName"), sc = $("storageChip"), nc = $("navCount");
-    if (ws) ws.textContent = (localOn || localPending) ? localName : folder.id ? (folder.name || "드라이브 폴더") : "이 브라우저";
-    if (nc) nc.textContent = String(liveEntries().length || "");
-    if (sc) {
-      sc.innerHTML = "";
-      var d = el("span", "dot"); if (!connected && !localOn) d.style.background = "var(--ink-soft)";
-      sc.appendChild(d);
-      sc.appendChild(document.createTextNode(localOn ? "내 컴퓨터 폴더에 저장됨" : connected && folder.id ? "드라이브에 저장됨" : "이 기기에 저장됨"));
-      sc.appendChild(el("br"));
-      sc.appendChild(document.createTextNode(localOn ? localName : localPending ? "폴더를 다시 열어야 합니다" : folder.id ? (folder.name || "") : "드라이브 미연결"));
+    var ws=$('wsName'),sc=$('storageChip'),nc=$('navCount');
+    if(ws)ws.textContent=storageKind();
+    if(nc)nc.textContent=String(liveEntries().length||'');
+    if(sc){sc.replaceChildren();sc.appendChild(el('b',null,'저장 위치: '+storageKind()));
+      var detail=localPending?'연결 필요: '+localName:localOn?localName:folder.id?(folder.name||'')+(!connected?' (연결 필요)':''):'';
+      if(detail){sc.appendChild(el('br'));sc.appendChild(document.createTextNode(detail));}
     }
   }
   /* 기록의 첫 글줄 · 홈 목록의 발췌 */
@@ -14021,7 +14034,7 @@
     m.appendChild(head);m.appendChild(body);m.appendChild(foot);bg.appendChild(m);$('modalHost').appendChild(bg);modalEl=bg;
   }
   function readWebSites(){try{return JSON.parse(localStorage.getItem('pkos.websites.v1')||'[]').filter(function(x){try{return /^https?:$/.test(new URL(x.url).protocol);}catch(e){return false;}});}catch(e){return [];}}
-  function renderWebTools(){var host=$('webTools');if(!host)return;host.replaceChildren();var add=el('button','btn sm','사이트 추가');add.onclick=function(){openWebClip();};host.appendChild(add);readWebSites().forEach(function(site,i){var row=el('div');row.style.cssText='display:flex;align-items:center;gap:6px;margin-top:8px';var display=site.title;if(/^(https?:|www\.)/.test(display)||display===new URL(site.url).hostname){display=/youtube\.com$/.test(new URL(site.url).hostname)?'YouTube':'사이트 이름 입력';}var a=el('a',null,display);a.ondblclick=function(e){e.preventDefault();};var rename=el('button','btn xs','수정');rename.onclick=function(){var title=prompt('사이트 제목',display);if(!title||!title.trim())return;var sites=readWebSites();sites[i].title=title.trim();localStorage.setItem('pkos.websites.v1',JSON.stringify(sites));renderWebTools();};a.href=site.url;a.target='_blank';a.rel='noopener noreferrer';a.style.cssText='flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';var del=el('button','btn xs','×');del.setAttribute('aria-label',site.title+' 바로가기 삭제');del.onclick=function(){var sites=readWebSites();sites.splice(i,1);localStorage.setItem('pkos.websites.v1',JSON.stringify(sites));renderWebTools();};row.appendChild(a);row.appendChild(rename);row.appendChild(del);host.appendChild(row);});}
+  function renderWebTools(){var host=$('webTools');if(!host)return;host.replaceChildren();var add=el('button','nav-item site-add','사이트 추가');add.prepend(fileIconSvg('link'));add.onclick=function(){openWebClip();};host.appendChild(add);readWebSites().forEach(function(site,i){var row=el('div');row.style.cssText='display:flex;align-items:center;gap:6px;margin-top:8px';var display=site.title;if(/^(https?:|www\.)/.test(display)||display===new URL(site.url).hostname){display=/youtube\.com$/.test(new URL(site.url).hostname)?'YouTube':'사이트 이름 입력';}var a=el('a',null,display);a.ondblclick=function(e){e.preventDefault();};var rename=el('button','btn xs','수정');rename.onclick=function(){var title=prompt('사이트 제목',display);if(!title||!title.trim())return;var sites=readWebSites();sites[i].title=title.trim();localStorage.setItem('pkos.websites.v1',JSON.stringify(sites));renderWebTools();};a.href=site.url;a.target='_blank';a.rel='noopener noreferrer';a.style.cssText='flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';var del=el('button','btn xs','×');del.setAttribute('aria-label',site.title+' 바로가기 삭제');del.onclick=function(){var sites=readWebSites();sites.splice(i,1);localStorage.setItem('pkos.websites.v1',JSON.stringify(sites));renderWebTools();};row.appendChild(a);row.appendChild(rename);row.appendChild(del);host.appendChild(row);});}
   function receiveWebClip(){if(!location.hash.startsWith('#clip='))return;try{var data=JSON.parse(decodeURIComponent(location.hash.slice(6)));if(typeof data.url!=='string')return;var seed={url:data.url.slice(0,8000),title:String(data.title||'').slice(0,300),text:String(data.text||'').slice(0,50000)};history.replaceState(null,'',location.pathname+location.search);openWebClip(seed);}catch(e){toast('클립 내용을 읽지 못했습니다.');}}
   function initAppShell() {
     renderWebTools();setTimeout(receiveWebClip,500);window.addEventListener("hashchange",receiveWebClip);
@@ -14058,6 +14071,7 @@
     $("btnLogin").textContent = connected ? "동기화" : (narrow ? "로그인" : "구글 로그인");
     var b = $("banner");
     b.innerHTML = "";
+    b.hidden = !localPending && !(!connected && needReconnect && folder.id);
     $("btnLogin").hidden = !!(localOn || localPending);
     var rs = $("btnRescan"); if (rs) rs.hidden = !localOn;
     if (localPending) {

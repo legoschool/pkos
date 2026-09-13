@@ -210,6 +210,14 @@ try {
  for(let i=0;i<90;i++){if(await evaluate(`typeof window.ocrResult==='string'`))break;await wait(1000);}
  check('real Korean English OCR engine recognizes text',await evaluate(`(window.ocrResult||'').includes('PKOS')&&(window.ocrResult||'').includes('123')`),await evaluate(`window.ocrResult||'timeout'`));
  await evaluate(`document.querySelector('.modal .mhead button').click()`);
+
+ await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+ await evaluate(`document.querySelector('[data-page="library"]').click()`);await wait(300);
+ await evaluate(`window.toggleBefore=document.querySelector('#btnListFold').getBoundingClientRect().toJSON();document.querySelector('#btnListFold').click()`);await wait(300);
+ check('list toggle stays in place',await evaluate(`(()=>{const r=document.querySelector('#btnListFold').getBoundingClientRect();return Math.abs(r.x-toggleBefore.x)<1&&Math.abs(r.y-toggleBefore.y)<1;})()`));
+ await evaluate(`document.querySelector('#btnListFold').click()`);
+ check('storage shown once with clear local label',await evaluate(`document.querySelector('#storageChip').textContent.startsWith('저장 위치: 로컬 폴더')&&getComputedStyle(document.querySelector('#wsChip')).display==='none'&&document.querySelector('#banner').hidden`));
+ check('site shortcut matches sidebar menu',await evaluate(`document.querySelector('#webTools > button').classList.contains('nav-item')`));
  check('no exceptions',errors.length===0,errors.join(';'));
  console.log(JSON.stringify(results));if(results.some(r=>!r.ok))process.exitCode=1;
 }finally{ws.close();edge.kill();}
