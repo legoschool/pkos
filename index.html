@@ -8481,7 +8481,7 @@
       v.className = "camview";
       v.srcObject = s;
       body.appendChild(v);
-      body.appendChild(el("p", "crophint", "화면에 담기면 «찍기» 를 누르세요."));
+
       m.appendChild(body);
 
       var foot = el("div", "mfoot");
@@ -8496,7 +8496,7 @@
         c.width = w; c.height = h;
         c.getContext("2d").drawImage(v, 0, 0, w, h);
         stop();
-        openCropModal(c, "웹캠_" + dateStamp() + "_" + timeStamp() + ".png");
+        openCapturedPhoto(c, "웹캠_" + dateStamp() + "_" + timeStamp() + ".png");
       });
       foot.appendChild(cancel); foot.appendChild(shoot);
       m.appendChild(foot);
@@ -8555,7 +8555,7 @@
     if (!file) return;
     if (skipCrop) { acceptFiles([file]); return; }
     imageFileToCanvas(file)
-      .then(function (c) { openCropModal(c, file.name); })
+      .then(function (c) { return openCapturedPhoto(c, file.name); })
       .catch(function (e) { toast(e.message); });
   }
 
@@ -8584,7 +8584,7 @@
         c.getContext("2d").drawImage(v, 0, 0, w, h);
         try { v.srcObject.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
         if (!w || !h) { toast("캡처된 화면이 없습니다. 다시 시도해 주세요."); return; }
-        openCropModal(c);
+        return openCapturedPhoto(c);
       })
       .catch(function (e) {
         var name = (e && e.name) || "";
@@ -8597,6 +8597,15 @@
         }
         toast("화면 캡처 실패: " + (e && e.message ? e.message : e));
       });
+  }
+
+  async function openCapturedPhoto(canvas, name) {
+    closeModal();
+    var att=await canvasToAttachment(canvas);
+    if(name)att.original=safeName(stemOf(name),60)+extOf(att.original);
+    var block=newBlock('image',att);insertBlocks([block]);
+    await idbPut(block.id,block.blob);touchDraft();saveDraft();
+    openPhotoMaskStudio(block.id);
   }
 
   // 캔버스를 PNG(너무 크면 JPEG) Blob 으로
@@ -9679,7 +9688,7 @@
     orig.width = full.width; orig.height = full.height;
     orig.getContext("2d").drawImage(full, 0, 0);
     var mosaics = [];
-    var mode = replaceBlock ? "mask" : "crop";   // "crop" 또는 "mask"
+    var mode = "crop";   // "crop" 또는 "mask"
     var bg = el("div", "modal-bg");
     var m = el("div", "card modal"); m.style.maxWidth = "min(960px, 96vw)";
 
@@ -9696,8 +9705,7 @@
     var modeBar = el("div", "modebar");
     var bCrop = el("button", "btn sm primary", "✂️ 자르기");
     var bMask = el("button", "btn sm", "🔲 모자이크로 가리기");
-    modeBar.appendChild(bCrop); modeBar.appendChild(bMask);
-    body.appendChild(modeBar);
+    // Cropping only; all annotation tools live in the shared photo editor.
 
     var wrap = el("div", "cropwrap");
     var img = el("img");
@@ -9758,10 +9766,8 @@
       undo.style.display = (masking && mosaics.length) ? "" : "none";
       useSel.textContent = masking ? "이 부분 가리기" : "선택 영역 사용";
       whole.textContent = masking ? "가린 채로 전체 사용" : "전체 사용";
-      head.firstChild.textContent = masking ? "🔲 가릴 곳 고르기" : "📸 캡처 영역 고르기";
-      hint.textContent = masking
-        ? "얼굴·이름표처럼 가릴 곳을 드래그한 뒤 «이 부분 가리기» 를 누르세요. 여러 곳을 이어서 가릴 수 있습니다. 가린 것은 올라가는 사진 자체에서 지워집니다."
-        : "이미지 위에서 드래그해 저장할 영역을 고르세요. 그냥 전체를 쓰려면 «전체 사용»을 누르면 됩니다.";
+      head.firstChild.textContent = "사진 자르기";
+      hint.textContent = "";
       paintSel();
     }
     bCrop.addEventListener("click", function () { mode = "crop"; syncMode(); });
@@ -9850,8 +9856,7 @@
           refreshAtom(replaceBlock.id);
           touchDraft();
           closeModal();
-          toast("가린 사진으로 바꿨습니다. (" + humanSize(att.size) + ")");
-          if (wasUp) toast2("저장하면 드라이브의 사진도 가린 것으로 바뀝니다.");
+          saveDraft();openPhotoMaskStudio(replaceBlock.id);
           return;
         }
         insertBlocks([newBlock("image", att)]);

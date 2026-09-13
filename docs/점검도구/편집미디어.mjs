@@ -213,6 +213,25 @@ try {
  await evaluate(`document.querySelector('[data-add="link"]').click()`);await wait(100);
  await evaluate(`(()=>{const input=Array.from(document.querySelectorAll('#blocks input')).find(i=>i.placeholder==='https://…');input.value='https://example.com/';input.dispatchEvent(new Event('input',{bubbles:true}));})()`);await wait(700);
  check('website link input shows preview card',await evaluate(`!!document.querySelector('#blocks .linkcard[href="https://example.com/"]')`));
+
+ await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+ await evaluate(`(()=>{window.captureFixtures=[];window.makeCaptureFixture=()=>{const c=document.createElement('canvas');c.width=320;c.height=180;const ctx=c.getContext('2d');ctx.fillStyle='red';ctx.fillRect(0,0,320,180);const stream=c.captureStream(15);window.captureFixtures.push(stream);setTimeout(()=>{ctx.fillStyle='blue';ctx.fillRect(20,20,80,60);},50);return Promise.resolve(stream);};navigator.mediaDevices.getDisplayMedia=makeCaptureFixture;navigator.mediaDevices.getUserMedia=makeCaptureFixture;})()`);
+ for(const captureName of ['화면 캡처하기','웹캠으로 찍기']){
+  await evaluate(`document.querySelector('[data-add="capture"]').click();Array.from(document.querySelectorAll('.sheetbtn')).find(b=>b.textContent.includes('${captureName}')).click()`);
+  if(captureName==='웹캠으로 찍기'){
+    for(let i=0;i<50;i++){if(await evaluate(`document.querySelector('.camview')?.videoWidth>0`))break;await wait(100);}
+    await evaluate(`Array.from(document.querySelectorAll('.modal .mfoot button')).find(b=>b.textContent.includes('찍기')).click()`);
+  }
+  for(let i=0;i<50;i++){if(await evaluate(`document.querySelector('.maskpad')?.width===320`))break;await wait(100);}
+  check(captureName+' opens full photo tools',await evaluate(`document.querySelector('.maskpad')?.width===320&&['모자이크','펜','네모','원','화살표','이모지'].every(label=>Array.from(document.querySelectorAll('.photo-tools button')).some(b=>b.textContent===label))`));
+  check(captureName+' releases media stream',await evaluate(`captureFixtures.at(-1).getTracks().every(t=>t.readyState==='ended')`));
+  await evaluate(`Array.from(document.querySelectorAll('.modal button')).find(b=>b.textContent==='자르기').click()`);await wait(150);
+  check(captureName+' crop has one purpose',await evaluate(`document.querySelector('.modal h3').textContent==='사진 자르기'&&!document.querySelector('.modal').textContent.includes('모자이크로 가리기')`));
+  await evaluate(`Array.from(document.querySelectorAll('.modal button')).find(b=>b.textContent==='전체 사용').click()`);
+  for(let i=0;i<50;i++){if(await evaluate(`!!document.querySelector('.photo-tools')`))break;await wait(100);}
+  check(captureName+' returns to full editor after crop',await evaluate(`!!document.querySelector('.photo-tools')`));
+  await evaluate(`document.querySelector('.modal .mhead button').click()`);
+ }
  check('no exceptions',errors.length===0,errors.join(';'));
  console.log(JSON.stringify(results));if(results.some(r=>!r.ok))process.exitCode=1;
 }finally{ws.close();edge.kill();}
