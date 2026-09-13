@@ -232,6 +232,41 @@ try {
   check(captureName+' returns to full editor after crop',await evaluate(`!!document.querySelector('.photo-tools')`));
   await evaluate(`document.querySelector('.modal .mhead button').click()`);
  }
+
+ await evaluate(`(()=>{
+  window.lectureStreams=[];window.lectureTimers=[];
+  window.fakeVideo=(color)=>{const c=document.createElement('canvas');c.width=640;c.height=360;const ctx=c.getContext('2d');let f=0;const paint=()=>{ctx.fillStyle=color;ctx.fillRect(0,0,640,360);ctx.fillStyle='white';ctx.fillText(String(f++),10,20);};paint();lectureTimers.push(setInterval(paint,50));const s=c.captureStream(20);lectureStreams.push(s);return s;};
+  navigator.mediaDevices.getDisplayMedia=async()=>fakeVideo('blue');
+  navigator.mediaDevices.getUserMedia=async options=>{window.lectureAudio=new AudioContext();const osc=lectureAudio.createOscillator(),dest=lectureAudio.createMediaStreamDestination();osc.connect(dest);osc.start();window.lectureOsc=osc;const s=options.video?fakeVideo('red'):new MediaStream();s.addTrack(dest.stream.getAudioTracks()[0]);return s;};
+  window.SpeechRecognition=class{start(){setTimeout(()=>{const line=[{transcript:'강의 시험 문장'}];line.isFinal=true;this.onresult?.({resultIndex:0,results:[line]});},100);}stop(){}};
+  PKOSLecture.open({title:'강의 시험',target:{id:null},attach:async data=>{window.lectureResult=data;}});
+  Array.from(document.querySelectorAll('#lectureRecorder button')).find(b=>b.textContent==='녹화 시작').click();
+ })()`);
+ for(let i=0;i<70;i++){if(await evaluate(`!Array.from(document.querySelectorAll('#lectureRecorder button')).find(b=>b.textContent==='녹화 종료').hidden`))break;await wait(100);}
+ check('lecture screen and face composite',await evaluate(`(()=>{const c=document.querySelector('#lectureRecorder canvas'),ctx=c.getContext('2d'),screen=ctx.getImageData(100,100,1,1).data,face=ctx.getImageData(1100,600,1,1).data;return screen[2]>200&&face[0]>200&&face[2]<50;})()`));
+ await wait(1500);
+ check('lecture timestamped transcript',await evaluate(`document.querySelector('#lectureRecorder textarea').value.includes('[0:')&&document.querySelector('#lectureRecorder textarea').value.includes('강의 시험 문장')`));
+ await evaluate(`Array.from(document.querySelectorAll('#lectureRecorder button')).find(b=>b.textContent==='일시 정지').click()`);
+ check('lecture pauses',await evaluate(`!!Array.from(document.querySelectorAll('#lectureRecorder button')).find(b=>b.textContent==='계속 녹화')`));
+ await evaluate(`Array.from(document.querySelectorAll('#lectureRecorder button')).find(b=>b.textContent==='계속 녹화').click()`);await wait(800);
+ await evaluate(`Array.from(document.querySelectorAll('#lectureRecorder button')).find(b=>b.textContent==='녹화 종료').click()`);
+ for(let i=0;i<70;i++){if(await evaluate(`!Array.from(document.querySelectorAll('#lectureRecorder button')).find(b=>b.textContent==='기록에 넣기').hidden`))break;await wait(100);}
+ check('lecture releases screen and mic',await evaluate(`lectureStreams.every(s=>s.getTracks().every(t=>t.readyState==='ended'))`));
+ // Close without attaching and recover persisted chunks from a new recorder panel.
+ await evaluate(`Array.from(document.querySelectorAll('#lectureRecorder button')).find(b=>b.textContent==='닫기').click();PKOSLecture.open({title:'복구',attach:async data=>{window.lectureResult=data;}})`);
+ for(let i=0;i<40;i++){if(await evaluate(`!!Array.from(document.querySelectorAll('#lectureRecorder button')).find(b=>b.textContent.startsWith('이전 녹화 복구'))`))break;await wait(100);}
+ check('lecture recovery offered',await evaluate(`!!Array.from(document.querySelectorAll('#lectureRecorder button')).find(b=>b.textContent.startsWith('이전 녹화 복구'))`));
+ await evaluate(`Array.from(document.querySelectorAll('#lectureRecorder button')).find(b=>b.textContent.startsWith('이전 녹화 복구')).click()`);await wait(200);
+ await evaluate(`Array.from(document.querySelectorAll('#lectureRecorder button')).find(b=>b.textContent==='기록에 넣기').click()`);await wait(300);
+ check('lecture recovered video and transcript attach',await evaluate(`lectureResult.blob.size>1000&&lectureResult.blob.type.startsWith('video/')&&lectureResult.text.includes('강의 시험 문장')&&lectureResult.seconds>1`));
+ check('lecture recorded audio decodes',await evaluate(`(async()=>{const c=new AudioContext();try{const audio=await c.decodeAudioData(await lectureResult.blob.arrayBuffer());return audio.duration>1&&audio.getChannelData(0).some(v=>Math.abs(v)>.01);}finally{await c.close();}})()`));
+ await evaluate(`lectureTimers.forEach(clearInterval);lectureOsc.stop();lectureAudio.close()`);
+ // Exercise the actual editor attachment hook after the lecture's draft has been saved.
+ await evaluate(`(()=>{window.realLectureOpen=PKOSLecture.open;PKOSLecture.open=hooks=>window.editorLectureHooks=hooks;document.getElementById('title').value='강의 중 메모';document.querySelector('[data-add="lecture"]').click();document.getElementById('btnSave').click();PKOSLecture.open=realLectureOpen;})()`);await wait(600);
+ await evaluate(`editorLectureHooks.attach({...lectureResult,id:'lecture-editor-fixture',target:editorLectureHooks.target})`);await wait(300);
+ check('lecture attaches to notes saved during recording',await evaluate(`pkosLocal.entries().some(n=>n.title==='강의 중 메모'&&n.blocks.some(b=>b.lectureId==='lecture-editor-fixture')&&n.blocks.some(b=>(b.text||'').includes('강의 전사')))`));
+ await evaluate(`editorLectureHooks.attach({...lectureResult,id:'lecture-editor-fixture',target:editorLectureHooks.target})`);
+ check('lecture attachment retry does not duplicate',await evaluate(`pkosLocal.entries().flatMap(n=>n.blocks||[]).filter(b=>b.lectureId==='lecture-editor-fixture').length===1`));
  check('no exceptions',errors.length===0,errors.join(';'));
  console.log(JSON.stringify(results));if(results.some(r=>!r.ok))process.exitCode=1;
 }finally{ws.close();edge.kill();}

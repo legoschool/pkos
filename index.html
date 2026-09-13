@@ -23,6 +23,7 @@
 <meta name="apple-mobile-web-app-title" content="기록장" />
 <title>PKOS 개인지식운영체계</title>
 <script src="document-preview.js"></script>
+<script src="lecture-recorder.js"></script>
 <script src="pdf-reader.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <!-- 폴더·파일 고르기 창(구글 Picker). 좁은 권한에서 «밖에 있는 파일» 을 집어 오는 유일한 통로다. -->
@@ -2615,6 +2616,7 @@
           <button class="btn sm" data-add="link">링크</button>
           <button class="btn sm addx" data-add="draw">필기</button>
           <button class="btn sm" data-add="voice">녹음</button>
+          <button class="btn sm" data-add="lecture">강의 녹화</button>
         </div>
         <div class="edgrp roles">
         </div>
@@ -7912,6 +7914,7 @@
       case "capture": rememberCaret(); startCapture(); break;
       case "draw": rememberCaret(); openDrawModal(); break;
       case "voice": rememberCaret(); openVoiceModal(); break;
+      case "lecture": rememberCaret(); openLecture(); break;
       case "link": case "embed": case "table": case "fold": case "code":
         var b = newBlock(kind);
         insertTopNodes([atomNode(b)], { focus: false });
@@ -8652,6 +8655,21 @@
   function mmss(sec) {
     var m = Math.floor(sec / 60), s = Math.floor(sec % 60);
     return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  function openLecture(){
+    var target={id:editingId,version:lectureDraftVersion,page:lecturePageId};
+    PKOSLecture.open({title:$('title').value,target:target,attach:async function(data){
+      var savedTargets=JSON.parse(localStorage.getItem('pkos-lecture-targets')||'{}');
+      var targetId=data.target&&(savedTargets[data.target.page+':'+data.target.version]||data.target.id);
+      if(blocks.some(b=>b.lectureId===data.id)||entries.some(n=>(n.blocks||[]).some(b=>b.lectureId===data.id)))return;
+      var video=newBlock('file',{lectureId:data.id,original:data.title+(data.blob.type.includes('mp4')?'.mp4':'.webm'),mime:data.blob.type,size:data.blob.size,blob:data.blob,caption:data.title+' ('+mmss(data.seconds)+')'});
+      var made=[video];if(data.text.trim())made.push(newBlock('text',{text:'강의 전사\n'+data.text}));
+      await idbPut(video.id,video.blob);
+      if(data.target&&data.target.page===lecturePageId&&data.target.version===lectureDraftVersion&&data.target.id===editingId){if(!$('title').value.trim())$('title').value=data.title;insertBlocks(made);touchDraft();saveDraft();}
+      else{var n=data.target&&entries.find(function(n){return n.id===targetId&&!n.trashed;});if(!n){n={id:uid('k_'),title:data.title,type:'material',tags:[],blocks:[],relations:[],createdAt:Date.now()};entries.unshift(n);}n.blocks=n.blocks.concat(made);n.updatedAt=Date.now();n._dirty=true;video.name=attachName(n,n.blocks.length,video.original,video);saveLocal();render();if(connected||localOn)syncPending();}
+      toast('강의 영상을 기록에 넣었습니다.');
+    }});
   }
 
   function openVoiceModal() {
@@ -10156,7 +10174,9 @@
   /* =========================================================
      9. 저장 / 편집
      ========================================================= */
+  var lectureDraftVersion=0,lecturePageId=uid('lecture-page:');
   function resetComposer() {
+    lectureDraftVersion++;
     editingId = null;
     currentType = settings.defaultType || (settings.types[0] ? settings.types[0].key : "");
     $("title").value = ""; $("tags").value = ""; renderTagChips();
@@ -10171,6 +10191,7 @@
   }
 
   function loadIntoComposer(n) {
+    lectureDraftVersion++;
     editingId = n.id;
     currentType = n.type;
     $("title").value = n.title || "";
@@ -10312,6 +10333,10 @@
       return c;
     });
 
+    var lectureTargets=JSON.parse(localStorage.getItem('pkos-lecture-targets')||'{}');
+    lectureTargets[lecturePageId+':'+lectureDraftVersion]=n.id;
+    var targetKeys=Object.keys(lectureTargets);targetKeys.slice(0,Math.max(0,targetKeys.length-100)).forEach(k=>delete lectureTargets[k]);
+    localStorage.setItem('pkos-lecture-targets',JSON.stringify(lectureTargets));
     if (renamedFrom && renamedFrom !== n.title) renameWikiTargets(renamedFrom, n.title);
     saveLocal();
     indexAttachmentRecords([n]).then(function (count) { if (count) { saveLocal(); render(); } });

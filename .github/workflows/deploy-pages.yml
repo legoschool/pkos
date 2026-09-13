@@ -38,7 +38,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p _site
-          cp index.html view.html intro.html privacy.html manifest.json sw.js document-preview.js pdf-reader.js local-bridge.js .nojekyll README.md SETUP.md LICENSE LICENSE.ko.md _site/
+          cp index.html view.html intro.html privacy.html manifest.json sw.js lecture-recorder.js document-preview.js pdf-reader.js local-bridge.js .nojekyll README.md SETUP.md LICENSE LICENSE.ko.md _site/
           cp -R vendor docs icons _site/
           find _site/docs -type f \( -name '*.mjs' -o -name '*.ps1' -o -name '*.py' \) -delete
 
