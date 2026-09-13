@@ -146,6 +146,10 @@ try {
  await evaluate(`document.querySelectorAll('.toast').forEach(e=>e.remove());pkosLocal.entries()[0].localMtime=0;pkosLocal.entries()[0].blocks.forEach(b=>b.localFingerprint='');`);
  await evaluate(`pkosLocal.importAll(null,{quiet:true})`);
  check('quiet import has no read notification',await evaluate(`!Array.from(document.querySelectorAll('.toast')).some(e=>e.textContent.includes('폴더에서 읽었습니다'))`));
+ await evaluate(`(()=>{const c=document.querySelector('.card.entry');c.querySelector('.dots').click();Array.from(document.querySelectorAll('.menupop button')).find(b=>b.textContent.includes('편집')).click();})()`);await wait(200);
+ check('save bar is in document flow',await evaluate(`getComputedStyle(document.querySelector('.composer-actions')).position==='static'`));
+ await evaluate(`document.getElementById('title').value='Saved card record';document.getElementById('btnSave').click()`);await wait(1000);
+ check('edit saved',await evaluate(`pkosLocal.entries().some(n=>n.title==='Saved card record')`));
  check('no script exceptions',errors.length===0,errors.join(';'));
  console.log(JSON.stringify(results));if(results.some(r=>!r.ok))process.exitCode=1;
 }finally{ws.close();edge.kill();}

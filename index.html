@@ -2270,7 +2270,7 @@
   [data-tone="plain"] .paper.blank::before { left: 0; top: 14px; color: #b8b6b0; opacity: 1; }
   [data-tone="plain"] .paper:focus-within { border: 0; }
   [data-tone="plain"] .paper h3.ph { font-size: calc(24px * var(--fs)); font-weight: 600; margin: 22px 0 6px; }
-  [data-tone="plain"] .composer-actions { position: sticky; bottom: 0; background: var(--bg); padding: 10px 0; margin: 0; border-top: 1px solid var(--line-soft); }
+  [data-tone="plain"] .composer-actions { position: static; background: var(--bg); padding: 10px 0; margin: 0; border-top: 1px solid var(--line-soft); }
   [data-tone="plain"] .composer-actions .btn.primary { padding: 6px 14px; font-size: 13.5px; }
   @media (max-width: 1020px) {
     /* 폰에서는 넣기 줄이 바닥에 붙어 있다 · 저장 단추까지 붙이면 겹친다 */
@@ -6336,7 +6336,7 @@
         }
         b.fileId = L.id; b.name = L.name; b.original = L.name; b.mime = localMime(L.name);
         b.localMtime = seenFiles[L.id].modified; b.size = seenFiles[L.id].size;
-        if (imgUrlCache[previous]) { URL.revokeObjectURL(imgUrlCache[previous]); delete imgUrlCache[previous]; }
+        invalidateImage(previous);
         n._dirty = true; localRelocationPending = true; changed++;
       });
       known[L.id] = 1;
@@ -6369,8 +6369,9 @@
         if (!seenFiles[b.fileId]) { if (b.searchText) { b.searchText = ""; b.searchStamp = ""; changed++; } return; }
         var info = seenFiles[b.fileId];
         if (b.localMtime !== info.modified || b.size !== info.size) {
+          var previouslyLoaded = !!b.localMtime;
           b.localMtime = info.modified; b.size = info.size;
-          if (imgUrlCache[b.fileId]) { URL.revokeObjectURL(imgUrlCache[b.fileId]); delete imgUrlCache[b.fileId]; }
+          if (previouslyLoaded) invalidateImage(b.fileId);
           changed++;
         }
       });
@@ -10255,7 +10256,7 @@
   var lazyObs = null;
   function lazyDriveImage(fileId, imgEl) {
     if (!fileId) return;
-    if (imgUrlCache[fileId]) { imgEl.src = imgUrlCache[fileId]; return; }
+    if (imgUrlCache[fileId]) { loadDriveImage(fileId, imgEl); return; }
     if (typeof IntersectionObserver === "undefined") { loadDriveImage(fileId, imgEl); return; }
     if (!lazyObs) {
       lazyObs = new IntersectionObserver(function (rows) {
@@ -10271,23 +10272,50 @@
   }
 
   // onFail · 못 불러왔을 때 알려 준다 (빈 칸만 남기지 않도록)
+  var imageLoads = new Map(), retiredImages = new Set();
+  function invalidateImage(fileId) {
+    if (imgUrlCache[fileId]) { retiredImages.add(imgUrlCache[fileId]); delete imgUrlCache[fileId]; }
+    imageLoads.delete(fileId);
+  }
+  setInterval(function () {
+    var used = new Set(Array.from(document.querySelectorAll('img')).map(function(img){return img.src;}));
+    retiredImages.forEach(function(url){if(!used.has(url)){URL.revokeObjectURL(url);retiredImages.delete(url);}});
+  }, 15000);
   function loadDriveImage(fileId, imgEl, onFail) {
-    if (!fileId) { if (onFail) onFail("사진 정보가 없습니다"); return; }
-    if (imgUrlCache[fileId]) { imgEl.src = imgUrlCache[fileId]; return; }
-    if (localIsId(fileId)) {
-      localReadFile(fileId).then(function (f) { var u = URL.createObjectURL(f); imgUrlCache[fileId] = u; imgEl.src = u; })
-        .catch(function () { if (onFail) onFail("폴더에서 사진을 찾지 못했습니다"); });
-      return;
+    if (!fileId) { if(onFail)onFail("사진 정보가 없습니다."); return; }
+    imgEl.dataset.imageFile = fileId;
+    var attempts = 0;
+    function failed() {
+      if (!imgEl.isConnected || imgEl.dataset.imageFile !== fileId) return;
+      if (attempts < 3) { setTimeout(load, attempts * 600); return; }
+      imgEl.removeAttribute('src');
+      imgEl.alt = "사진을 읽지 못했습니다. 눌러서 다시 시도";
+      if(onFail)onFail("사진을 읽지 못했습니다. 폴더 연결을 확인하고 다시 시도해 주세요.");
+      if(!imgEl._retryImage){imgEl._retryImage=true;imgEl.addEventListener('click',function(e){if(!imgEl.getAttribute('src')){e.preventDefault();e.stopImmediatePropagation();attempts=0;load();}},true);}
     }
-    if (!accessToken) { if (onFail) onFail("구글 로그인이 풀렸습니다. [동기화] 를 눌러 다시 로그인하세요."); return; }
-    driveFetch("https://www.googleapis.com/drive/v3/files/" + fileId + "?alt=media&supportsAllDrives=true")
-      .then(function (r) { return r.ok ? r.blob() : null; })
-      .then(function (b) {
-        if (!b) { if (onFail) onFail("드라이브에서 사진을 받지 못했습니다"); return; }
-        var u = URL.createObjectURL(b);
-        imgUrlCache[fileId] = u;
-        imgEl.src = u;
-      }).catch(function () { if (onFail) onFail("사진을 불러오지 못했습니다"); });
+    function load() {
+      if (imgEl.dataset.imageFile !== fileId) return;
+      attempts++;
+      var task;
+      if (imgUrlCache[fileId]) task=Promise.resolve(imgUrlCache[fileId]);
+      else {
+        task=imageLoads.get(fileId);
+        if(!task){
+          task=(localIsId(fileId) ? localReadFile(fileId) :
+            (accessToken ? driveFetch("https://www.googleapis.com/drive/v3/files/"+fileId+"?alt=media&supportsAllDrives=true").then(function(r){if(!r.ok)throw Error('image read failed');return r.blob();}) : Promise.reject(Error('login required'))))
+            .then(function(file){var url=URL.createObjectURL(file);if(imageLoads.get(fileId)===task)imgUrlCache[fileId]=url;else retiredImages.add(url);return url;});
+          imageLoads.set(fileId,task);
+          task.then(function(){if(imageLoads.get(fileId)===task)imageLoads.delete(fileId);},function(){if(imageLoads.get(fileId)===task)imageLoads.delete(fileId);});
+        }
+      }
+      task.then(function(url){
+        if(imgEl.dataset.imageFile!==fileId)return;
+        imgEl.onerror=function(){invalidateImage(fileId);failed();};
+        imgEl.onload=function(){imgEl.dataset.imageLoaded='1';};
+        imgEl.src=url;
+      }).catch(failed);
+    }
+    load();
   }
 
   /* ---------- 사진 슬라이드로 크게 보기 ---------- */
