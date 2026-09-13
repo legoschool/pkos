@@ -150,6 +150,18 @@ try {
  check('save bar is in document flow',await evaluate(`getComputedStyle(document.querySelector('.composer-actions')).position==='static'`));
  await evaluate(`document.getElementById('title').value='Saved card record';document.getElementById('btnSave').click()`);await wait(1000);
  check('edit saved',await evaluate(`pkosLocal.entries().some(n=>n.title==='Saved card record')`));
+ for(const width of [1920,1280]){
+  await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:false});
+  await evaluate(`document.getElementById('btnListFold').click()`);await wait(150);
+  check('fold layout '+width,await evaluate(`(()=>{const r=document.getElementById('listRail'),c=document.getElementById('composer'),l=document.getElementById('listcol');return getComputedStyle(l).display==='none'&&getComputedStyle(r.querySelector('.lr-t')).writingMode==='horizontal-tb'&&r.getBoundingClientRect().width>90&&r.getBoundingClientRect().height<70&&c.getBoundingClientRect().right<=innerWidth+1;})()`));
+  check('no fold popup '+width,await evaluate(`!document.getElementById('toast').textContent.includes('옆의 띠')`));
+  await evaluate(`document.getElementById('listRail').click()`);await wait(150);
+  check('unfold '+width,await evaluate(`getComputedStyle(document.getElementById('listcol')).display!=='none'&&getComputedStyle(document.getElementById('listRail')).display==='none'`));
+ }
+ await evaluate(`document.getElementById('btnListFold').click()`);
+ await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await wait(150);
+ check('mobile restore available',await evaluate(`getComputedStyle(document.getElementById('listRail')).display!=='none'&&document.getElementById('listRail').getBoundingClientRect().width>90`));
+ await evaluate(`document.getElementById('listRail').click()`);
  check('no script exceptions',errors.length===0,errors.join(';'));
  console.log(JSON.stringify(results));if(results.some(r=>!r.ok))process.exitCode=1;
 }finally{ws.close();edge.kill();}

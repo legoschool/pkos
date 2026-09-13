@@ -2340,6 +2340,17 @@
   .related-row .btn, .vrel .relchip { max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: left; }
 
 .attachment-card{display:flex;align-items:center;gap:16px;padding:18px;border:1px solid #ddd;border-radius:18px;background:#fafafa;margin:14px 0;min-width:0}.attachment-icon{display:grid;place-items:center;flex:0 0 54px;height:54px;border-radius:12px;background:#e6f2ea;color:#256540;font-size:12px;font-weight:700}.attachment-info{flex:1;min-width:0}.attachment-info strong{display:block;overflow-wrap:anywhere}.attachment-menu{position:relative;flex-shrink:0}.attachment-options{position:absolute;right:0;top:100%;z-index:30;background:white;border:1px solid #ddd;border-radius:14px;padding:10px;box-shadow:0 6px 20px #0002;min-width:220px}.attachment-options button{display:block;width:100%;text-align:left;margin:3px 0}@media(max-width:600px){.attachment-card{flex-wrap:wrap}.attachment-menu{margin-left:auto}}
+
+/* Collapsing removes the list column; its restore button belongs to the editor. */
+.listfold{width:auto;min-height:36px;padding:0 10px;white-space:nowrap;font-size:13px;border:1px solid var(--line)}
+.layout[data-listcol="off"] #listRail{display:inline-flex;position:static;align-self:flex-start;flex-direction:row;gap:8px;height:auto;margin:0 0 16px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;order:-1;white-space:nowrap}
+.layout[data-listcol="off"] #listRail .lr-t{writing-mode:horizontal-tb;letter-spacing:0;font-size:13px}
+.layout[data-listcol="off"] #listRail .lr-ar{transform:none}
+@media(min-width:1180px){
+.layout[data-nav="0"][data-listcol="off"]{grid-template-columns:var(--col-nav,248px) minmax(0,1fr)}
+.layout[data-nav="1"][data-listcol="off"]{grid-template-columns:minmax(0,1fr)}
+.layout[data-listcol="off"] > .composer{grid-column:auto}
+}
 </style>
 </head>
 <body>
@@ -2411,9 +2422,7 @@
 <button type="button" id="gripList" class="colgrip" aria-label="기록 목록 칸 너비 · 끌어서 조절, 두 번 누르면 되돌림"></button>
 
 <!-- 접었을 때 남는 세로 띠 · 펴는 길이 눈에 보여야 접어도 무섭지 않다 -->
-<button type="button" id="listRail" class="listrail" title="기록 목록 펴기" aria-label="기록 목록 펴기">
-  <span class="lr-ar">›</span><span class="lr-t">기록 목록</span>
-</button>
+
 
 <!-- 가운데 칸 · 기록 목록. 업노트의 «노트 목록» 자리다 -->
 <div id="listcol" class="listcol">
@@ -2424,7 +2433,7 @@
     <div class="viewswitch" id="viewSwitch"></div>
     <button id="btnRescan" class="btn sm" hidden title="폴더에 넣거나 고친 파일을 목록에 맞춥니다">폴더 다시 읽기</button>
     <button id="btnCompile" class="btn sm" title="고른 기록을 한 권으로 묶어 내려받습니다">엮어내기</button>
-    <button type="button" id="btnListFold" class="listfold" title="기록 목록 접기" aria-label="기록 목록 접기">‹</button>
+    <button type="button" id="btnListFold" class="listfold" title="기록 목록 접기" aria-label="기록 목록 접기" aria-controls="listcol" aria-expanded="true">목록 접기 ‹</button>
   </div>
   <div class="chips filters" id="typeFilters"></div>
   <div class="chips filters tagfilters" id="tagFilters"></div>
@@ -2441,6 +2450,9 @@
   <div id="draftBar" class="banner draft hidden"></div>
 
   <section class="card composer" id="composer">
+<button type="button" id="listRail" class="listrail" aria-controls="listcol" aria-expanded="false" title="기록 목록 펼치기" aria-label="기록 목록 펼치기">
+  <span class="lr-ar" aria-hidden="true">›</span><span class="lr-t">목록 펼치기</span>
+</button>
     <!-- 접혔을 때 남는 한 줄. 폴더를 보는 동안은 이것만 보인다 -->
     <div class="cfold">
       <button type="button" class="cfoldbtn" id="btnUnfold">＋ 새 기록</button>
@@ -13521,8 +13533,8 @@
     applyNavStage();
 
     var fold = $("btnListFold"), rail = $("listRail");
-    if (fold) fold.addEventListener("click", function () { setListFold(true); toast("기록 목록을 접었습니다 · 옆의 띠로 다시 폅니다."); });
-    if (rail) rail.addEventListener("click", function () { setListFold(false); });
+    if (fold) fold.addEventListener("click", function () { setListFold(true); $("listRail").focus(); });
+    if (rail) rail.addEventListener("click", function () { setListFold(false); $("btnListFold").focus(); });
     applyListFold();
   })();
 
@@ -14741,7 +14753,7 @@
   function hostOf(u) {
     try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return ""; }
   }
-  var toast2 = function (msg) { setTimeout(function () { toast(msg); }, 3000); };
+  var toast2 = function () {}; // 자동으로 이어 뜨는 보조 사용 안내는 표시하지 않는다.
 
   /* =========================================================
      11-9. 밖에서 들어온 것 받기 · 웹 캡처 · 공유
