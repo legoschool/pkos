@@ -9064,8 +9064,8 @@
   function openDrawModal() {
     closeModal();
     var strokes = [];          // [{ color, size, eraser, pts:[{x,y,p}] }]
-    var current = null;
-    var pen = { color: "#1b2130", size: 3, eraser: false };
+    var current = null, drawingRevision=0;
+    var pen = { color: "#1b2130", size: 8, eraser: false, eraserSize: 60 };
     // 저장되는 실제 크기. 폰처럼 세로로 긴 화면에서는 종이도 세로로 세운다.
     var portrait = window.innerHeight > window.innerWidth;
     var PAPER = portrait ? { w: 1100, h: 1600 } : { w: 1600, h: 1100 };
@@ -9090,14 +9090,16 @@
       return b;
     }
     var COLORS = [["검정", "#1b2130"], ["빨강", "#d92d20"], ["파랑", "#2f5fd6"]];
-    var SIZES = [["가늘게", 2], ["보통", 3.5], ["굵게", 7]];
+    var SIZES = [["가늘게", 3], ["보통", 5], ["굵게", 8]];
     var colorBtns = COLORS.map(function (c) {
       return toolBtn(c[0], false, function () { pen.color = c[1]; pen.eraser = false; });
     });
     var sizeBtns = SIZES.map(function (s) {
-      return toolBtn(s[0], false, function () { pen.size = s[1]; });
+      return toolBtn(s[0], false, function () { pen.size = s[1]; pen.eraser = false; });
     });
     var eraserBtn = toolBtn("지우개", false, function () { pen.eraser = !pen.eraser; });
+    var ERASERS=[['지우개 작게',24],['지우개 보통',60],['지우개 크게',120]];
+    var eraserSizes=ERASERS.map(function(pair){return toolBtn(pair[0],false,function(){pen.eraser=true;pen.eraserSize=pair[1];});});
     body.appendChild(tools);
 
     var wrap = el("div", "drawwrap");
@@ -9111,12 +9113,16 @@
     body.appendChild(recognize);body.appendChild(ocrStatus);body.appendChild(result);body.appendChild(insertText);
     recognize.onclick=async function(){
       if(!strokes.length){ocrStatus.textContent='필기를 먼저 입력하세요.';return;}
-      recognize.disabled=true;ocrStatus.textContent='인식 중…';var worker;
+      recognize.disabled=true;ocrStatus.textContent='인식 중…';var worker,requestRevision=drawingRevision;
       try{
         if(!window.Tesseract)await new Promise(function(resolve,reject){var script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';script.onload=resolve;script.onerror=function(){script.remove();reject(Error('문자 인식을 불러오지 못했습니다.'));};document.head.appendChild(script);});
         worker=await Tesseract.createWorker('kor+eng');
         var source=document.createElement('canvas');source.width=PAPER.w;source.height=PAPER.h;paintAll(source.getContext('2d'),PAPER.w,PAPER.h);
-        var recognized=await worker.recognize(source);if(!bg.isConnected)return;
+        var context=source.getContext('2d'),pixels=context.getImageData(0,0,source.width,source.height),minX=source.width,minY=source.height,maxX=-1,maxY=-1;
+        for(var y=0;y<source.height;y++)for(var x=0;x<source.width;x++){var i=(y*source.width+x)*4;var ink=Math.min(pixels.data[i],pixels.data[i+1],pixels.data[i+2])<220;var value=ink?0:255;pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=value;if(ink){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}}
+        if(maxX<0){ocrStatus.textContent='인식할 필기가 없습니다.';return;}
+        context.putImageData(pixels,0,0);var cropped=document.createElement('canvas'),pad=40;cropped.width=maxX-minX+1+pad*2;cropped.height=maxY-minY+1+pad*2;var croppedContext=cropped.getContext('2d');croppedContext.fillStyle='white';croppedContext.fillRect(0,0,cropped.width,cropped.height);croppedContext.drawImage(source,minX,minY,maxX-minX+1,maxY-minY+1,pad,pad,maxX-minX+1,maxY-minY+1);
+        var recognized=await worker.recognize(cropped);if(!bg.isConnected||requestRevision!==drawingRevision){ocrStatus.textContent="";return;}
         result.value=recognized.data.text.trim();result.hidden=false;insertText.hidden=false;
         ocrStatus.textContent=result.value?'':'인식한 글자가 없습니다.';
       }catch(e){if(bg.isConnected)ocrStatus.textContent='인식 실패: '+e.message;}
@@ -9126,12 +9132,12 @@
 
     var foot = el("div", "mfoot");
     var undo = el("button", "btn", "↩ 한 획 되돌리기");
-    undo.addEventListener("click", function () { strokes.pop(); redraw(); syncTools(); });
-    var clear = el("button", "btn", "전부 지우기");
-    clear.addEventListener("click", function () { strokes = []; redraw(); syncTools(); });
+    undo.addEventListener("click", function () { strokes.pop();drawingRevision++;redraw(); syncTools(); });
+    var clear = el("button", "btn", "전체 지우기");
+    clear.addEventListener("click", function () { strokes = [];drawingRevision++; current=null;result.value="";result.hidden=true;insertText.hidden=true;ocrStatus.textContent="";redraw(); syncTools(); });
     var save = el("button", "btn primary", "필기 넣기");
     save.addEventListener("click", commit);
-    foot.appendChild(undo); foot.appendChild(clear);
+    foot.appendChild(undo); tools.appendChild(clear);
     foot.appendChild(el("span", "spacer"));
     foot.appendChild(save);
     m.appendChild(foot);
@@ -9146,9 +9152,10 @@
         b.className = "btn sm" + (!pen.eraser && pen.color === COLORS[i][1] ? " primary" : "");
       });
       sizeBtns.forEach(function (b, i) {
-        b.className = "btn sm" + (pen.size === SIZES[i][1] ? " primary" : "");
+        b.className = "btn sm" + (!pen.eraser && pen.size === SIZES[i][1] ? " primary" : "");
       });
       eraserBtn.className = "btn sm" + (pen.eraser ? " primary" : "");
+      eraserSizes.forEach(function(button,i){button.className='btn sm'+(pen.eraser&&pen.eraserSize===ERASERS[i][1]?' primary':'');});
       undo.disabled = !strokes.length;
       clear.disabled = !strokes.length;
       save.disabled = !strokes.length;
@@ -9183,7 +9190,7 @@
       for (var i = 1; i < s.pts.length; i++) {
         var a = s.pts[i - 1], b2 = s.pts[i];
         ctx.beginPath();
-        ctx.lineWidth = s.size * scale * (s.eraser ? 6 : (0.6 + b2.p));
+        ctx.lineWidth = s.size * scale * (s.eraser ? 1 : Math.max(0.9,0.6 + b2.p));
         ctx.moveTo(a.x * scale, a.y * scale);
         ctx.lineTo(b2.x * scale, b2.y * scale);
         ctx.stroke();
@@ -9192,7 +9199,7 @@
         var q = s.pts[0];
         ctx.fillStyle = s.eraser ? "#ffffff" : s.color;
         ctx.beginPath();
-        ctx.arc(q.x * scale, q.y * scale, s.size * scale * (s.eraser ? 3 : 0.6), 0, Math.PI * 2);
+        ctx.arc(q.x * scale, q.y * scale, s.size * scale * (s.eraser ? 0.5 : 0.6), 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -9208,7 +9215,7 @@
     cv.addEventListener("pointerdown", function (e) {
       e.preventDefault();
       cv.setPointerCapture(e.pointerId);
-      current = { color: pen.color, size: pen.size, eraser: pen.eraser, pts: [toPaper(e)] };
+      current = { color: pen.color, size: pen.eraser ? pen.eraserSize : pen.size, eraser: pen.eraser, pts: [toPaper(e)] };
       redraw();
     });
     cv.addEventListener("pointermove", function (e) {
@@ -9223,12 +9230,12 @@
     function endStroke(e) {
       if (!current) return;
       if (e && e.pointerId != null) { try { cv.releasePointerCapture(e.pointerId); } catch (err) {} }
-      strokes.push(current); current = null;
+      strokes.push(current);drawingRevision++; current = null;
       redraw(); syncTools();
     }
     cv.addEventListener("pointerup", endStroke);
     cv.addEventListener("pointercancel", endStroke);
-    cv.addEventListener("pointerleave", function (e) { if (current) endStroke(e); });
+    // Pointer capture keeps the stroke connected when crossing the canvas edge.
 
     function commit() {
       if (!strokes.length) return;
