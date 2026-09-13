@@ -162,6 +162,14 @@ try {
  await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await wait(150);
  check('mobile restore available',await evaluate(`getComputedStyle(document.getElementById('listRail')).display!=='none'&&document.getElementById('listRail').getBoundingClientRect().width>90`));
  await evaluate(`document.getElementById('listRail').click()`);
+ await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+ await evaluate(`(()=>{const ns=pkosLocal.entries();const base=ns[0];ns.push({...base,id:'test-trash',title:'Trash fixture',trashed:true,localMissing:false,type:'material'});ns.push({...base,id:'test-missing',title:'Missing fixture',trashed:true,localMissing:true,type:'material'});ns.push({...base,id:'test-inbox',title:'Inbox fixture',trashed:false,localMissing:false,type:'material',tags:[],inbox:true});document.getElementById('typeFilters').querySelector('button').click();})()`);
+ await evaluate(`(()=>{const input=document.getElementById('search');input.value='nonmatching-query';input.dispatchEvent(new Event('input'));})()`);await wait(200);
+ await evaluate(`Array.from(document.querySelectorAll('.smartrow')).find(b=>b.textContent.includes('휴지통')).click()`);await wait(200);
+ check('trash count excludes missing and clears search',await evaluate(`document.getElementById('search').value===''&&Array.from(document.querySelectorAll('.smartrow')).find(b=>b.textContent.includes('휴지통')).querySelector('.cnt').textContent==='1'&&document.getElementById('countText').textContent==='1개'`));
+ await evaluate(`Array.from(document.querySelectorAll('.smartrow')).find(b=>b.textContent.includes('미정리함')).click()`);await wait(200);
+ check('inbox counter matches list',await evaluate(`(()=>{const count=Array.from(document.querySelectorAll('.smartrow')).find(b=>b.textContent.includes('미정리함')).querySelector('.cnt').textContent;return document.getElementById('typeFilters').querySelector('button').textContent==='전체 '+count;})()`));
+ check('toolbar has opaque background',await evaluate(`getComputedStyle(document.querySelector('.edbar')).backgroundColor!=='rgba(0, 0, 0, 0)'`));
  check('no script exceptions',errors.length===0,errors.join(';'));
  console.log(JSON.stringify(results));if(results.some(r=>!r.ok))process.exitCode=1;
 }finally{ws.close();edge.kill();}

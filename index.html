@@ -2261,7 +2261,7 @@
   [data-tone="plain"] #tags:hover, [data-tone="plain"] #tags:focus { background: var(--btn-hover); }
   [data-tone="plain"] #tags::placeholder { color: #b8b6b0; }
   [data-tone="plain"] .maskbar { margin-top: 6px; }
-  [data-tone="plain"] .edbar { background: transparent; border: 0; padding: 6px 0 4px; margin: 10px 0 0; gap: 2px 8px; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); }
+  [data-tone="plain"] .edbar { background: var(--panel); isolation: isolate; border: 0; padding: 6px 0 4px; margin: 10px 0 0; gap: 2px 8px; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); }
   [data-tone="plain"] .edgrp { border-right: 1px solid var(--line-soft); padding-right: 6px; gap: 0; }
   [data-tone="plain"] .edbar .btn { border: 0; background: transparent; color: var(--ink-soft); padding: 4px 7px; font-size: 13px; font-weight: 500; border-radius: 4px; }
   [data-tone="plain"] .edbar .btn:hover { background: var(--btn-hover); color: var(--ink); }
@@ -10513,14 +10513,26 @@
     });
     host.appendChild(details);
   }
+  function currentViewEntries() {
+    return entries.filter(function(n){
+      if(n.localMissing)return false;
+      if(smartView==='trash')return !!n.trashed;
+      if(n.trashed)return false;
+      if(smartView==='inbox')return isInbox(n);
+      if(smartView==='todo')return hasOpenTodo(n);
+      if(smartView==='untagged')return !(n.tags||[]).length;
+      return true;
+    });
+  }
   function renderFilters() {
+    var pool = currentViewEntries();
     var host = $("typeFilters");
     host.innerHTML = "";
-    var all = el("button", "chip" + (filterType === "all" ? " on" : ""), "전체 " + liveEntries().length);
+    var all = el("button", "chip" + (filterType === "all" ? " on" : ""), "전체 " + pool.length);
     all.type = "button";
     all.addEventListener("click", function () { filterType = "all"; render(); });
     host.appendChild(all);
-    var pinCount = entries.filter(function (n) { return n.pinned; }).length;
+    var pinCount = pool.filter(function (n) { return n.pinned; }).length;
     if (pinCount || filterPinned) {
       var pb = el("button", "chip" + (filterPinned ? " on" : ""), "📌 고정 " + pinCount);
       pb.type = "button";
@@ -10528,7 +10540,7 @@
       host.appendChild(pb);
     }
     settings.types.forEach(function (t) {
-      var c = entries.filter(function (n) { return n.type === t.key; }).length;
+      var c = pool.filter(function (n) { return n.type === t.key; }).length;
       if (!c && filterType !== t.key) return;
       var b = paintType(el("button", "chip" + (filterType === t.key ? " on" : ""), t.icon + " " + t.label + " " + c), t.key);
       b.type = "button";
@@ -12946,8 +12958,8 @@
       b.appendChild(el("span", "n", label));
       if (count != null) b.appendChild(el("span", "cnt", String(count)));
       b.addEventListener("click", function () {
-        smartView = (smartView === key) ? "" : key;
-        filterPath = [];
+        smartView = key;
+        filterPath = []; filterTags = []; filterType = "all"; filterPinned = false; searchQ = ""; $("search").value = "";
         sideMenuOpen = false;
         closeDrawer();
         foldComposer();
@@ -13177,7 +13189,7 @@
     }
 
     /* ---- 휴지통 · 되돌릴 수 있는 자리가 눈에 보여야 «지우기» 가 무섭지 않다 ---- */
-    var trashN = entries.filter(function (n) { return n.trashed; }).length;
+    var trashN = entries.filter(function (n) { return n.trashed && !n.localMissing; }).length;
     if (trashN || smartView === "trash") {
       host.appendChild(el("div", "sidegap"));
       smartRow("🗑", "휴지통", trashN, "trash", "지운 기록 · 되돌리거나 완전히 지웁니다");
@@ -13567,7 +13579,7 @@
         filterTags.length ? "# " + filterTags.join(" · ") :
         filterPinned ? "고정" : "모든 기록";
     }
-    var liveN = liveEntries().length;
+    var liveN = currentViewEntries().length;
     $("countText").textContent = liveN
       ? (shown.length === liveN ? liveN + "개" : shown.length + " / " + liveN + "개") : "";
 
@@ -13580,7 +13592,7 @@
       tb.appendChild(el("span", "grow",
         shown.length
           ? "버린 기록 " + shown.length + "편입니다. 드라이브의 파일은 아직 그대로 있습니다 · 완전히 삭제할 때 함께 정리됩니다."
-          : "휴지통이 비어 있습니다."));
+          : (currentViewEntries().length ? "검색 조건에 맞는 기록이 없습니다." : "휴지통이 비어 있습니다.")));
       if (shown.length) {
         var eb = el("button", "btn sm danger", "휴지통 비우기");
         eb.type = "button";
