@@ -2754,8 +2754,8 @@
      «다른 넷이 더 나았을까» 가 남는다. 정작 이 앱에서 자리를 정하는 일은
      「한 편을 한 폴더에 담을까, 말까」 하나뿐이다. 그 하나만 묻는다. */
   var FOLDER_MODES = [
-    { key: "perEntry", label: "기록마다 폴더 하나", desc: "2026-08-16_경험_수업회고/ 안에 .md 와 자료를 함께. 한 편을 통째로 공유하거나 옮길 수 있다" },
-    { key: "flat", label: "한 폴더에 전부", desc: "나누지 않고 모두 같은 곳에. 드라이브를 직접 정리하는 사람에게" }
+    { key: "perEntry", label: "기록마다 폴더 생성", desc: "" },
+    { key: "tag", label: "태그별로 폴더 생성", desc: "" }
   ];
   /* 목록에서는 뺐지만 «쓰던 사람» 은 그대로 돈다.
      ⚠️ 여기서 지우면 그 방식을 쓰던 사람의 설정이 기본값으로 되돌아가고,
@@ -2764,7 +2764,7 @@
   var OLD_FOLDER_MODES = [
     { key: "materials", label: "글과 자료를 분리", desc: ".md 는 맨 위, 사진·파일은 자료/ 폴더에" },
     { key: "monthly", label: "월별 폴더", desc: "2026-08/ 안에 그 달 기록과 자료를 모아서" },
-    { key: "tag", label: "태그별 폴더", desc: "#수업설계/ 처럼 태그 이름이 폴더가 된다. 태그가 여럿이면 나머지에는 바로가기" }
+    { key: "flat", label: "한 폴더에 전부", desc: "" }
   ];
   var ALL_FOLDER_MODES = FOLDER_MODES.concat(OLD_FOLDER_MODES);
   function folderModeLabel(key) {
@@ -13946,14 +13946,11 @@
     closeModal();seed=seed||{};
     var bg=el('div','modal-bg'),m=el('div','card modal'),head=el('div','mhead'),body=el('div','mbody'),foot=el('div','mfoot');
     m.style.maxWidth='620px';head.appendChild(el('h3',null,'사이트 추가'));var close=el('button','btn sm','닫기');close.onclick=closeModal;head.appendChild(close);
-    var title=el('input','inp'),url=el('input','inp'),text=el('textarea','inp');title.placeholder='제목';title.setAttribute('aria-label','클립 제목');title.value=seed.title||'';url.placeholder='https://';url.setAttribute('aria-label','출처 주소');url.value=seed.url||'';text.placeholder='가져온 글';text.setAttribute('aria-label','가져온 글');text.value=seed.text||'';text.rows=10;
-    [title,url,text].forEach(function(x){x.style.cssText='width:100%;margin-bottom:10px';body.appendChild(x);});
+    var title=el('input','inp'),url=el('input','inp');title.placeholder='제목';title.setAttribute('aria-label','사이트 제목');title.value=seed.title||'';url.placeholder='https://';url.setAttribute('aria-label','사이트 주소');url.value=seed.url||'';
+    [title,url].forEach(function(x){x.style.cssText='width:100%;margin-bottom:10px';body.appendChild(x);});
     var message=el('div','desc');body.appendChild(message);
     function checkedURL(){try{var u=new URL(url.value.trim());if(!/^https?:$/.test(u.protocol))throw Error();return u.href;}catch(e){message.textContent='http 또는 https 주소를 입력하세요.';return null;}}
-    var add=el('button','btn primary','기록에 넣기');add.onclick=function(){var u=checkedURL();if(!u)return;closeModal();setPage('library');openComposer();if(!$('title').value.trim())$('title').value=title.value.trim()||new URL(u).hostname;var made=[];if(text.value.trim())made.push(newBlock('text',{text:text.value.trim().slice(0,50000)}));made.push(newBlock('text',{text:'출처: '+u}));insertBlocks(made);touchDraft();saveDraft();};foot.appendChild(add);
-    var shortcut=el('button','btn','사이트 추가');shortcut.onclick=function(){var u=checkedURL();if(!u)return;if(!title.value.trim()){message.textContent='사이트 제목을 입력하세요.';title.focus();return;}var sites=readWebSites();if(!sites.some(function(x){return x.url===u;}))sites.push({title:title.value.trim()||new URL(u).hostname,url:u});try{localStorage.setItem('pkos.websites.v1',JSON.stringify(sites));renderWebTools();closeModal();}catch(e){message.textContent='사이트를 저장하지 못했습니다.';}};foot.appendChild(shortcut);
-    var bookmark=el('a','btn','선택한 글 가져오기');bookmark.title='북마크바로 끌어 놓은 뒤 웹페이지에서 실행';var target=location.origin+location.pathname;
-    bookmark.href='javascript:'+encodeURIComponent('(function(){var d={title:document.title,url:location.href,text:String(window.getSelection()).slice(0,50000)};window.open('+JSON.stringify(target)+'+"#clip="+encodeURIComponent(JSON.stringify(d)),"_blank","noopener");})()');body.appendChild(bookmark);
+    var shortcut=el('button','btn primary','사이트 추가');shortcut.onclick=function(){var u=checkedURL();if(!u)return;if(!title.value.trim()){message.textContent='사이트 제목을 입력하세요.';title.focus();return;}var sites=readWebSites();if(!sites.some(function(x){return x.url===u;}))sites.push({title:title.value.trim()||new URL(u).hostname,url:u});try{localStorage.setItem('pkos.websites.v1',JSON.stringify(sites));renderWebTools();closeModal();}catch(e){message.textContent='사이트를 저장하지 못했습니다.';}};foot.appendChild(shortcut);
     m.appendChild(head);m.appendChild(body);m.appendChild(foot);bg.appendChild(m);$('modalHost').appendChild(bg);modalEl=bg;
   }
   function readWebSites(){try{return JSON.parse(localStorage.getItem('pkos.websites.v1')||'[]').filter(function(x){try{return /^https?:$/.test(new URL(x.url).protocol);}catch(e){return false;}});}catch(e){return [];}}
@@ -16078,7 +16075,7 @@
 
     /* ---- 의견 받는 자리 ----
        이 칸은 «앱을 펴 놓은 사람» 이 쓴다. 오른쪽 아래 💬 로 들어온 글이
-       어디에 쌓일지를 여기서 정한다 · 서버가 없으니 앱스 스크립트 웹 앱 주소 한 줄이다. */
+       어디에 쌓일지를 여기서 정한다 서버가 없으니 앱스 스크립트 웹 앱 주소 한 줄이다. */
     function paintFeedback() {
       var f = el("div", "field");
       f.appendChild(el("label", null, "의견 보내기"));
@@ -16088,11 +16085,11 @@
       f.appendChild(b); body.appendChild(f);
     }
 
-    /* 보는 것 고르기 · 누르면 «그 자리에서» 화면이 바뀐다.
-       모양은 레고 하나라 고를 것이 없다. 고르는 것은 색감 · 밝기 · 글자 크기 셋이다. */
+    /* 보는 것 고르기 누르면 «그 자리에서» 화면이 바뀐다.
+       모양은 레고 하나라 고를 것이 없다. 고르는 것은 색감 밝기 글자 크기 셋이다. */
     function paintLook() {
 
-      /* ---- 밝기 · 글자 크기 ----
+      /* ---- 밝기 글자 크기 ----
          서로 «따로» 도는 축이다. 하나를 바꿔도 나머지는 안 흔들린다. */
       function axis(title, desc, field, opts) {
         var g = el("div", "field");
@@ -16116,7 +16113,7 @@
         body.appendChild(g);
       }
 
-      /* 색감 여섯 · 이 도구가 갈아입는 옷 */
+      /* 색감 여섯 이 도구가 갈아입는 옷 */
       var gT = el("div", "field");
       gT.appendChild(el("label", null, "① 색감"));
 
@@ -16156,7 +16153,7 @@
       axis("② 밝기", "", "mode", [
         ["", "🖥️", "기기 따름", "기기가 어두우면 어둡게"],
         ["light", "☀️", "밝게", "언제나 밝은 종이"],
-        ["dark", "🌙", "어둡게", "밤·강당·눈이 부실 때"]
+        ["dark", "🌙", "어둡게", "밤 강당 눈이 부실 때"]
       ]);
       axis("③ 글자 크기", "", "fontSize", [
         ["tiny", "가", "아주 작음", ""], ["small", "가", "작음", ""],
@@ -16172,7 +16169,7 @@
     function paintStorage() {
       if (localSupported() || localOn || localPending) {
         var f0 = el("div", "field");
-        f0.appendChild(el("label", null, "내 컴퓨터 폴더 · 구글 로그인 없이"));
+        f0.appendChild(el("label", null, "내 컴퓨터 폴더 구글 로그인 없이"));
         var r00 = el("div", "row");
         var pickL = el("button", "btn primary", localOn ? "다른 폴더 고르기" : "📁 폴더 고르기");
         pickL.addEventListener("click", function () {
@@ -16195,11 +16192,11 @@
 
         }
         body.appendChild(f0);
-        var sepL = el("div", "field"); sepL.appendChild(el("label", null, "또는 · 구글 드라이브로 (휴대폰)"));
+        var sepL = el("div", "field"); sepL.appendChild(el("label", null, "또는 구글 드라이브로 (휴대폰)"));
         body.appendChild(sepL);
       }
       var f1 = el("div", "field");
-      f1.appendChild(el("label", null, "1단계 · 구글 로그인"));
+      f1.appendChild(el("label", null, "1단계 구글 로그인"));
       var r0 = el("div", "row");
       var loginBtn = el("button", "btn primary", userEmail ? "다른 계정으로 로그인" : "구글 로그인");
       loginBtn.addEventListener("click", function () {
@@ -16214,7 +16211,7 @@
       body.appendChild(f1);
 
       var f2 = el("div", "field");
-      f2.appendChild(el("label", null, "2단계 · 저장할 구글 드라이브 폴더"));
+      f2.appendChild(el("label", null, "2단계 저장할 구글 드라이브 폴더"));
       var r = el("div", "row");
       var inp = el("input", "inp");
       inp.style.flex = "1 1 240px"; inp.style.width = "auto";
@@ -16226,7 +16223,7 @@
       function took(f) {
         inp.value = "https://drive.google.com/drive/folders/" + f.id;
         status.textContent = "「" + f.name + "」" + josa(f.name, "을", "를") + " 고르셨습니다. 연결하는 중…";
-        connect(f.id).then(function () { if (connected) { status.textContent = "연결됨 · " + folder.name; paint(); } });
+        connect(f.id).then(function () { if (connected) { status.textContent = "연결됨 " + folder.name; paint(); } });
       }
       var pick = el("button", "btn primary", "📂 폴더 고르기");
       pick.disabled = !accessToken;
@@ -16266,25 +16263,15 @@
       var modeGrid = el("div", "modegrid");
       function paintMode() {
         modeGrid.innerHTML = "";
-        /* 고를 수 있는 것은 둘. 다만 «지금 쓰고 있는 옛 방식» 은 숨기지 않는다.
-           숨기면 제가 무엇을 쓰고 있는지 알 수 없고, 무심코 바꿔 버린다. */
         var show = FOLDER_MODES.slice();
-        OLD_FOLDER_MODES.forEach(function (fm) {
-          if (draft.folderMode === fm.key || settings.folderMode === fm.key) show.push(fm);
-        });
         show.forEach(function (fm) {
           var card = el("button", "modecard" + (draft.folderMode === fm.key ? " on" : ""));
           card.type = "button";
           var h = el("div", "modehead");
           h.appendChild(el("strong", null, fm.label));
           if (draft.folderMode === fm.key) h.appendChild(el("span", "badge", "고름"));
-          var isOld = OLD_FOLDER_MODES.some(function (o) { return o.key === fm.key; });
-          if (isOld) h.appendChild(el("span", "badge", "지금 쓰는 방식"));
           card.appendChild(h);
-          card.appendChild(folderTree(fm.key));
-          card.appendChild(el("p", "desc", fm.desc));
-          // 되돌릴 수 없는 것만 적는다. 이 칸은 한 번 떠나면 목록에서 사라진다
-          if (isOld) card.appendChild(el("p", "desc", "⚠️ 다른 것을 고르면 이 방식은 목록에서 사라집니다."));
+          card.setAttribute("aria-pressed", String(draft.folderMode === fm.key));
           card.addEventListener("click", function () { draft.folderMode = fm.key; paintMode(); });
           modeGrid.appendChild(card);
         });
@@ -16292,28 +16279,9 @@
       paintMode();
       f3.appendChild(modeGrid);
 
-      var reorg = el("button", "btn sm", "기존 파일도 새 방식으로 옮기기");
-      reorg.disabled = !connected;
-      reorg.addEventListener("click", function () {
-        settings = normalizeSettings(draft);
-        saveSettingsLocal();
-        var kept = 0;
-        entries.forEach(function (n) {
-          if (n.srcId) kept++;              // 밖에서 온 것은 제자리에 둔다
-          n._relocate = true; n._dirty = true;
-        });
-        status.textContent = "옮기는 중…";
-        syncPending().then(function () {
-          // 안 옮긴 것이 있으면 그 사실을 그대로 말한다. 조용히 빼놓으면 «안 됐나» 가 된다
-          status.textContent = "정리했습니다." +
-            (kept ? "  밖에서 가져온 " + kept + "개는 제자리에 두었습니다." : "");
-          updateChrome();
-        });
-      });
-      f3.appendChild(reorg);
       body.appendChild(f3);
 
-      // 가져오기·다시 불러오기는 «설정» 이 아니라 «관리 작업» 이라 「고급」 탭으로 옮겼다.
+      // 가져오기 다시 불러오기는 «설정» 이 아니라 «관리 작업» 이라 「고급」 탭으로 옮겼다.
       // 여기서 찾던 사람을 위해 길만 적어 둔다.
       var f5 = el("div", "field");
       f5.style.borderTop = "1px solid var(--line)";
@@ -16328,10 +16296,10 @@
       body.appendChild(f);
     }
 
-    /* 📛 파일 이름 · 조각 다섯을 켜고 끈다.
+    /* 📛 파일 이름 조각 다섯을 켜고 끈다.
        예전에는 프리셋 스물하나가 든 목록에 «직접 만들기» 칸과 토큰 단추 열하나가 붙어 있었다.
        이름 규칙을 조립하러 이 화면에 오는 사람은 없다. 무엇이 이름에 들어갈지만 정하면 된다.
-       고른 것은 그대로 남는다 · 설정에 규칙 문자열로 적히기 때문이다. */
+       고른 것은 그대로 남는다 설정에 규칙 문자열로 적히기 때문이다. */
     function previewRow(label, value) {
       var r = el("div");
       r.style.cssText = "display:flex;gap:10px;align-items:baseline;";
@@ -16351,7 +16319,7 @@
 
       function paintRows() {
         rows.innerHTML = "";
-        /* 글 이름에 들어갈 수 있는 것은 날짜·태그·제목 셋뿐이다 (자료 제목·번호는 사진·파일에만).
+        /* 글 이름에 들어갈 수 있는 것은 날짜 태그 제목 셋뿐이다 (자료 제목 번호는 사진 파일에만).
            그 셋을 다 끄면 글은 지을 이름이 없어 모두 «무제.md» 가 된다. 그래서 마지막 하나는
            «셋 가운데서» 잠근다. 다섯 가운데서 세면, 자료 제목만 남겨 놓고 셋을 다 끌 수 있어
            앱이 몰래 {제목} 을 도로 세우고, 다시 열면 끈 것이 켜져 있게 된다. */
@@ -16378,7 +16346,7 @@
           ex.style.cssText = "color:var(--ink-soft);min-width:110px;";
           lab.appendChild(ex);
           if (!p.md) {
-            var only = el("span", null, "사진·파일에만");
+            var only = el("span", null, "사진 파일에만");
             only.style.cssText = "font-size:calc(11.5px * var(--fs));color:var(--ink-soft);";
             lab.appendChild(only);
           }
@@ -16388,7 +16356,7 @@
       function paintPreview() {
         pv.innerHTML = "";
         pv.appendChild(previewRow("글", patternPreview(draft.mdPattern, true)));
-        pv.appendChild(previewRow("사진·파일", patternPreview(draft.filePattern, false)));
+        pv.appendChild(previewRow("사진 파일", patternPreview(draft.filePattern, false)));
       }
       paintRows(); paintPreview();
       return f;
@@ -16401,10 +16369,10 @@
       var f = el("div", "field");
       f.appendChild(el("label", null, "지금 쓰는 이름 규칙"));
       f.appendChild(previewRow("글", draft.mdPattern));
-      f.appendChild(previewRow("사진·파일", draft.filePattern));
+      f.appendChild(previewRow("사진 파일", draft.filePattern));
       var pv = el("div", "preview");
       pv.appendChild(previewRow("글", patternPreview(draft.mdPattern, true)));
-      pv.appendChild(previewRow("사진·파일", patternPreview(draft.filePattern, false)));
+      pv.appendChild(previewRow("사진 파일", patternPreview(draft.filePattern, false)));
       f.appendChild(pv);
       var btn = el("button", "btn sm", "간단한 방식으로 바꾸기");
       btn.type = "button";
@@ -16422,7 +16390,7 @@
     function paintNaming() {
       var ff = el("div", "field");
       ff.appendChild(el("label", null, "저장 형식"));
-      [["alsoGdoc", "📄 구글 문서로도 저장", "드라이브에서 클릭 한 번에 열립니다. 제목·소제목·인용이 서식으로 보입니다. (가장 읽기 편함)"],
+      [["alsoGdoc", "📄 구글 문서로도 저장", "드라이브에서 클릭 한 번에 열립니다. 제목 소제목 인용이 서식으로 보입니다. (가장 읽기 편함)"],
        ["alsoHtml", "🌐 HTML 파일로도 저장", "브라우저로 열어 보거나 그대로 웹에 올릴 수 있습니다."]
       ].forEach(function (opt) {
         var lab = el("label");
@@ -16446,7 +16414,7 @@
          저절로 되는 일이라 적지 않는다. */
     }
 
-    /* ---------- 📥 가져오기 · 이 도구를 만든 진짜 목적 ----------
+    /* ---------- 📥 가져오기 이 도구를 만든 진짜 목적 ----------
        폴더에 쌓아 둔 십삼 년치를 끌어오는 길이다. 전에는 «고급» 안에 묻혀 있었다.
        묻어 두면 그 길이 있는 줄도 모른다. */
     function paintImport() {
@@ -16489,7 +16457,7 @@
       body.appendChild(fImp);
 
       var fTidy = el("div", "field");
-      fTidy.appendChild(el("label", null, "가져온 뒤 · 파일 이름 정리"));
+      fTidy.appendChild(el("label", null, "가져온 뒤 파일 이름 정리"));
       var tidy2 = el("button", "btn", "📛 밖에서 넣은 파일 이름 정리");
       tidy2.disabled = !connected;
       tidy2.addEventListener("click", openRenameStudio);
@@ -16499,7 +16467,7 @@
 
     function paintAdvanced() {
       /* ⚠️ 이 칸에는 «서로 다른 두 사람» 의 것이 섞여 있었다.
-         백업·연결 해제는 «쓰는 사람» 의 것이고, 클라이언트 ID 와 앱 주소는
+         백업 연결 해제는 «쓰는 사람» 의 것이고, 클라이언트 ID 와 앱 주소는
          «사본을 지은 사람» 이 SETUP 할 때 한 번 쓰고 다시 볼 일이 없다.
          섞여 있으면 사본을 받은 사람이 「내가 뭐를 잘못했나」 싶어진다. 그래서 갈라 놓는다. */
       var whoUse = el("p", "desc");
@@ -16512,7 +16480,7 @@
       var lpChk = el("input"); lpChk.type = "checkbox"; lpChk.checked = draft.linkPreview !== false;
       lpChk.addEventListener("change", function () { draft.linkPreview = lpChk.checked; });
       lpRow.appendChild(lpChk);
-      lpRow.appendChild(el("span", null, "링크 카드에 제목·설명·그림을 붙입니다 · 주소만 미리보기 서비스(microlink.io)에 보냅니다"));
+      lpRow.appendChild(el("span", null, "링크 카드에 제목 설명 그림을 붙입니다 주소만 미리보기 서비스(microlink.io)에 보냅니다"));
       fLp.appendChild(lpRow);
       body.appendChild(fLp);
       /* 관리자용 둘은 접어 둔다. 필요한 사람만 열어 보면 된다. */
@@ -16614,7 +16582,7 @@
   document.addEventListener("paste", function (e) {
     var t = e.target;
     if (t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT")) return;  // 글 칸은 각자 처리
-    if (e.defaultPrevented || (paper && t && paper.contains(t))) return;    // 종이는 제 손으로 받는다 · 두 번 넣지 않게
+    if (e.defaultPrevented || (paper && t && paper.contains(t))) return;    // 종이는 제 손으로 받는다 두 번 넣지 않게
     if (modalEl) return;
     var items = e.clipboardData && e.clipboardData.items;
     if (!items) return;

@@ -151,15 +151,19 @@ try {
  check('word network opens',await evaluate(`document.querySelector('.graphmodal .mfoot').textContent.includes('단어')&&!!document.querySelector('#graphCanvas')`));
  for(const width of [390,768,1280]){await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<600});await wait(200);check('graph viewport '+width,await evaluate(`document.documentElement.scrollWidth<=innerWidth+2`));}
  await evaluate(`document.querySelector('.graphmodal .mhead button').click();document.querySelector('#webTools button').click()`);
- check('clipper opens',await evaluate(`!!document.querySelector('[aria-label="출처 주소"]')`));
- await evaluate(`document.querySelector('[aria-label="출처 주소"]').value='javascript:alert(1)';Array.from(document.querySelectorAll('.modal button')).find(b=>b.textContent==='기록에 넣기').click()`);
+ check('site form has title and URL only',await evaluate(`document.querySelectorAll('.modal input').length===2&&!document.querySelector('.modal textarea,.modal a')&&!document.querySelector('.modal').textContent.includes('기록에 넣기')`));
+ await evaluate(`window.siteDraftBefore=document.querySelector('#blocks').innerHTML;document.querySelector('[aria-label="사이트 주소"]').value='javascript:alert(1)';Array.from(document.querySelectorAll('.modal button')).find(b=>b.textContent==='사이트 추가').click()`);
  check('unsafe URL rejected',await evaluate(`document.querySelector('.modal').textContent.includes('http 또는 https')`));
- await evaluate(`document.querySelector('[aria-label="출처 주소"]').value='https://example.com/article';document.querySelector('[aria-label="클립 제목"]').value='클립 시험';document.querySelector('[aria-label="가져온 글"]').value='선택한 글 시험';Array.from(document.querySelectorAll('.modal button')).find(b=>b.textContent==='기록에 넣기').click()`);await wait(200);
- check('clip becomes draft with source',await evaluate(`document.querySelector('#blocks').textContent.includes('선택한 글 시험')&&document.querySelector('#blocks').textContent.includes('https://example.com/article')`));
- await evaluate(`document.querySelector('#webTools button').click();document.querySelector('[aria-label="출처 주소"]').value='https://example.com/';document.querySelector('[aria-label="클립 제목"]').value='사이트 시험';Array.from(document.querySelectorAll('.modal button')).find(b=>b.textContent==='사이트 추가').click()`);
- check('site shortcut stored',await evaluate(`document.querySelector('#webTools a').href==='https://example.com/'`));
- await evaluate(`document.querySelector('#webTools button').click();window.clipBookmark=document.querySelector('.modal a').href;document.querySelector('.modal .mhead button').click();location.hash='#clip='+encodeURIComponent(JSON.stringify({title:'수신 시험',url:'https://example.org/',text:'수신 내용'}))`);await wait(200);
- check('bookmark clip received for review',await evaluate(`document.querySelector('[aria-label="가져온 글"]').value==='수신 내용'&&clipBookmark.startsWith('javascript:')`));
+ await evaluate(`document.querySelector('[aria-label="사이트 주소"]').value='https://example.com/';Array.from(document.querySelectorAll('.modal button')).find(b=>b.textContent==='사이트 추가').click()`);
+ check('site requires title',await evaluate(`document.querySelector('.modal').textContent.includes('사이트 제목을 입력')`));
+ await evaluate(`document.querySelector('[aria-label="사이트 제목"]').value='사이트 시험';Array.from(document.querySelectorAll('.modal button')).find(b=>b.textContent==='사이트 추가').click()`);
+ check('site shortcut stored without changing draft',await evaluate(`document.querySelector('#webTools a').href==='https://example.com/'&&document.querySelector('#blocks').innerHTML===siteDraftBefore`));
+ await evaluate(`document.querySelector('[data-go="settings"]').click();Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='저장 위치').click()`);
+ check('two folder choices without dot separators',await evaluate(`Array.from(document.querySelectorAll('.modecard strong')).map(x=>x.textContent).join('|')==='기록마다 폴더 생성|태그별로 폴더 생성'&&!document.querySelector('.modal .mbody').textContent.includes('·')&&!document.querySelector('.modegrid .desc')`));
+ await evaluate(`Array.from(document.querySelectorAll('.modecard')).find(b=>b.textContent.includes('태그별로')).click();Array.from(document.querySelectorAll('.modal .mfoot button')).find(b=>b.textContent==='저장').click();document.querySelector('[data-go="settings"]').click();Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='저장 위치').click()`);
+ check('tag folder choice persists',await evaluate(`document.querySelector('.modecard.on').textContent.includes('태그별로')`));
+ await evaluate(`Array.from(document.querySelectorAll('.modecard')).find(b=>b.textContent.includes('기록마다')).click();Array.from(document.querySelectorAll('.modal .mfoot button')).find(b=>b.textContent==='저장').click();document.querySelector('[data-go="settings"]').click();Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='저장 위치').click()`);
+ check('per record folder choice persists',await evaluate(`document.querySelector('.modecard.on').textContent.includes('기록마다')`));
  await evaluate(`document.querySelector('.modal .mhead button').click();document.querySelector('[data-add="capture"]').click()`);
  check('capture has buttons only',await evaluate(`!document.querySelector('.sheetnote,.sheetbtn small,.sheettoggle')&&!document.querySelector('.modal').textContent.includes('클립보드')`));
  await evaluate(`document.querySelector('.modal .mhead button').click();document.getElementById('btnHome').click()`);await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});await wait(200);
@@ -183,8 +187,9 @@ try {
  check('palette preserves font and size',await evaluate(`getComputedStyle(document.querySelector('#homePage h1')).fontFamily===fontBefore&&getComputedStyle(document.querySelector('#homePage h1')).fontSize===sizeBefore&&document.documentElement.dataset.size==='small'`));
  await evaluate(`Array.from(document.querySelectorAll('.pickbtn')).find(b=>b.querySelector('.picklabel')?.textContent==='어둡게').click()`);
  check('dark palette cards',await evaluate(`getComputedStyle(document.querySelector('.tonebtn')).backgroundColor!=='rgb(255, 255, 255)'`));
+ await evaluate(`document.querySelector('#title').value='기본 유형 검사 초안';document.querySelector('#title').dispatchEvent(new Event('input',{bubbles:true}))`);await wait(500);
  await evaluate(`Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='기록 유형').click();document.querySelector('input[name="defaultRecordType"][value="idea"]').click();Array.from(document.querySelectorAll('.modal .mfoot button')).find(b=>b.textContent==='저장').click();document.querySelector('#topNew').click()`);
- await evaluate(`(()=>{const old=window.confirm;window.confirm=()=>true;try{document.querySelector('#draftBar button').click();}finally{window.confirm=old;}})()`);
+ await evaluate(`(()=>{const old=window.confirm;window.confirm=()=>true;try{document.querySelector('#btnCancelEdit').click();}finally{window.confirm=old;}})()`);
  check('default record type applies',await evaluate(`document.querySelector('#typeChips .on').textContent.includes('아이디어')`));
  await evaluate(`document.querySelector('[data-go="settings"]').click();Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='모양').click()`);
  check('font size and face persist',await evaluate(`document.documentElement.dataset.font==='serif'&&document.documentElement.dataset.size==='small'`));
