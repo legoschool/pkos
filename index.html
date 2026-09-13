@@ -3032,7 +3032,7 @@
 
   var blocks = [];          // 작성 중인 블록
   var editingId = null;
-  var currentType = settings.defaultType || "";
+  var currentType = "";
   var filterType = "all";
   var filterTags = [];      // 태그로 좁혀 보기 (여러 개 고르면 모두 가진 기록만)
   var selectedFolders=[], folderAnchor=null;
@@ -3110,6 +3110,7 @@
   function normalizeSettings(s) {
     var out = JSON.parse(JSON.stringify(DEFAULTS));
     out.savedSearches = [];
+    out.tagPresets = ["연수", "아이디어", "자료"];
     if (!s) return out;
     if (Array.isArray(s.savedSearches)) out.savedSearches = s.savedSearches.filter(function (x) { return x && typeof x.name === "string" && x.name.trim(); }).map(function (x) {
       return { id: typeof x.id === "string" ? x.id : uid("search_"), name: x.name.trim().slice(0, 80),
@@ -3168,7 +3169,8 @@
     if (["","tiny","small","big","huge"].includes(s.fontSize)) out.fontSize = s.fontSize;
     out.fontFamily=["gothic","serif","system","rounded","mono"].includes(s.fontFamily)?s.fontFamily:"gothic";
     out.defaultType=s.typeSelectionVersion===1&&["experience","idea","material"].includes(s.defaultType)?s.defaultType:"";
-    out.typeSelectionVersion=1;
+    out.typeSelectionVersion=1; out.defaultType="";
+    out.tagPresets=Array.isArray(s.tagPresets)?cleanTags(s.tagPresets.join(",")):["연수","아이디어","자료"];
     if (typeof s.maskGrain === "number" && s.maskGrain >= 0 && s.maskGrain <= 2) out.maskGrain = s.maskGrain | 0;
     if (typeof s.alsoGdoc === "boolean") out.alsoGdoc = s.alsoGdoc;
     if (typeof s.alsoHtml === "boolean") out.alsoHtml = s.alsoHtml;
@@ -3177,7 +3179,7 @@
     return out;
   }
   function typeOf(key) {
-    if (key === "") return {key:"",label:"미선택",icon:""};
+    if (key === "") return {key:"",label:"",icon:""};
     if (!["experience", "idea", "material"].includes(key)) key = "material";
     for (var i = 0; i < settings.types.length; i++) if (settings.types[i].key === key) return settings.types[i];
     return { key: key || "", label: "미분류", icon: "🏷️" };
@@ -3248,6 +3250,7 @@
     return "--c: var(--t" + slot + "); --c-soft: var(--t" + slot + "s);";
   }
   function paintType(node, key) {
+    if (node && key === "" && node.classList.contains("badge")) node.hidden=true;
     if (node) node.style.cssText += ";" + typeVars(key);
     return node;
   }
@@ -3732,12 +3735,20 @@
   }
 
   // 예전 버전(본문+첨부 분리)을 블록 구조로 변환
+  function legacyTypeTag(key) {
+    if (!key || key === "미선택" || key === "미분류") return "";
+    var found=settings.types.find(function(t){return t.key===key||t.label===key;});
+    return found ? found.label : ({reflection:"수업 회고",knowledge:"연수"}[key] || String(key));
+  }
+  function unifyRecordTags(n) {
+    var tag=legacyTypeTag(n.type);
+    n.tags=cleanTags((n.tags||[]).concat(tag?[tag]:[]).join(","));
+    n.type="";
+    return n;
+  }
   function migrate(list) {
     return (list || []).map(function (n) {
-      if (!["", "experience", "idea", "material"].includes(n.type)) {
-        if (n.type) n.previousType = n.type;
-        n.type = "material";
-      }
+      unifyRecordTags(n);
       if (n.blocks) return n;
       var bl = [];
       if (n.body) bl.push({ id: uid(), kind: "text", text: n.body });
@@ -4420,7 +4431,7 @@
     return {
       folder: recordFolderLabel(entry), subfolder: subfolderLabel(),
       date: dateStamp(entry.createdAt), time: timeStamp(entry.createdAt),
-      type: typeOf(entry.type).label,
+      type: firstTag(entry),
       title: safeName(entry.title, 40) || "무제",
       tag: firstTag(entry),
       caption: safeName(String(caption || ""), 40),
@@ -5197,7 +5208,7 @@
     var L = [];
     L.push("---");
     L.push("id: " + n.id);
-    L.push("type: " + typeOf(n.type).label);
+    unifyRecordTags(n);
     L.push("title: " + yq(n.title));
     // 파일명이 "{날짜}_{유형}_{제목}.md" 라서, 별칭이 없으면 옵시디언이 [[제목]] 을 못 찾습니다
     L.push("aliases: [" + [n.title, n.id].filter(Boolean).map(yq).join(", ") + "]");
@@ -5337,7 +5348,7 @@
     var t = typeOf(n.type);
     var H = [];
     H.push('<h1>' + esc(n.title || "(제목 없음)") + '</h1>');
-    var meta = [t.icon + " " + t.label, formatDate(n.createdAt)];
+    var meta = [formatDate(n.createdAt)];
     if ((n.tags || []).length) meta.push(n.tags.map(function (x) { return "#" + x; }).join(" "));
     H.push('<p><i>' + esc(meta.join("  ·  ")) + '</i></p>');
     H.push("<hr />");
@@ -6292,8 +6303,8 @@
       (x.blocks || []).forEach(function (b) { if (b.fileId) known[b.fileId] = 1; });
     });
     blocks.forEach(function(b){if(b.fileId)known[b.fileId]=1;});
-    var materialType = settings.types[0] ? settings.types[0].key : "";
-    settings.types.forEach(function (t) { if (t.key === "material" || t.label === "자료") materialType = t.key; });
+    var materialType = "";
+
     var loose = [];   // 어느 글에도 안 걸린 자료 파일
     async function walk(parts, depth) {
       visited++;
@@ -6320,8 +6331,8 @@
           if (!have._dirty && have.id !== editingId && (file.lastModified !== have.localMtime || !localTagChecked.has(have) || !opt.quiet)) {
             var p2 = parseFrontMatter(await file.text()), fm2 = p2.fm;
             have.title = unquote(fm2.title) || (/^#\s+(.*)$/m.exec(p2.body) || [])[1] || stemOf(f.name);
-            have.tags = parseListValue(fm2.tags); localTagChecked.add(have);
-            var wanted2 = unquote(fm2.type); if (wanted2 === "미선택") have.type = ""; settings.types.forEach(function (tp) { if (tp.label === wanted2) have.type = tp.key; });
+            have.tags = parseListValue(fm2.tags); have.type=unquote(fm2.type); unifyRecordTags(have); localTagChecked.add(have);
+
             have.blocks = bodyToBlocks(p2.body, siblings, parts);
             have.updatedAt = file.lastModified; have.localMtime = file.lastModified;
             (have.blocks || []).forEach(function (b) { if (b.fileId) known[b.fileId] = 1; });
@@ -6340,7 +6351,7 @@
             if (moved._dirty || moved.id === editingId) continue;
             moved.mdId = id; moved.mdName = f.name; moved.srcId = id; moved.srcPath = parts.slice();
             moved.localDir = parts.join("/"); moved.localMtime = 0; moved.localMissing = false;
-            moved.title = unquote(fm.title) || stemOf(f.name); moved.tags = parseListValue(fm.tags);
+            moved.title = unquote(fm.title) || stemOf(f.name); moved.tags = parseListValue(fm.tags); moved.type=unquote(fm.type);unifyRecordTags(moved);
             moved.blocks = bodyToBlocks(parsed.body, siblings, parts); moved.localMtime = file.lastModified;
             (moved.blocks || []).forEach(function (b) { if (b.fileId) known[b.fileId] = 1; });
             known[id] = 1; byMd[id] = moved; changed++;
@@ -6349,7 +6360,7 @@
           duplicateId = true;
         }
         var title = unquote(fm.title) || (/^#\s+(.*)$/m.exec(parsed.body) || [])[1] || stemOf(f.name);
-        var wanted = unquote(fm.type), typeKey = wanted === "미선택" ? "" : "material";
+        var wanted = unquote(fm.type), typeKey = wanted || "";
         settings.types.forEach(function (tp) { if (tp.label === wanted) typeKey = tp.key; });
         var created = Date.parse(fm.created) || file.lastModified || Date.now();
         var updated = Date.parse(fm.updated) || file.lastModified || created;
@@ -6370,7 +6381,7 @@
           await localWrite(parts, f.name, headerMatch[1] + revisedHeader + headerMatch[3] + originalCopy.slice(headerMatch[0].length));
           e.localMtime = (await f.handle.getFile()).lastModified;
         }
-        localTagChecked.add(e); // Folder paths never imply tags, including an explicit empty tag list.
+        unifyRecordTags(e); localTagChecked.add(e); // Folder paths never imply tags, including an explicit empty tag list.
         (e.blocks || []).forEach(function (b) { if (b.fileId) known[b.fileId] = 1; });
         tombstones = tombstones.filter(function (tb) { return tb.id !== e.id; });
         byId[e.id] = e; byMd[id] = e; known[id] = 1; entries.push(e); added++;
@@ -6571,7 +6582,7 @@
       }
       if (saved && localOn && localRoot === targetRoot) {
         if (mediaBatch.length) {
-          entries.unshift({ id: uid("k_"), type: "material", title: stemOf(files[0].name) + " 외 " + (mediaBatch.length - 1) + "개",
+          entries.unshift({ id: uid("k_"), type: "", title: stemOf(files[0].name) + " 외 " + (mediaBatch.length - 1) + "개",
             tags: [], blocks: mediaBatch, relations: [], createdAt: Date.now(), updatedAt: Date.now(), localDir: parts.join("/"), _dirty: true });
           await localSyncPending();
         }
@@ -8670,7 +8681,7 @@
       var made=[video];if(data.text.trim())made.push(newBlock('text',{text:'강의 전사\n'+data.text}));
       await idbPut(video.id,video.blob);
       if(data.target&&data.target.page===lecturePageId&&data.target.version===lectureDraftVersion&&data.target.id===editingId){if(!$('title').value.trim())$('title').value=data.title;insertBlocks(made);touchDraft();saveDraft();}
-      else{var n=data.target&&entries.find(function(n){return n.id===targetId&&!n.trashed;});if(!n){n={id:uid('k_'),title:data.title,type:'material',tags:[],blocks:[],relations:[],createdAt:Date.now()};entries.unshift(n);}n.blocks=n.blocks.concat(made);n.updatedAt=Date.now();n._dirty=true;video.name=attachName(n,n.blocks.length,video.original,video);saveLocal();render();if(connected||localOn)syncPending();}
+      else{var n=data.target&&entries.find(function(n){return n.id===targetId&&!n.trashed;});if(!n){n={id:uid('k_'),title:data.title,type:'',tags:[],blocks:[],relations:[],createdAt:Date.now()};entries.unshift(n);}n.blocks=n.blocks.concat(made);n.updatedAt=Date.now();n._dirty=true;video.name=attachName(n,n.blocks.length,video.original,video);saveLocal();render();if(connected||localOn)syncPending();}
       toast('강의 영상을 기록에 넣었습니다.');
     }});
   }
@@ -10124,9 +10135,9 @@
     if (!hasText) { localStorage.removeItem(LS.draft); return false; }
 
     editingId = d.editingId || null;
-    currentType = typeof d.type === "string" ? d.type : "";
+    var draftLegacyTag=legacyTypeTag(d.type);currentType="";
     $("title").value = d.title || "";
-    $("tags").value = d.tags || ""; renderTagChips();
+    $("tags").value = cleanTags((d.tags||"")+","+draftLegacyTag).join(", "); renderTagChips();
     if ($("inboxChk")) $("inboxChk").checked = !!d.inbox;
     blocks = d.blocks.map(cloneBlock);
     if (editingId) {
@@ -10190,7 +10201,7 @@
   function resetComposer() {
     lectureDraftVersion++;
     editingId = null;
-    currentType = settings.defaultType || "";
+    currentType = "";
     $("title").value = ""; $("tags").value = ""; renderTagChips();
     if ($("inboxChk")) $("inboxChk").checked = false;
     blocks = [];
@@ -10203,6 +10214,7 @@
   }
 
   function loadIntoComposer(n) {
+    unifyRecordTags(n);
     lectureDraftVersion++;
     editingId = n.id;
     currentType = n.type;
@@ -10309,7 +10321,7 @@
     }
 
     var renamedFrom = n.title && findByTitle(n.title) === n ? n.title : "";
-    n.type = ["experience", "idea", "material"].includes(currentType) ? currentType : "";
+    n.type = "";
     n.title = title || "(제목 없음)";
     n.tags = cleanTags($("tags").value);
     n.inbox = !!($("inboxChk") && $("inboxChk").checked);
@@ -10646,16 +10658,15 @@
   }
 
   function renderTypeChips() {
-    var host = $("typeChips");
-    host.innerHTML = "";
-    settings.types.forEach(function (t) {
-      var b = paintType(el("button", "chip" + (t.key === currentType ? " on" : ""), t.icon + " " + t.label), t.key);
-      b.type = "button";
-      b.setAttribute("aria-pressed",String(t.key===currentType));
-      b.addEventListener("click", function () { currentType = currentType === t.key ? "" : t.key; renderTypeChips(); refreshAtomNames(); touchDraft(); saveDraft(); });
-      host.appendChild(b);
+    var host=$("typeChips");host.innerHTML="";host.setAttribute("aria-label","빠른 태그 선택");
+    var selected=cleanTags($("tags").value);
+    (settings.tagPresets||[]).forEach(function(tag){
+      var on=selected.includes(tag),button=el("button","chip"+(on?" on":""),tag);button.type="button";
+      button.setAttribute("aria-pressed",String(on));button.onclick=function(){
+        var tags=cleanTags($("tags").value);$("tags").value=(tags.includes(tag)?tags.filter(t=>t!==tag):tags.concat(tag)).join(", ");
+        renderTagChips();refreshAtomNames();touchDraft();saveDraft();
+      };host.appendChild(button);
     });
-
   }
 
   var tagsExpanded = false;
@@ -10752,14 +10763,6 @@
       pb.addEventListener("click", function () { filterPinned = !filterPinned; render(); });
       host.appendChild(pb);
     }
-    settings.types.forEach(function (t) {
-      var c = pool.filter(function (n) { return n.type === t.key; }).length;
-      if (!c && filterType !== t.key) return;
-      var b = paintType(el("button", "chip" + (filterType === t.key ? " on" : ""), t.icon + " " + t.label + " " + c), t.key);
-      b.type = "button";
-      b.addEventListener("click", function () { filterType = t.key; render(); });
-      host.appendChild(b);
-    });
     renderTagFilters();
   }
 
@@ -10777,7 +10780,7 @@
     entries.forEach(function (n) {
       if (n.trashed) return;                 // 버린 것은 세지 않는다
       if (filterPinned && !n.pinned) return;
-      if (filterType !== "all" && n.type !== filterType) return;
+      if (filterType !== "all" && !(n.tags||[]).includes(legacyTypeTag(filterType))) return;
       if (selectedFolders.length ? !selectedFolders.some(function(p){return underPath(n,p);}) : filterPath.length && !underPath(n,filterPath)) return;
       if (searchQ && !searchMatches(n)) return;
       var seen = {};
@@ -10997,7 +11000,7 @@
     if (smartView === "untagged" && (n.tags || []).length) return false;
     if (smartView === "inbox" && !isInbox(n)) return false;
     if (filterPinned && !n.pinned) return false;
-    if (filterType !== "all" && n.type !== filterType) return false;
+    if (filterType !== "all" && !(n.tags||[]).includes(legacyTypeTag(filterType))) return false;
     /* 폴더 길은 «앞에서부터» 같아야 한다. 2019/3학년 을 고르면 2019/4학년 은 빠진다.
        ⚠️ 반드시 crumbsOf 로 잰다. 나무도, 길찾기 줄도 그것으로 서기 때문이다.
           예전에는 여기서만 srcPath 를 바로 봤다. 그러면 «폴더에서 끌어온 기록» 만 걸리고
@@ -12200,7 +12203,7 @@
       L.push("");
       L.push("## " + (i + 1) + ". " + (n.title || "(제목 없음)"));
       L.push("");
-      var meta = [t.icon + " " + t.label, formatDate(n.createdAt)];
+      var meta = [formatDate(n.createdAt)];
       if ((n.tags || []).length) meta.push(n.tags.map(function (x) { return "#" + x; }).join(" "));
       L.push("*" + meta.join("  ·  ") + "*");
       L.push("");
@@ -12247,7 +12250,7 @@
       var t = typeOf(n.type);
       H.push('<section class="chapter" id="' + anchorOf(i + 1, n.title) + '">');
       H.push("<h2>" + (i + 1) + ". " + esc(n.title || "(제목 없음)") + "</h2>");
-      var meta = [t.icon + " " + t.label, formatDate(n.createdAt)];
+      var meta = [formatDate(n.createdAt)];
       if ((n.tags || []).length) meta.push(n.tags.map(function (x) { return "#" + x; }).join(" "));
       H.push('<p class="chmeta">' + esc(meta.join("  ·  ")) + "</p>");
       blocksToHtml(n, 3).forEach(function (x) { H.push(x); });
@@ -13442,8 +13445,7 @@
     if (composerBusy() && !window.confirm("쓰던 내용을 버리고 양식으로 새로 시작할까요?")) return;
     clearDraft(true);
     resetComposer();
-    if (tpl.type) { currentType = tpl.type; renderTypeChips(); }
-    $("tags").value = ""; renderTagChips();
+    $("tags").value = cleanTags((tpl.tags||"")+","+legacyTypeTag(tpl.type)).join(", "); renderTagChips();
     blocks = (tpl.blocks || []).map(function (t) {
       var b = newBlock(t.kind || "text");
       if (t.text != null) b.text = fillTplText(t.text);
@@ -13769,6 +13771,8 @@
   })();
 
   function render() {
+    entries.forEach(unifyRecordTags);
+    if(filterType!=="all"){var oldFilterTag=legacyTypeTag(filterType);if(oldFilterTag&&!filterTags.includes(oldFilterTag))filterTags.push(oldFilterTag);filterType="all";}
     var availableTags = new Set(knowledgeEntries().flatMap(function(n){return n.tags||[];}));
     filterTags = filterTags.filter(function(tag){return availableTags.has(tag);});
     invalidateLinks();
@@ -13910,7 +13914,7 @@
       var head = el("div", "head");
       if (crumbsOf(n).length) card.appendChild(buildCrumbs(n));
       if (n._missing || n._away) card.appendChild(missingNote(n));
-      head.appendChild(el("span", "badge", t.icon + " " + t.label));
+      if(t.label)head.appendChild(el("span", "badge", t.icon + " " + t.label));
       if (!n.trashed && isInbox(n)) head.appendChild(el("span", "badge inboxbadge", "📥 미정리"));
       /* 제목을 누르면 열린다 · 가장 많이 하는 일(읽기)이 가장 가까운 자리에 있어야 한다.
          전에는 제목이 왼쪽 위, 여는 단추가 오른쪽 아래로 «대각선으로 가장 먼» 자리였다. */
@@ -14105,7 +14109,7 @@
     var recent=el('button','btn','최근 기록'),connected=el('button','btn','연결이 많은 기록'),map=el('button','btn','지식맵');bar.appendChild(recent);bar.appendChild(connected);bar.appendChild(map);map.onclick=openGraph;host.appendChild(bar);
     var grid=el('div','knowledge-catalog');host.appendChild(grid);
     function paint(){grid.replaceChildren();var ns=live.filter(function(n){return !query||entryText(n).includes(query);}).sort(function(a,b){return order==='connected'?(analysis.degree.get(b.id)||0)-(analysis.degree.get(a.id)||0):(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0);});
-      ns.forEach(function(n){var card=el('button','knowledge-card');card.type='button';card.dataset.catalogId=n.id;var photo=(n.blocks||[]).find(function(b){return b.kind==='image';});if(photo){var img=el('img');img.alt='';img.loading='lazy';card.appendChild(img);blockFile(photo).then(function(file){if(img.isConnected&&file)img.src=mediaObjectUrl(file,img);}).catch(function(){img.remove();});img.onerror=function(){img.remove();};}card.appendChild(el('div','catalog-name',n.title||'제목 없음'));var files=(n.blocks||[]).filter(function(b){return b.kind==='image'||b.kind==='file'||b.kind==='audio'||b.kind==='video';});card.appendChild(el('div','catalog-meta',typeOf(n.type).label+(files.length?' · 첨부 '+files.length:'')));card.onclick=function(){openViewer(n);};grid.appendChild(card);});
+      ns.forEach(function(n){var card=el('button','knowledge-card');card.type='button';card.dataset.catalogId=n.id;var photo=(n.blocks||[]).find(function(b){return b.kind==='image';});if(photo){var img=el('img');img.alt='';img.loading='lazy';card.appendChild(img);blockFile(photo).then(function(file){if(img.isConnected&&file)img.src=mediaObjectUrl(file,img);}).catch(function(){img.remove();});img.onerror=function(){img.remove();};}card.appendChild(el('div','catalog-name',n.title||'제목 없음'));var files=(n.blocks||[]).filter(function(b){return b.kind==='image'||b.kind==='file'||b.kind==='audio'||b.kind==='video';});card.appendChild(el('div','catalog-meta',[(n.tags||[]).join(", "),files.length?"첨부 "+files.length:""].filter(Boolean).join(" / ")));card.onclick=function(){openViewer(n);};grid.appendChild(card);});
       if(!ns.length)grid.appendChild(el('div',null,'자료 없음'));
     }
     search.oninput=function(){query=search.value.trim().toLowerCase();paint();};recent.onclick=function(){order='recent';paint();};connected.onclick=function(){order='connected';paint();};paint();
@@ -14697,13 +14701,7 @@
     var addedMd = 0, addedFile = 0, skipped = 0, relearned = 0;
 
     // 자료를 세울 때 붙일 기록 유형 · 「자료」 가 있으면 그것을, 없으면 맨 앞 것을
-    function materialTypeKey() {
-      var key = settings.types[0] ? settings.types[0].key : "";
-      settings.types.forEach(function (t) {
-        if (t.key === "material" || t.label === "자료") key = t.key;
-      });
-      return key;
-    }
+    function materialTypeKey() { return ""; }
 
     // ① 글(.md) 한 편을 읽어 색인에 세운다
     function readMd(f, files) {
@@ -14716,8 +14714,8 @@
         var title = unquote(fm.title) ||
           (/^#\s+(.*)$/m.exec(parsed.body) || [])[1] ||
           stemOf(f.name);
-        var typeKey = settings.types[0] ? settings.types[0].key : "";
         var wanted = unquote(fm.type);
+        var typeKey = wanted || "";
         if (wanted === "미선택") typeKey = "";
         settings.types.forEach(function (t) { if (t.label === wanted) typeKey = t.key; });
 
@@ -15712,15 +15710,6 @@
 
     function paintLegend() {
       legend.innerHTML = "";
-      settings.types.forEach(function (t) {
-        var c = knowledgeEntries().filter(function (n) { return n.type === t.key; }).length;
-        if (!c) return;
-        var row = el("div", "lg");
-        var d = el("span", "dot"); d.style.background = typeColor(t.key);
-        row.appendChild(d);
-        row.appendChild(document.createTextNode(t.label + " " + c));
-        legend.appendChild(row);
-      });
       if (showTags) {
         var row2 = el("div", "lg");
         var d2 = el("span", "dot"); d2.style.background = "#94a3b8";
@@ -15984,7 +15973,7 @@
       panel.innerHTML = "";
 
       var head = el("div", "gp-head");
-      head.appendChild(el("span", "badge", t.icon + " " + t.label));
+      if(t.label)head.appendChild(el("span", "badge", t.icon + " " + t.label));
       head.appendChild(el("span", "spacer"));
       var close = el("button", "btn xs ghost", "✕");
       close.addEventListener("click", function () { selectNode(null); });
@@ -16196,7 +16185,7 @@
     /* ⚠️ 「📥 가져오기」 는 «고급» 에 묻혀 있었다. 그런데 그것이 이 도구를 만든 진짜 목적이다. 
        십삼 년치를 끌어오는 길. 묻어 두면 그 길이 있는 줄도 모른다. 그래서 제 칸으로 꺼냈다. */
     var TABS = [["look", "모양"], ["storage", "저장 위치"], ["import", "📥 가져오기"],
-                ["types", "기록 유형"], ["naming", "파일 이름"], ["feedback", "의견 받기"], ["advanced", "고급"]];
+                ["types", "태그"], ["naming", "파일 이름"], ["feedback", "의견 받기"], ["advanced", "고급"]];
     TABS.forEach(function (t) {
       var b = el("button", "tab" + (active === t[0] ? " on" : ""), t[1]);
       b.addEventListener("click", function () { active = t[0]; paint(); });
@@ -16446,10 +16435,10 @@
     }
 
     function paintTypes() {
-      var f = el("div", "field");
-      f.appendChild(el("label", null, "기록 유형"));
-      var row=el('div');[{key:'',label:'미선택'}].concat(draft.types).forEach(function(t){var line=el('label','checkline'),radio=el('input');radio.type='radio';radio.name='defaultRecordType';radio.value=t.key;radio.checked=(draft.defaultType||'')===t.key;radio.onchange=function(){draft.defaultType=t.key;};line.appendChild(radio);line.appendChild(document.createTextNode(t.label));row.appendChild(line);});f.appendChild(el('label',null,'새 기록 기본 유형'));f.appendChild(row);
-      body.appendChild(f);
+      var f=el("div","field");f.appendChild(el("label",null,"빠른 선택 태그"));
+      var input=el("input","inp");input.setAttribute("aria-label","빠른 선택 태그");input.value=(draft.tagPresets||[]).join(", ");
+      input.oninput=function(){draft.tagPresets=cleanTags(input.value);};f.appendChild(input);
+      f.appendChild(el("p","desc","쉼표로 구분합니다. 새 기록은 태그 미선택으로 시작합니다."));body.appendChild(f);
     }
 
     /* 📛 파일 이름 조각 다섯을 켜고 끈다.
@@ -16815,6 +16804,7 @@
   $("blocks").addEventListener("input", touchDraft);
   $("title").addEventListener("input", touchDraft);
   function renderTagChips(){
+    renderTypeChips();
     var host=$('tagChips');if(!host)return;host.replaceChildren();
     cleanTags($('tags').value).forEach(function(tag){var chip=el('span','chip'),remove=el('button','btn xs','×');chip.appendChild(document.createTextNode(tag));remove.type='button';remove.setAttribute('aria-label',tag+' 태그 삭제');remove.onclick=function(){ $('tags').value=cleanTags($('tags').value).filter(function(t){return t!==tag;}).join(', ');renderTagChips();touchDraft();saveDraft();};chip.appendChild(remove);host.appendChild(chip);});
     if($('tagEntry'))$('tagEntry').value='';if($('tagSuggestions'))$('tagSuggestions').replaceChildren();

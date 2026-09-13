@@ -147,7 +147,7 @@ try {
  check('이름 확인 중 기록은 저장하지 않음',await evaluate(`document.querySelector('#title').value!==''&&!document.querySelector('[aria-label="저장할 파일 이름"]')`));
  await evaluate(`document.querySelector('#btnSave').click()`);
   await wait(2200);
-  check('웹앱 기록과 첨부의 PC 폴더 저장',await evaluate(`pkosLocal.entries().some(n=>n.title==='PC 연결 저장'&&n.blocks.some(b=>b.fileId&&b.original==='bridge.txt'))`));
+  check('웹앱 기록과 첨부의 PC 폴더 저장',await evaluate(`pkosLocal.entries().some(n=>n.title==='PC 연결 저장'&&n.blocks.some(b=>b.fileId&&b.original.endsWith('bridge.txt')&&b.searchText==='BRIDGE-ORIGINAL'))`));
   await send('Page.reload');await wait(2000);
   check('재실행 시 폴더 권한 선택 없이 기록 복원',await evaluate(`pkosLocal.isOn()&&pkosLocal.entries().some(n=>n.title==='PC 연결 저장')`));
  }

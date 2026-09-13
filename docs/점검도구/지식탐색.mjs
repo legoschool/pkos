@@ -177,10 +177,11 @@ try {
  await evaluate(`document.querySelector('.modal .mhead button').click();document.getElementById('btnHelp').click()`);check('menu without tutorial prose',await evaluate(`!document.querySelector('.modal').textContent.includes('백링크')&&document.querySelector('.modal').textContent.includes('전체 자료')`));
  check('inbox removed from navigation',await evaluate(`!Array.from(document.querySelectorAll('.smartrow')).some(b=>b.textContent.includes('미정리함'))&&getComputedStyle(document.querySelector('.inboxline')).display==='none'`));
  await evaluate(`document.querySelector('.modal .mhead button').click();document.querySelector('[data-go="settings"]').click()`);
- for(const name of ['모양','저장 위치','가져오기','기록 유형','파일 이름','의견 받기','고급']){await evaluate(`Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent.includes('${name}')).click()`);check('settings tab '+name,await evaluate(`!!document.querySelector('.modal .mbody')`));}
+ for(const name of ['모양','저장 위치','가져오기','태그','파일 이름','의견 받기','고급']){await evaluate(`Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent.includes('${name}')).click()`);check('settings tab '+name,await evaluate(`!!document.querySelector('.modal .mbody')`));}
  await evaluate(`Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent.includes('가져오기')).click()`);check('local import enabled without Google',await evaluate(`Array.from(document.querySelectorAll('.modal button')).some(b=>b.textContent==='폴더 다시 읽기'&&!b.disabled)&&Array.from(document.querySelectorAll('.modal button')).some(b=>b.textContent==='파일 가져오기'&&!b.disabled)`));
  await evaluate(`Array.from(document.querySelectorAll('.modal button')).find(b=>b.textContent==='폴더 다시 읽기').click()`);await wait(500);check('local import button recovers',await evaluate(`!Array.from(document.querySelectorAll('.modal button')).find(b=>b.textContent==='폴더 다시 읽기').disabled`));
- await evaluate(`Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='기록 유형').click()`);check('record types visible',await evaluate(`['연수','아이디어','자료'].every(t=>document.querySelector('.modal .mbody').textContent.includes(t))`));
+ await evaluate(`Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='태그').click()`);
+ check('tag presets visible',await evaluate(`document.querySelector('.modal [aria-label="빠른 선택 태그"]').value.includes('연수')&&!document.querySelector('.modal input[name="defaultRecordType"]')`));
  await evaluate(`Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='파일 이름').click()`);check('naming shows optional tag rule',await evaluate(`document.querySelector('.modal .mbody').textContent.includes('폴더명-태그(선택)-파일명')&&!document.querySelector('input[name="recordNameRule"]')`));
  await evaluate(`Array.from(document.querySelectorAll('.modal .mfoot button')).find(b=>b.textContent==='저장').click();document.querySelector('[data-go="settings"]').click();Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='파일 이름').click()`);check('naming setting persists',await evaluate(`document.querySelector('.modal .mbody').textContent.includes('태그 미설정')`));
  await evaluate(`Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='모양').click()`);
@@ -190,9 +191,9 @@ try {
  await evaluate(`Array.from(document.querySelectorAll('.pickbtn')).find(b=>b.querySelector('.picklabel')?.textContent==='어둡게').click()`);
  check('dark palette cards',await evaluate(`getComputedStyle(document.querySelector('.tonebtn')).backgroundColor!=='rgb(255, 255, 255)'`));
  await evaluate(`document.querySelector('#title').value='기본 유형 검사 초안';document.querySelector('#title').dispatchEvent(new Event('input',{bubbles:true}))`);await wait(500);
- await evaluate(`Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='기록 유형').click();document.querySelector('input[name="defaultRecordType"][value="idea"]').click();Array.from(document.querySelectorAll('.modal .mfoot button')).find(b=>b.textContent==='저장').click();document.querySelector('#topNew').click()`);
+ await evaluate(`Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='태그').click();document.querySelector('[aria-label="빠른 선택 태그"] input')?.click();Array.from(document.querySelectorAll('.modal .mfoot button')).find(b=>b.textContent==='저장').click();document.querySelector('#topNew').click()`);
  await evaluate(`(()=>{const old=window.confirm;window.confirm=()=>true;try{document.querySelector('#btnCancelEdit').click();}finally{window.confirm=old;}})()`);
- check('default record type applies',await evaluate(`document.querySelector('#typeChips .on').textContent.includes('아이디어')`));
+ check('new record still has no tags after settings save',await evaluate(`!document.querySelector('#typeChips .on')&&document.querySelector('#tags').value===''`));
  await evaluate(`document.querySelector('[data-go="settings"]').click();Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='모양').click()`);
  check('font size and face persist',await evaluate(`document.documentElement.dataset.font==='serif'&&document.documentElement.dataset.size==='small'`));
  await evaluate(`Array.from(document.querySelectorAll('.pickbtn')).find(b=>b.querySelector('.picklabel')?.textContent==='아주 크게').click();Array.from(document.querySelectorAll('.modal .mfoot button')).find(b=>b.textContent==='닫기').click()`);check('cancel reverts preview',await evaluate(`document.documentElement.dataset.size==='small'`));
@@ -249,6 +250,20 @@ try {
  check('unselected record type saves without material fallback',await evaluate(`pkosLocal.entries().find(n=>n.title==='유형 미선택 저장 시험').type===''`));
  await send('Page.reload');await wait(2400);
  check('unselected type survives folder reload',await evaluate(`pkosLocal.entries().find(n=>n.title==='유형 미선택 저장 시험')?.type===''`));
+ await evaluate(`document.querySelector('#btnCancelEdit').click();document.querySelector('#title').value='태그 통합 저장 검사';const buttons=Array.from(document.querySelectorAll('#typeChips button'));buttons.find(b=>b.textContent==='연수').click();buttons.find(b=>b.textContent==='아이디어')?.click();`);
+ // Query again after the first toggle rerenders the button group.
+ await evaluate(`if(!document.querySelector('#tags').value.includes('아이디어'))Array.from(document.querySelectorAll('#typeChips button')).find(b=>b.textContent==='아이디어').click()`);
+ check('former types select multiple real tags',await evaluate(`document.querySelector('#tags').value==='연수, 아이디어'&&document.querySelectorAll('#tagChips .chip').length===2`));
+ await evaluate(`document.querySelector('[aria-label="연수 태그 삭제"]').click()`);
+ check('tag removal updates quick selection',await evaluate(`!Array.from(document.querySelectorAll('#typeChips button')).find(b=>b.textContent==='연수').classList.contains('on')`));
+ await evaluate(`document.querySelector('#btnSave').click()`);await wait(800);
+ check('unified tag is saved in filename and record',await evaluate(`(()=>{const n=pkosLocal.entries().find(n=>n.title==='태그 통합 저장 검사');return n.type===''&&n.tags.join(',')==='아이디어'&&n.mdName.includes('-아이디어-');})()`));
+ await send('Page.reload');await wait(2400);
+ check('legacy type becomes tag once',await evaluate(`(()=>{const n=pkosLocal.entries().find(n=>n.id==='photo-test');return n.type===''&&n.tags.filter(t=>t==='자료').length===1;})()`));
+ check('unified tags survive reconnect',await evaluate(`pkosLocal.entries().find(n=>n.title==='태그 통합 저장 검사').tags.join(',')==='아이디어'`));
+ await evaluate(`const card=Array.from(document.querySelectorAll('.entry')).find(c=>c.textContent.includes('Photo'));card.querySelector('.dots').click();Array.from(document.querySelectorAll('.menupop button')).find(b=>b.textContent.includes('편집')).click();document.querySelector('[aria-label="자료 태그 삭제"]').click();document.querySelector('#btnSave').click()`);await wait(800);
+ await send('Page.reload');await wait(2400);
+ check('deleted migrated type tag stays deleted',await evaluate(`(()=>{const n=pkosLocal.entries().find(n=>n.id==='photo-test');return n.type===''&&!n.tags.includes('자료');})()`));
  check('no exceptions' ,errors.length===0,errors.join(';'));
  console.log(JSON.stringify(results));if(results.some(r=>!r.ok))process.exitCode=1;
 }finally{ws.close();edge.kill();}
