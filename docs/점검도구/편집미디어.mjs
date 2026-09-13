@@ -165,6 +165,13 @@ try {
  await evaluate(`(()=>{Array.from(document.querySelectorAll('.modal button')).find(b=>b.textContent==='펜').click();const cv=document.querySelector('.maskpad');window.beforePen=cv.toDataURL();const r=cv.getBoundingClientRect();cv.dispatchEvent(new PointerEvent('pointerdown',{clientX:r.left+r.width*.2,clientY:r.top+r.height*.2,pointerId:2,bubbles:true}));cv.dispatchEvent(new PointerEvent('pointerup',{pointerId:2,bubbles:true}));})()`);
  check('pen selection hides mosaic grain',await evaluate(`document.querySelector('.photo-tools [aria-pressed="true"]')?.textContent==='펜'&&document.querySelector('.grainbar').hidden&&!document.querySelector('input[aria-label="펜 색상"]').hidden`));
  check('pen changes pixels',await evaluate(`document.querySelector('.maskpad').toDataURL()!==beforePen`));
+
+ for(const tool of ['네모','원','화살표','이모지']){
+  await evaluate(`(()=>{Array.from(document.querySelectorAll('.photo-tools button')).find(b=>b.textContent==='${tool}').click();const cv=document.querySelector('.maskpad'),r=cv.getBoundingClientRect();window.shapeBefore=cv.toDataURL();cv.dispatchEvent(new PointerEvent('pointerdown',{clientX:r.left+r.width*.25,clientY:r.top+r.height*.25,pointerId:4,bubbles:true}));cv.dispatchEvent(new PointerEvent('pointermove',{clientX:r.left+r.width*.75,clientY:r.top+r.height*.75,pointerId:4,bubbles:true}));cv.dispatchEvent(new PointerEvent('pointerup',{pointerId:4,bubbles:true}));})()`);
+  check('photo '+tool+' draws',await evaluate(`document.querySelector('.maskpad').toDataURL()!==shapeBefore`));
+  await evaluate(`Array.from(document.querySelectorAll('.modal .mfoot button')).find(b=>b.textContent.includes('한 번 되돌리기')).click()`);
+  check('photo '+tool+' undo restores pixels',await evaluate(`document.querySelector('.maskpad').toDataURL()===shapeBefore`));
+ }
  await evaluate(`Array.from(document.querySelectorAll('.modal .mfoot button')).find(b=>b.textContent.includes('다 됐습니다')).click()`);await wait(250);
  check('photo returns to editor',await evaluate(`!document.querySelector('.maskpad')&&!!document.querySelector('#blocks .pimg')`));
  // File input exercises new-photo naming without writing any personal file.
@@ -200,6 +207,12 @@ try {
  for(let i=0;i<50;i++){if(await evaluate(`!!document.querySelector('[data-incoming-save]')`))break;await wait(100);}
  await evaluate(`document.querySelector('[data-incoming-save]').click()`);await wait(700);
  check('ZIP upload inserts extracted attachment',await evaluate(`document.getElementById('blocks').textContent.includes('수업.txt')&&!document.getElementById('blocks').textContent.includes('자료.zip')`));
+
+ await evaluate(`(()=>{const paper=document.getElementById('blocks'),p=document.createElement('p');p.textContent='출처: https://www.youtube.com/watch?v=qN0-ysftSbc';paper.appendChild(p);paper.dispatchEvent(new Event('input',{bubbles:true}));})()`);await wait(800);
+ check('plain source URL shows YouTube preview',await evaluate(`!!document.querySelector('#textLinkPreviews .lc-thumb[src*="qN0-ysftSbc"]')`));
+ await evaluate(`document.querySelector('[data-add="link"]').click()`);await wait(100);
+ await evaluate(`(()=>{const input=Array.from(document.querySelectorAll('#blocks input')).find(i=>i.placeholder==='https://…');input.value='https://example.com/';input.dispatchEvent(new Event('input',{bubbles:true}));})()`);await wait(700);
+ check('website link input shows preview card',await evaluate(`!!document.querySelector('#blocks .linkcard[href="https://example.com/"]')`));
  check('no exceptions',errors.length===0,errors.join(';'));
  console.log(JSON.stringify(results));if(results.some(r=>!r.ok))process.exitCode=1;
 }finally{ws.close();edge.kill();}

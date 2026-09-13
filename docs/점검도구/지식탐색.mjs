@@ -159,9 +159,9 @@ try {
  await evaluate(`document.querySelector('[aria-label="사이트 제목"]').value='사이트 시험';Array.from(document.querySelectorAll('.modal button')).find(b=>b.textContent==='사이트 추가').click()`);
  check('site shortcut stored without changing draft',await evaluate(`document.querySelector('#webTools a').href==='https://example.com/'&&document.querySelector('#blocks').innerHTML===siteDraftBefore`));
  await evaluate(`document.querySelector('[data-go="settings"]').click();Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='저장 위치').click()`);
- check('only per record folders',await evaluate(`document.querySelector('.modal .mbody').textContent.includes('기록마다 폴더 생성')&&!document.querySelector('.modal .mbody').textContent.includes('태그별로')&&!document.querySelector('.modecard')`));
+ check('only per record folders',await evaluate(`document.querySelector('.modal .mbody').textContent.includes('기록 제목으로 폴더 생성')&&!document.querySelector('.modal .mbody').textContent.includes('태그별로')&&!document.querySelector('.modecard')`));
  await evaluate(`Array.from(document.querySelectorAll('.modal .mfoot button')).find(b=>b.textContent==='저장').click();document.querySelector('[data-go="settings"]').click();Array.from(document.querySelectorAll('.modal .tab')).find(b=>b.textContent==='저장 위치').click()`);
- check('per record folder setting persists',await evaluate(`document.querySelector('.modal .mbody').textContent.includes('기록마다 폴더 생성')&&!document.querySelector('.modal .mbody').textContent.includes('태그별로')`));
+ check('per record folder setting persists',await evaluate(`document.querySelector('.modal .mbody').textContent.includes('기록 제목으로 폴더 생성')&&!document.querySelector('.modal .mbody').textContent.includes('태그별로')`));
  await evaluate(`document.querySelector('.modal .mhead button').click();document.querySelector('[data-add="capture"]').click()`);
  check('capture has buttons only',await evaluate(`!document.querySelector('.sheetnote,.sheetbtn small,.sheettoggle')&&!document.querySelector('.modal').textContent.includes('클립보드')`));
  await evaluate(`document.querySelector('.modal .mhead button').click();document.getElementById('btnHome').click()`);await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});await wait(200);

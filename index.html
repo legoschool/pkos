@@ -2434,7 +2434,8 @@
 
   .modebar button[aria-pressed="true"], [data-layout="plain"] .modal .modebar .btn.primary {background:var(--ink)!important;color:var(--panel)!important;border:2px solid var(--ink)!important;font-weight:700!important;}
   .photo-tools button[aria-pressed="false"] {border:1px solid var(--line-soft);}
-  .grainbar[hidden] {display:none!important;}
+  .grainbar[hidden],.modebar[hidden] {display:none!important;}
+  #textLinkPreviews .linkcard {margin:12px 0;}
 
   #topNewWrap #topNew {border-radius:var(--r-btn,8px)!important;min-height:38px;}
   header.top .top-inner {gap:10px;align-items:center;}
@@ -2810,7 +2811,7 @@
      «다른 넷이 더 나았을까» 가 남는다. 정작 이 앱에서 자리를 정하는 일은
      「한 편을 한 폴더에 담을까, 말까」 하나뿐이다. 그 하나만 묻는다. */
   var FOLDER_MODES = [
-    { key: "perEntry", label: "기록마다 폴더 생성", desc: "" }
+    { key: "perEntry", label: "기록 제목으로 폴더 생성", desc: "" }
   ];
   /* 목록에서는 뺐지만 «쓰던 사람» 은 그대로 돈다.
      ⚠️ 여기서 지우면 그 방식을 쓰던 사람의 설정이 기본값으로 되돌아가고,
@@ -7392,6 +7393,9 @@
       lb.addEventListener("input", function () { b.label = lb.value; touchDraft(); });
       r1.appendChild(u); r1.appendChild(lb);
       body.appendChild(r1);
+      var cardPreview=el('div');body.appendChild(cardPreview);var linkTimer;
+      function paintLink(){cardPreview.replaceChildren();if(/^https?:\/\//i.test(b.url||''))cardPreview.appendChild(linkCard(b));}
+      u.addEventListener('input',function(){clearTimeout(linkTimer);linkTimer=setTimeout(paintLink,500);});lb.addEventListener('input',paintLink);paintLink();
       return;
     }
     if (b.kind === "embed") {
@@ -8187,6 +8191,7 @@
       histTouch();
       if (e.target !== paper && e.target.closest && e.target.closest(".atom, .qlabel")) return;
       normalizePaper();
+      clearTimeout(paper._linkTimer);paper._linkTimer=setTimeout(refreshTextPreviews,600);
       updateSlash();
       updateWikiPaper();
     });
@@ -8340,6 +8345,12 @@
     if (r) r.disabled = !histFuture.length;
   }
 
+  function textUrls(text){return Array.from(new Set((String(text||'').match(/https?:\/\/[^\s<>"'\]\)]+/gi)||[]).map(function(url){return url.replace(/[.,;!?]+$/,'');}))).slice(0,8);}
+  function refreshTextPreviews(){
+    if(!paper)return;var host=$('textLinkPreviews');if(!host){host=el('div');host.id='textLinkPreviews';paper.after(host);}
+    var text=Array.from(paper.children).filter(function(node){return !node.classList.contains('atom');}).map(function(node){return node.textContent;}).join('\n');var urls=textUrls(text),key=urls.join('\n');
+    if(host.dataset.urls===key)return;host.dataset.urls=key;host.replaceChildren();urls.forEach(function(url){host.appendChild(linkCard({url:url}));});
+  }
   function renderBlocks() {
     if (!paper) initPaper();
     if (!paper) return;
@@ -8348,7 +8359,7 @@
     paper.innerHTML = "";
     blocks.forEach(function (b) { nodesOf(b).forEach(function (n) { paper.appendChild(n); }); });
     ensureTail();
-    syncMaskBar();
+    syncMaskBar();refreshTextPreviews();
   }
 
   /* ---------- 사진 넣는 방법 고르기 (PC / 모바일 공통 입구) ---------- */
@@ -9363,11 +9374,24 @@
     var strip = el("div", "maskstrip");
     body.appendChild(strip);
 
-    var photoTool = 'mosaic', penColor = '#e53935';
+    var photoTool = 'mosaic', penColor = '#e53935', shapeStart=null, shapeDraft=null;
     var toolsBar=el('div','modebar photo-tools');
-    var toolButtons=['모자이크','펜'].map(function(label,i){var btn=el('button','btn sm',label);btn.type='button';btn.onclick=function(){photoTool=i?'pen':'mosaic';syncPhotoTools();};toolsBar.appendChild(btn);return btn;});
+    var photoToolKeys=['mosaic','pen','rect','ellipse','arrow','emoji'];
+    var toolButtons=['모자이크','펜','네모','원','화살표','이모지'].map(function(label,i){var btn=el('button','btn sm',label);btn.type='button';btn.onclick=function(){photoTool=photoToolKeys[i];syncPhotoTools();};toolsBar.appendChild(btn);return btn;});
     var color=el('input');color.type='color';color.value=penColor;color.setAttribute('aria-label','펜 색상');color.oninput=function(){penColor=color.value;};toolsBar.appendChild(color);body.appendChild(toolsBar);
+    var emojiBar=el('div','modebar'),emojiInput=el('input','inp');emojiInput.value='⭐';emojiInput.setAttribute('aria-label','붙일 이모지');emojiInput.placeholder='이모지 입력';emojiInput.style.width='130px';emojiBar.appendChild(emojiInput);
+    ['⭐','❤️','✅','❗','❓','👍','👀','😊','🎯','📌','💡','🔥'].forEach(function(symbol){var button=el('button','btn sm',symbol);button.type='button';button.onclick=function(){emojiInput.value=symbol;};emojiBar.appendChild(button);});
+    emojiInput.title='Windows 키 + 마침표로 이모지 선택';body.appendChild(emojiBar);
     function paintStamp(ctx,img,stamp){
+      if(['rect','ellipse','arrow','emoji'].includes(stamp.tool)){
+        ctx.save();ctx.strokeStyle=stamp.color;ctx.fillStyle=stamp.color;ctx.lineWidth=Math.max(2,stamp.r/8);ctx.lineJoin='round';ctx.lineCap='round';
+        var dx=stamp.x-stamp.fromX,dy=stamp.y-stamp.fromY;
+        if(stamp.tool==='rect')ctx.strokeRect(stamp.fromX,stamp.fromY,dx,dy);
+        if(stamp.tool==='ellipse'){ctx.beginPath();ctx.ellipse((stamp.x+stamp.fromX)/2,(stamp.y+stamp.fromY)/2,Math.abs(dx)/2,Math.abs(dy)/2,0,0,Math.PI*2);ctx.stroke();}
+        if(stamp.tool==='arrow'){var angle=Math.atan2(dy,dx),len=Math.max(12,stamp.r/2);ctx.beginPath();ctx.moveTo(stamp.fromX,stamp.fromY);ctx.lineTo(stamp.x,stamp.y);ctx.moveTo(stamp.x-len*Math.cos(angle-.5),stamp.y-len*Math.sin(angle-.5));ctx.lineTo(stamp.x,stamp.y);ctx.lineTo(stamp.x-len*Math.cos(angle+.5),stamp.y-len*Math.sin(angle+.5));ctx.stroke();}
+        if(stamp.tool==='emoji'){ctx.font=Math.max(20,stamp.r*2)+'px "Segoe UI Emoji","Apple Color Emoji",sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(stamp.emoji,stamp.x,stamp.y);}
+        ctx.restore();return;
+      }
       if(stamp.tool!=='pen'){pixelateCircle(ctx,img,stamp.x,stamp.y,stamp.r);return;}
       ctx.save();ctx.strokeStyle=stamp.color;ctx.fillStyle=stamp.color;ctx.lineWidth=stamp.r;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(stamp.fromX,stamp.fromY);ctx.lineTo(stamp.x,stamp.y);ctx.stroke();ctx.beginPath();ctx.arc(stamp.x,stamp.y,stamp.r/2,0,Math.PI*2);ctx.fill();ctx.restore();
     }
@@ -9401,8 +9425,8 @@
       return b;
     });
     function syncPhotoTools(){
-      toolButtons.forEach(function(b,i){b.setAttribute('aria-pressed',String(photoTool===(i?'pen':'mosaic')));});
-      color.hidden=photoTool!=='pen';grainBar.hidden=photoTool==='pen';
+      toolButtons.forEach(function(b,i){b.setAttribute('aria-pressed',String(photoTool===photoToolKeys[i]));});
+      color.hidden=['mosaic','emoji'].includes(photoTool);grainBar.hidden=photoTool!=='mosaic';emojiBar.hidden=photoTool!=='emoji';
     }
     function syncGrain() {
       grainBtns.forEach(function (b, i) {
@@ -9422,8 +9446,7 @@
     cropButton.onclick=function(){var w=cur(),photo=photos[idx];if(!w||!w.img)return;var out=document.createElement('canvas');out.width=w.img.naturalWidth;out.height=w.img.naturalHeight;var context=out.getContext('2d');context.drawImage(w.img,0,0);w.stamps.forEach(function(stamp){paintStamp(context,w.img,stamp);});commit().then(function(){openCropModal(out,photo.original||photo.name,photo);}).catch(function(e){toast('사진 편집 실패: '+e.message);});};
 
 
-    var hint = el("p", "crophint",
-      "가릴 자리를 누르세요. 문지르면 이어서 가려집니다.");
+    var hint = el('p','crophint','');
     body.appendChild(hint);
     m.appendChild(body);
 
@@ -9502,7 +9525,7 @@
       cv.width = im.naturalWidth; cv.height = im.naturalHeight;
       var ctx = cv.getContext("2d");
       ctx.drawImage(im, 0, 0);
-      w.stamps.forEach(function (s) { paintStamp(ctx, im, s); });
+      w.stamps.forEach(function (s) { paintStamp(ctx, im, s); });if(shapeDraft)paintStamp(ctx,im,shapeDraft);
     }
 
     function go(i) {
@@ -9514,7 +9537,7 @@
       loadBlockImage(b).then(function (im) {
         work[b.id] = work[b.id] || { stamps: [] };
         work[b.id].img = im;
-        hint.textContent = "가릴 자리를 누르면 그 부분이 동그랗게 가려집니다. 손가락으로 문지르면 이어서 가려집니다.";
+        hint.textContent = "";
         redraw(); syncAll();
       }).catch(function (e) {
         hint.textContent = "";
@@ -9548,9 +9571,14 @@
     cv.addEventListener("pointerdown", function (e) {
       e.preventDefault();
       try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+      if(['rect','ellipse','arrow','emoji'].includes(photoTool)){
+        if(!cur()||!cur().img)return;
+        shapeStart=toImage(e);shapeDraft={tool:photoTool,color:penColor,r:radius(),x:shapeStart.x,y:shapeStart.y,fromX:shapeStart.x,fromY:shapeStart.y,emoji:emojiInput.value||'⭐'};painting=true;redraw();return;
+      }
       painting = true; lastAt = null; stamp(e);
     });
     cv.addEventListener("pointermove", function (e) {
+      if(shapeDraft){var point=toImage(e);shapeDraft.x=point.x;shapeDraft.y=point.y;redraw();return;}
       var p = toImage(e), r = (photoTool === "pen" ? Math.max(2,radius()/8)/2 : radius()) * p.scale;
       ghost.style.display = "block";
       ghost.style.width = ghost.style.height = (r * 2) + "px";
@@ -9561,6 +9589,7 @@
     cv.addEventListener("pointerleave", function () { ghost.style.display = "none"; });
     function stop(e) {
       if (!painting) return;
+      if(shapeDraft){if(e.type!=='pointercancel')cur().stamps.push(shapeDraft);shapeDraft=null;shapeStart=null;redraw();syncAll();}
       painting = false; lastAt = null;
       if (e && e.pointerId != null) { try { cv.releasePointerCapture(e.pointerId); } catch (err) {} }
     }
@@ -11444,7 +11473,7 @@
     function renderOne(b, shotAt, where) {
       var host = where;
       if (b.kind === "text") {
-        var p = el("p"); appendRichText(p, b.text); host.appendChild(p);
+        var p = el("p"); appendRichText(p, b.text); host.appendChild(p);textUrls(b.text).forEach(function(url){host.appendChild(linkCard({url:url}));});
       } else if (b.kind === "heading") {
         var h = el("h4"); appendRichText(h, b.text); host.appendChild(h);
       } else if (b.kind === "quote") {
@@ -16358,7 +16387,7 @@
       /* 예전에는 «고르는 목록(select)» 이었는데, 목록을 펼치면 그 아래 폴더 그림을 통째로 가렸다.
          정작 봐야 할 것을 가리는 셈이라, 그림과 함께 펼쳐 놓는다. */
       draft.folderMode="perEntry";
-      f3.appendChild(el("div","inp","기록마다 폴더 생성"));
+      f3.appendChild(el("div","inp","기록 제목으로 폴더 생성"));
 
       body.appendChild(f3);
 
