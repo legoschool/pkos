@@ -237,11 +237,19 @@ try {
   window.lectureStreams=[];window.lectureTimers=[];
   window.fakeVideo=(color)=>{const c=document.createElement('canvas');c.width=640;c.height=360;const ctx=c.getContext('2d');let f=0;const paint=()=>{ctx.fillStyle=color;ctx.fillRect(0,0,640,360);ctx.fillStyle='white';ctx.fillText(String(f++),10,20);};paint();lectureTimers.push(setInterval(paint,50));const s=c.captureStream(20);lectureStreams.push(s);return s;};
   navigator.mediaDevices.getDisplayMedia=async()=>fakeVideo('blue');
-  navigator.mediaDevices.getUserMedia=async options=>{window.lectureAudio=new AudioContext();const osc=lectureAudio.createOscillator(),dest=lectureAudio.createMediaStreamDestination();osc.connect(dest);osc.start();window.lectureOsc=osc;const s=options.video?fakeVideo('red'):new MediaStream();s.addTrack(dest.stream.getAudioTracks()[0]);return s;};
+  navigator.mediaDevices.enumerateDevices=async()=>[{kind:'audioinput',deviceId:'test-mic',label:'시험 마이크'}];
+  navigator.mediaDevices.getUserMedia=async options=>{window.lastMicConstraints=options.audio;if(window.lectureAudio){lectureOsc.stop();await lectureAudio.close();}window.lectureAudio=new AudioContext();const osc=lectureAudio.createOscillator(),dest=lectureAudio.createMediaStreamDestination();osc.connect(dest);osc.start();window.lectureOsc=osc;const s=options.video?fakeVideo('red'):new MediaStream();s.addTrack(dest.stream.getAudioTracks()[0]);return s;};
   window.SpeechRecognition=class{start(){setTimeout(()=>{const line=[{transcript:'강의 시험 문장'}];line.isFinal=true;this.onresult?.({resultIndex:0,results:[line]});},100);}stop(){}};
   PKOSLecture.open({title:'강의 시험',target:{id:null},attach:async data=>{window.lectureResult=data;}});
-  Array.from(document.querySelectorAll('#lectureRecorder button')).find(b=>b.textContent==='녹화 시작').click();
  })()`);
+ await wait(100);
+ await evaluate(`document.querySelector('#lectureRecorder select').value='test-mic';Array.from(document.querySelectorAll('#lectureRecorder button')).find(b=>b.textContent==='마이크 확인 (3초)').click()`);
+ await wait(700);
+ check('microphone test shows input level',await evaluate(`document.querySelector('#lectureRecorder meter').value>0`));
+ await wait(2800);
+ check('microphone selected device constraint',await evaluate(`lastMicConstraints.deviceId.exact==='test-mic'`));
+ check('microphone test playback contains sound',await evaluate(`(async()=>{const a=document.querySelector('#lectureRecorder audio'),c=new AudioContext();try{const b=await(await fetch(a.src)).arrayBuffer(),decoded=await c.decodeAudioData(b);return !a.hidden&&decoded.duration>2&&decoded.getChannelData(0).some(v=>Math.abs(v)>.01);}finally{await c.close();}})()`));
+ await evaluate(`Array.from(document.querySelectorAll('#lectureRecorder button')).find(b=>b.textContent==='녹화 시작').click()`);
  for(let i=0;i<70;i++){if(await evaluate(`!Array.from(document.querySelectorAll('#lectureRecorder button')).find(b=>b.textContent==='녹화 종료').hidden`))break;await wait(100);}
  check('lecture screen and face composite',await evaluate(`(()=>{const c=document.querySelector('#lectureRecorder canvas'),ctx=c.getContext('2d'),screen=ctx.getImageData(100,100,1,1).data,face=ctx.getImageData(1100,600,1,1).data;return screen[2]>200&&face[0]>200&&face[2]<50;})()`));
  await wait(1500);
