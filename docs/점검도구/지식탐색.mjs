@@ -140,7 +140,7 @@ try {
  for(let i=0;i<60;i++){if(await evaluate('window.pkosLocal?.isOn()'))break;await wait(200);}
  check('startup editor',await evaluate(`document.body.dataset.page==='library'`));
  await evaluate(`document.getElementById('btnHome').click()`);await wait(200);
- check('brand opens knowledge home',await evaluate(`document.body.dataset.page==='home'&&document.getElementById('homePage').textContent.includes('연결이 많은 기록')&&document.getElementById('homePage').textContent.includes('자주 등장한 단어')`));
+ check('brand opens knowledge home',await evaluate(`document.body.dataset.page==='home'&&document.getElementById('homePage').textContent.includes('연결이 많은 기록')&&document.getElementById('homePage').textContent.includes('전체 자료')`));
  check('todo navigation removed',await evaluate(`!document.querySelector('[data-go="todo"]')&&!Array.from(document.querySelectorAll('.smartrow')).some(b=>b.textContent.includes('할 일'))`));
  const source=readFileSync('index.html','utf8');const algorithm=source.slice(source.indexOf('  function knowledgeAnalysis('),source.indexOf('  function isInbox('));
  check('shared words and frequencies',await evaluate(`(()=>{${algorithm};const ns=[{id:'a',title:'수업 질문',blocks:[{text:'수업 질문 질문'}]},{id:'b',title:'수업 질문',blocks:[]},{id:'c',title:'바다 여행',blocks:[]}];const a=knowledgeAnalysis(ns);return a.edges.length===1&&a.edges[0].words.includes('질문')&&a.degree.get('a')===1&&a.words.find(x=>x[0]==='질문')[1]===4;})()`));
@@ -165,6 +165,11 @@ try {
  await evaluate(`document.querySelector('.modal .mhead button').click();document.getElementById('btnHome').click()`);await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});await wait(200);
  mkdirSync('local-service/runtime',{recursive:true});writeFileSync('local-service/runtime/knowledge-home.png',Buffer.from((await send('Page.captureScreenshot',{format:'png'})).data,'base64'));
  await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await wait(200);check('home mobile viewport',await evaluate(`document.documentElement.scrollWidth<=innerWidth+2`));writeFileSync('local-service/runtime/knowledge-mobile.png',Buffer.from((await send('Page.captureScreenshot',{format:'png'})).data,'base64'));
+ check('catalog lists all current records',await evaluate(`document.querySelectorAll('.knowledge-card').length===pkosLocal.entries().filter(n=>!n.trashed&&!n.localMissing&&!n._missing&&!n._away).length`));
+ await evaluate(`document.getElementById('btnFeedback').click()`);check('feedback without contact or diagnostics',await evaluate(`!document.getElementById('fbWho')&&!document.querySelector('.fbmeta')&&!!document.getElementById('fbText')`));
+ check('feedback icon and label visible',await evaluate(`!!document.querySelector('#btnFeedback svg')&&getComputedStyle(document.querySelector('#btnFeedback .fbl')).display!=='none'`));
+ await evaluate(`document.querySelector('.modal .mhead button').click();document.getElementById('btnHelp').click()`);check('menu without tutorial prose',await evaluate(`!document.querySelector('.modal').textContent.includes('백링크')&&document.querySelector('.modal').textContent.includes('전체 자료')`));
+ check('inbox removed from navigation',await evaluate(`!Array.from(document.querySelectorAll('.smartrow')).some(b=>b.textContent.includes('미정리함'))&&getComputedStyle(document.querySelector('.inboxline')).display==='none'`));
  check('no exceptions',errors.length===0,errors.join(';'));
  console.log(JSON.stringify(results));if(results.some(r=>!r.ok))process.exitCode=1;
 }finally{ws.close();edge.kill();}

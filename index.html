@@ -1522,7 +1522,7 @@
   #wikiPop .wp.on small, #wikiPop .wp:hover small { color: inherit; }
   #wikiPop .cap, #slashPop .cap { font-size: calc(12px * var(--fs)); color: var(--ink-soft); padding: 5px 9px 3px; }
 
-  /* ---------- 연결(백링크) 줄 ---------- */
+  /* ---------- 연결(관계망) 줄 ---------- */
   .rel { margin-top: 11px; padding-top: 10px; border-top: 1px dashed var(--line); }
   .rel .relhead { font-size: calc(12px * var(--fs)); color: var(--ink-soft); font-weight: 700; margin-bottom: 6px; }
   .rel .relchips { display: flex; gap: 5px; flex-wrap: wrap; }
@@ -2359,6 +2359,16 @@
 .maskpad{touch-action:none;max-width:100%;height:auto}.maskstage{max-width:100%}
 .trash-actions-button{padding:4px 8px;margin-left:auto}
 @media(max-width:600px){.edbar{gap:4px!important}.modal .mfoot{flex-wrap:wrap}.maskstage{width:100%}.listcol,.composer{min-width:0}}
+
+  .sheetnote, .inboxline, .hm-quote { display:none !important; }
+  #btnFeedback.fbbtn { background:#176ad6 !important;color:white !important;min-width:48px;min-height:48px;box-shadow:0 3px 12px #0002; }
+  #btnFeedback .fbl { display:inline !important; }
+  .knowledge-catalog { display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;margin-top:20px; }
+  .knowledge-card { display:flex;flex-direction:column;text-align:left;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:0;overflow:hidden;color:var(--ink);min-width:0;cursor:pointer; }
+  .knowledge-card img { width:100%;height:170px;object-fit:cover; }
+  .knowledge-card .catalog-name { font-size:17px;font-weight:650;padding:16px;overflow-wrap:anywhere; }
+  .knowledge-card .catalog-meta { padding:0 16px 16px;color:var(--ink-soft);font-size:12px; }
+  @media(max-width:560px){.knowledge-catalog{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.knowledge-card img{height:115px}.knowledge-card .catalog-name{font-size:14px;padding:10px}#btnFeedback .fbl{font-size:12px}}
 </style>
 </head>
 <body>
@@ -2381,7 +2391,7 @@
   <aside id="sideNav" aria-label="폴더 구조"></aside><div id="webTools" style="padding:8px 12px"></div>
   <div class="sidebar-bottom">
     <button type="button" class="nav-item" data-go="settings"><svg class="bico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5h9"/><circle cx="16.5" cy="7.5" r="2.4"/><path d="M20 16.5h-9"/><circle cx="7.5" cy="16.5" r="2.4"/></svg>설정·데이터 관리</button>
-    <button type="button" class="nav-item" data-go="help"><svg class="bico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.4 9.3a2.7 2.7 0 1 1 3.6 2.6c-.8.3-1 .9-1 1.9"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg>사용 안내</button>
+    <button type="button" class="nav-item" data-go="help"><svg class="bico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.4 9.3a2.7 2.7 0 1 1 3.6 2.6c-.8.3-1 .9-1 1.9"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg>메뉴</button>
     <div class="storage-chip" id="storageChip"></div>
   </div>
 </aside>
@@ -2402,7 +2412,7 @@
          누르면 나가는 길이 열리게 한다. 폰에서는 이 칸이 접히므로 ⋯ 메뉴에도 같이 둔다. -->
     <button type="button" id="acct" class="acct" aria-haspopup="true" hidden></button>
     <!-- 그림글자 대신 선 아이콘 · 이모지는 색이 우리 색을 안 따라와서 판 위에서 안 읽힌다 -->
-    <span id="topExtras" class="hidden"><button id="btnHelp" class="btn sm" title="연결·백링크·관계망 사용법"><svg class="bico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.4 9.3a2.7 2.7 0 1 1 3.6 2.6c-.8.3-1 .9-1 1.9"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg></button>
+    <span id="topExtras" class="hidden"><button id="btnHelp" class="btn sm" title="지식맵"><svg class="bico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.4 9.3a2.7 2.7 0 1 1 3.6 2.6c-.8.3-1 .9-1 1.9"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg></button>
     <button id="btnInstall" class="btn sm" style="display:none" title="이 기록장을 내 컴퓨터에 앱으로 설치합니다"><svg class="bico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10"/><path d="m7.5 10.5 4.5 4 4.5-4"/><path d="M5 19.5h14"/></svg><span class="lbl"> 앱으로 설치</span></button>
     <button id="btnMap" class="btn sm" title="폴더 구조"><svg class="bico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20v-14h6l2 2.5h10V20Z"/></svg><span class="lbl"> 폴더 구조</span></button>
     <button id="btnGraph" class="btn sm" title="관계망"><svg class="bico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5.5" r="2.4"/><circle cx="5.5" cy="17.5" r="2.4"/><circle cx="18.5" cy="17.5" r="2.4"/><path d="M10.9 7.6 6.7 15.4M13.1 7.6l4.2 7.8M7.9 17.5h8.2"/></svg><span class="lbl"> 관계망</span></button>
@@ -2487,7 +2497,7 @@
         <label for="tags">태그</label>
         <input id="tags" class="inp" placeholder="태그 추가…" />
         <!-- 급할 때는 분류 없이 남긴다. 태그가 없거나 이 칸을 켜 두면 «미정리함» 에 모인다 -->
-        <label class="checkline inboxline"><input type="checkbox" id="inboxChk" /> <span>나중에 정리</span></label>
+        <label class="checkline inboxline" hidden><input type="checkbox" id="inboxChk" /> <span>나중에 정리</span></label>
       </div>
       <div class="field" style="margin-bottom:12px;">
         <label for="title">제목</label>
@@ -2566,7 +2576,7 @@
 </div>
 
 <!-- 오른쪽 아래 · 쓰다가 막힌 그 자리에서 바로 적어 보낸다 -->
-<button type="button" id="btnFeedback" class="fbbtn" title="의견 보내기"><span class="fbi">💬</span><span class="fbl">의견 보내기</span></button>
+<button type="button" id="btnFeedback" class="fbbtn" title="의견 보내기"><svg class="fbi" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 3v-3H3V6a2 2 0 0 1 2-2Z"/></svg><span class="fbl">의견 보내기</span></button>
 
 <div id="toast"></div>
 <div id="modalHost"></div>
@@ -4361,7 +4371,7 @@
   }
 
   /* =========================================================
-     5-2. 위키링크 [[제목]] · 백링크
+     5-2. 위키링크 [[제목]] · 관계망
      ========================================================= */
   // [[제목]] 또는 [[제목|보일 글자]]
   function wikiRe() { return /\[\[([^\[\]|]+?)(?:\|([^\[\]]*?))?\]\]/g; }
@@ -8605,7 +8615,6 @@
     warn.style.color = "var(--brand)";
     warn.textContent = "";
     body.appendChild(warn);
-    body.appendChild(el("p", "desc", "한국어로 실시간 전사합니다. 브라우저의 음성 인식 서비스에 음성이 전송될 수 있으며 인터넷 연결이 필요할 수 있습니다. 녹음 마치기를 누르면 음성과 글을 기록에 저장합니다."));
 
     /* 제목과 내용을 갈라 놓는다.
        제목은 «파일 이름» 이 되고, 받아 적은 글은 «본문» 이 된다. 둘을 섞으면 파일명이 문장이 된다. */
@@ -10448,10 +10457,7 @@
       b.addEventListener("click", function () { currentType = t.key; renderTypeChips(); refreshAtomNames(); });
       host.appendChild(b);
     });
-    var add = el("button", "chip", "＋ 유형 만들기");
-    add.type = "button";
-    add.addEventListener("click", function () { openSettings("types"); });
-    host.appendChild(add);
+
   }
 
   var tagsExpanded = false;
@@ -11508,7 +11514,7 @@
     function shareRow(opt) {
       var f = el("div", "field");
       f.appendChild(el("label", null, opt.title));
-      f.appendChild(el("div", "desc", opt.desc));
+
 
       if (!opt.allowed) {
         var no = el("p", "crophint");
@@ -11854,7 +11860,7 @@
     renderContent(n, body);
     paper.appendChild(body);
 
-    // 연결 · 나가는 링크와 들어오는 백링크
+    // 연결 · 나가는 링크와 들어오는 관계망
     var outs = outLinks(n), ins = backLinks(n);
     if (outs.length || ins.length) {
       var rel = el("div", "vrel");
@@ -11905,7 +11911,7 @@
     setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1500);
   }
 
-  // 고른 기록에서 연결(글 속 [[링크]] · 관계망 · 백링크)을 따라 한 단계 넓힌다
+  // 고른 기록에서 연결(글 속 [[링크]] · 관계망 · 관계망)을 따라 한 단계 넓힌다
   function widenByLinks(ids, depth) {
     var have = {}, order = [];
     ids.forEach(function (id) { if (!have[id]) { have[id] = 1; order.push(id); } });
@@ -12124,7 +12130,7 @@
       return c;
     }
     var cWiden = optRow(false, "연결된 기록도 함께 담기",
-      "고른 기록에서 [[링크]]·관계망·백링크로 이어진 기록을 한 단계 더 넣습니다");
+      "고른 기록에서 [[링크]]·관계망·관계망로 이어진 기록을 한 단계 더 넣습니다");
     var cToc = optRow(true, "목차 넣기", "번호를 눌러 그 자리로 바로 갑니다");
     var cLinks = optRow(true, "연결 정보 함께 적기", "각 편 끝에 «나감 / 들어옴» 을 적습니다");
 
@@ -12717,14 +12723,14 @@
   function openFeedback(preKind) {
     closeModal();
     var kind = FB_KINDS.indexOf(preKind) >= 0 ? preKind : "개선 의견";
-    var withCtx = true;
+    var withCtx = false;
 
     var bg = el("div", "modal-bg");
     bg.setAttribute("data-fb", "1");        // 「지금 화면」 을 셀 때 이 창은 빼려고
     var m = el("div", "card modal"); m.style.maxWidth = "520px";
 
     var head = el("div", "mhead");
-    head.appendChild(el("h3", null, "💬 의견 보내기"));
+    head.appendChild(el("h3", null, "의견 보내기"));
     head.appendChild(el("span", "spacer"));
     var x = el("button", "btn sm ghost", "✕"); x.addEventListener("click", closeModal);
     head.appendChild(x); m.appendChild(head);
@@ -12736,7 +12742,7 @@
 
     /* ---- 종류 ---- */
     var kf = el("div", "field");
-    kf.appendChild(el("label", null, "① 무엇인가요?"));
+    kf.appendChild(el("label", null, "유형"));
     var kinds = el("div", "fbkinds");
     var kindBtns = FB_KINDS.map(function (k) {
       var b = el("button", "fbkind" + (k === kind ? " on" : ""), k);
@@ -12745,10 +12751,10 @@
         kind = k;
         kindBtns.forEach(function (o, i) { o.className = "fbkind" + (FB_KINDS[i] === kind ? " on" : ""); });
         ta.placeholder = kind === "오류"
-          ? "무엇을 하다가 어떻게 됐는지 적어 주세요. 「사진을 넣고 저장을 눌렀더니 …」"
+          ? "오류 내용"
           : kind === "질문"
-            ? "궁금한 것을 적어 주세요."
-            : "이랬으면 좋겠다 싶은 것을 적어 주세요.";
+            ? "질문 내용"
+            : "의견 내용";
       });
       kinds.appendChild(b);
       return b;
@@ -12758,9 +12764,9 @@
 
     /* ---- 내용 ---- */
     var tf = el("div", "field");
-    var tl = el("label", null, "② 내용"); tl.setAttribute("for", "fbText"); tf.appendChild(tl);
+    var tl = el("label", null, "내용"); tl.setAttribute("for", "fbText"); tf.appendChild(tl);
     var ta = el("textarea", "inp"); ta.id = "fbText"; ta.rows = 6;
-    ta.placeholder = "이랬으면 좋겠다 싶은 것을 적어 주세요.";
+    ta.placeholder = "의견 내용";
     ta.style.resize = "vertical";
     tf.appendChild(ta);
     body.appendChild(tf);
@@ -12768,7 +12774,7 @@
     /* ---- 캡처 한 장 · 오류는 말보다 그림이 빠르다 ---- */
     var shot = null;
     var sf = el("div", "field");
-    var sl = el("label", null, "③ 캡처 (안 붙여도 됩니다)");
+    var sl = el("label", null, "이미지");
     sf.appendChild(sl);
     var sbar = el("div", "row");
     var pick = el("button", "btn sm", "🖼 그림 고르기");
@@ -12777,7 +12783,7 @@
     pick.addEventListener("click", function () { shotInput.click(); });
     var drop = el("div", "fbdrop");
     drop.appendChild(el("span", "fbdi", "📷"));
-    drop.appendChild(el("span", null, "여기에 붙여넣거나(Ctrl+V) 끌어다 놓으세요"));
+    drop.appendChild(el("span", null, "이미지 추가"));
     sbar.appendChild(pick);
     sf.appendChild(sbar);
     sf.appendChild(shotInput);
@@ -12831,33 +12837,7 @@
       if (f) takeShot(f);
     });
 
-    /* ---- 연락처 · 안 적어도 된다 ---- */
-    var cf = el("div", "field");
-    var cl = el("label", null, "④ 답을 받을 곳 (안 적어도 됩니다)"); cl.setAttribute("for", "fbWho"); cf.appendChild(cl);
-    var who = el("input", "inp"); who.id = "fbWho"; who.type = "text";
-    who.placeholder = "메일 주소나 이름";
-    try { who.value = localStorage.getItem("pkos.feedbackWho.v1") || (userEmail || ""); } catch (e) {}
-    cf.appendChild(who);
-    body.appendChild(cf);
-
-    /* ---- 함께 가는 것 · 무엇이 가는지 먼저 보여 준다 ----
-       ⚠️ 이 한 장을 «열 때» 찍어 두고 보낼 때도 그대로 쓴다. 보내는 순간에 다시 찍으면
-          창을 여는 사이에 바뀐 것이 찍힌다 · 사람이 말하려던 화면은 열기 직전의 그것이다. */
-    var ctx = fbContext();
-    var box = el("div", "field");
-    var ck = el("label", "checkline");
-    var cb = el("input"); cb.type = "checkbox"; cb.checked = true;
-    cb.addEventListener("change", function () { withCtx = cb.checked; meta.style.opacity = withCtx ? "1" : ".45"; });
-    ck.appendChild(cb);
-    ck.appendChild(el("span", null, "아래 화면 정보도 함께 보냅니다 (고칠 자리를 찾는 데 씁니다)"));
-    box.appendChild(ck);
-    var meta = el("div", "fbmeta");
-    meta.appendChild(el("div", null, "지금 화면 · " + ctx.where));
-    meta.appendChild(el("div", null, "창 크기 · " + ctx.screen + " · 드라이브 " + ctx.connected));
-    meta.appendChild(el("div", null, "브라우저 · " + ctx.ua.slice(0, 90)));
-    box.appendChild(meta);
-    body.appendChild(box);
-
+    var ctx = {};
     /* ---- 이 기기에서 보낸 것 · 「보냈나?」 를 여기서 확인한다 ---- */
     var sent = el("div", "fbsent");
     function paintSent() {
@@ -12899,7 +12879,7 @@
         status.textContent = "보내는 자리가 아직 정해지지 않았습니다 · 설정 → 의견 받기";
         return;
       }
-      try { localStorage.setItem("pkos.feedbackWho.v1", who.value.trim()); } catch (e) {}
+
       var c = withCtx ? ctx : { where: "", screen: "", ua: "", lang: "", built: "", connected: "", entries: 0 };
       var rec = {
         v: 1,
@@ -12907,7 +12887,7 @@
         app: "PKOS 개인지식운영체계",
         kind: kind,
         text: text,
-        contact: who.value.trim(),
+        contact: "",
         page: (location.pathname.split("/").pop() || "index.html"),
         where: c.where, screen: c.screen, ua: c.ua, lang: c.lang,
         built: c.built, connected: c.connected, entries: c.entries,
@@ -12939,8 +12919,8 @@
             ? String(how.shot).replace(/^⚠️\s*캡처 못 담음 · /, "")
             : "받는 쪽 스크립트가 아직 캡처를 받을 수 있는 판이 아닙니다.");
         } else {
-          toast("보냈습니다. 읽고 반영하겠습니다.");
-          toast2("답을 받을 곳을 적으셨으면 그리로 연락드립니다.");
+          toast("보냈습니다.");
+
         }
       }).catch(function () {
         /* 못 보냈다고 사람이 쓴 글을 버리면 안 된다 · 남겨 두었다가 다음에 다시 던진다 */
@@ -13005,11 +12985,6 @@
       return b;
     }
     smartRow("📄", "모든 기록", live.length, "", "휴지통을 뺀 모든 기록");
-    var inboxN = live.filter(isInbox).length;
-    if (inboxN || smartView === "inbox") {
-      smartRow("📥", "미정리함", inboxN, "inbox", "급히 남긴 것 · 태그가 없거나 «나중에 정리» 로 둔 기록");
-    }
-
     /* ---- 빠른 접근 · 고정해 둔 기록으로 바로 ---- */
     var pins = live.filter(function (n) { return n.pinned; });
     if (pins.length) {
@@ -13823,7 +13798,7 @@
         if (!expanded[n.id] && body.scrollHeight <= 320) { more.classList.add("hidden"); body.classList.remove("collapsed"); }
       }, 0);
 
-      // 연결 · 나가는 링크와 들어오는 백링크
+      // 연결 · 나가는 링크와 들어오는 관계망
       var outs = outLinks(n), ins = backLinks(n);
       if (outs.length || ins.length) {
         var rel = el("div", "rel");
@@ -13912,142 +13887,17 @@
   }
   function openFromHome(n) { setPage("library"); setTimeout(function () { openEntry(n); }, 30); }
   function renderHome() {
-    var host = $("homePage");
-    if (!host || page !== "home") return;
-    host.innerHTML = "";
-    var live = knowledgeEntries().slice().sort(function (a, b) { return (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0); });
-
-    /* 머리 */
-    var head = el("div", "hm-head");
-    var hl = el("div");
-    var fmt;
-    try { fmt = new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "long" }).format(new Date()); } catch (e) { fmt = ""; }
-    hl.appendChild(el("div", "hm-date", fmt));
-    hl.appendChild(el("h1", null, "PKOS 개인지식운영체계"));
-    hl.appendChild(el("p", null, "지식을 기록하고, 연결하고, 다시 꺼내 쓰는 작업실."));
-    head.appendChild(hl);
-    var eb = el("div", "hm-eyebrow"); eb.innerHTML = "PKOS<br>Personal Knowledge Operation System";
-    head.appendChild(eb);
-    host.appendChild(head);
-
-    /* 빠른 기록 · 한 줄이 제목이 되어 작성칸으로 간다 */
-    var q = el("form", "hm-quick");
-    q.appendChild(el("span", null, "＋"));
-    var qi = el("input"); qi.placeholder = "지금 떠오른 생각 한 줄"; qi.setAttribute("aria-label", "빠른 기록");
-    q.appendChild(qi);
-    var qb = el("button", "btn sm primary", "기록하기 →"); qb.type = "submit";
-    q.appendChild(qb);
-    q.addEventListener("submit", function (e) {
-      e.preventDefault();
-      var t = qi.value.trim();
-      setPage("library");
-      openComposer();
-      if (t) { var ti = $("title"); if (ti && !ti.value.trim()) ti.value = t; }
-    });
-    host.appendChild(q);
-
-    var grid = el("div", "hm-grid");
-    var left = el("div");
-
-    /* 나의 지식맵 */
-    var mp = el("div", "hm-panel");
-    var mh = el("div", "hm-panel-head");
-    var mt = el("h3", null, "나의 지식맵"); mt.appendChild(el("span", "hm-pill", live.length + "개의 기록"));
-    mh.appendChild(mt);
-    var ml = el("button", "hm-link", "지도 펼치기 ↗"); ml.type = "button";
-    ml.addEventListener("click", function () { openGraph(); });
-    mh.appendChild(ml);
-    mp.appendChild(mh);
-    var map = el("div", "hm-map");
-    var edgeCount = 0;
-    if (!live.length) {
-      var em = el("div", "hm-empty");
-      em.appendChild(el("span", "calm", "＋"));
-      em.appendChild(document.createTextNode("기록을 추가하면 지식맵에 표시됩니다."));
-      map.appendChild(em);
-    } else {
-      var W = 600, H = 300, cx = W / 2, cy = H / 2;
-      var nodes = live.slice(0, 40), pos = {};
-      nodes.forEach(function (n, i) {
-        var ang = i * 2.399, rad = i ? 34 + 15 * Math.sqrt(i) : 0;
-        pos[n.id] = { x: cx + Math.cos(ang) * rad * 1.6, y: cy + Math.sin(ang) * rad * 0.9 };
-      });
-      var ld = linkData();
-      var svgNS = "http://www.w3.org/2000/svg";
-      var svg = document.createElementNS(svgNS, "svg");
-      svg.setAttribute("viewBox", "0 0 " + W + " " + H);
-      svg.setAttribute("preserveAspectRatio", "xMidYMid slice");
-      nodes.forEach(function (n) {
-        (ld.out[n.id] || []).forEach(function (l) {
-          if (!l.to || !pos[l.to] || l.to === n.id) return;
-          var ln = document.createElementNS(svgNS, "line");
-          ln.setAttribute("class", "edge");
-          ln.setAttribute("x1", pos[n.id].x); ln.setAttribute("y1", pos[n.id].y);
-          ln.setAttribute("x2", pos[l.to].x); ln.setAttribute("y2", pos[l.to].y);
-          svg.appendChild(ln); edgeCount++;
-        });
-      });
-      var auto=knowledgeAnalysis(live);
-      auto.edges.forEach(function(e){if(!pos[e.a]||!pos[e.b])return;var ln=document.createElementNS(svgNS,'line');ln.setAttribute('class','edge');ln.setAttribute('x1',pos[e.a].x);ln.setAttribute('y1',pos[e.a].y);ln.setAttribute('x2',pos[e.b].x);ln.setAttribute('y2',pos[e.b].y);ln.style.strokeWidth=String(Math.min(6,1+Math.sqrt(e.words.length)));var title=document.createElementNS(svgNS,'title');title.textContent='공통 단어: '+e.words.join(', ');ln.appendChild(title);svg.appendChild(ln);edgeCount++;});
-      nodes.forEach(function (n) {
-        var g = document.createElementNS(svgNS, "g");
-        g.setAttribute("class", "node");
-        var p = pos[n.id], col = typeColor(n.type) || "var(--brand)";
-        var halo = document.createElementNS(svgNS, "circle");
-        halo.setAttribute("cx", p.x); halo.setAttribute("cy", p.y); halo.setAttribute("r", "9"); halo.setAttribute("fill", col); halo.setAttribute("opacity", ".18");
-        var dot = document.createElementNS(svgNS, "circle");
-        dot.setAttribute("cx", p.x); dot.setAttribute("cy", p.y); dot.setAttribute("r", String(5+Math.min(10,(auto.degree.get(n.id)||0)*2))); dot.setAttribute("fill", col);
-        var tx = document.createElementNS(svgNS, "text");
-        tx.setAttribute("x", p.x); tx.setAttribute("y", p.y + 20); tx.setAttribute("text-anchor", "middle");
-        var lab = (n.title || "(제목 없음)"); if (lab.length > 14) lab = lab.slice(0, 13) + "…";
-        tx.textContent = lab;
-        g.appendChild(dot); g.appendChild(tx);
-        g.addEventListener("click", function () { openFromHome(n); });
-        svg.appendChild(g);
-      });
-      map.appendChild(svg);
+    var host=$('homePage');if(!host||page!=='home')return;host.replaceChildren();
+    var live=knowledgeEntries(),analysis=knowledgeAnalysis(live),order='recent',query='';
+    var header=el('div','hm-head');header.appendChild(el('h1',null,'전체 자료'));host.appendChild(header);
+    var bar=el('div','row');bar.style.flexWrap='wrap';var search=el('input','inp');search.placeholder='자료 검색';search.setAttribute('aria-label','전체 자료 검색');bar.appendChild(search);
+    var recent=el('button','btn','최근 기록'),connected=el('button','btn','연결이 많은 기록'),map=el('button','btn','지식맵');bar.appendChild(recent);bar.appendChild(connected);bar.appendChild(map);map.onclick=openGraph;host.appendChild(bar);
+    var grid=el('div','knowledge-catalog');host.appendChild(grid);
+    function paint(){grid.replaceChildren();var ns=live.filter(function(n){return !query||entryText(n).includes(query);}).sort(function(a,b){return order==='connected'?(analysis.degree.get(b.id)||0)-(analysis.degree.get(a.id)||0):(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0);});
+      ns.forEach(function(n){var card=el('button','knowledge-card');card.type='button';card.dataset.catalogId=n.id;var photo=(n.blocks||[]).find(function(b){return b.kind==='image';});if(photo){var img=el('img');img.alt='';img.loading='lazy';card.appendChild(img);blockFile(photo).then(function(file){if(img.isConnected&&file)img.src=mediaObjectUrl(file,img);}).catch(function(){img.remove();});img.onerror=function(){img.remove();};}card.appendChild(el('div','catalog-name',n.title||'제목 없음'));var files=(n.blocks||[]).filter(function(b){return b.kind==='image'||b.kind==='file'||b.kind==='audio'||b.kind==='video';});card.appendChild(el('div','catalog-meta',typeOf(n.type).label+(files.length?' · 첨부 '+files.length:'')));card.onclick=function(){openViewer(n);};grid.appendChild(card);});
+      if(!ns.length)grid.appendChild(el('div',null,'자료 없음'));
     }
-    mp.appendChild(map);
-    var mf = el("div", "hm-map-foot");
-    mf.appendChild(el("span", null, "기록 사이의 연결"));
-    mf.appendChild(el("span", null, edgeCount + "개의 관계"));
-    mp.appendChild(mf);
-    left.appendChild(mp);
-
-    /* 이어서 써 볼까요 */
-    var sh = el("div", "hm-section");
-    sh.appendChild(el("h3", null, "최근 기록"));
-    var sl = el("button", "hm-link", "전체 기록 →"); sl.type = "button";
-    sl.addEventListener("click", function () { setPage("library"); });
-    sh.appendChild(sl);
-    left.appendChild(sh);
-    var recent = live.slice(0, 4);
-    if (!recent.length) {
-      var re = el("div", "hm-empty"); re.appendChild(document.createTextNode("아직 기록이 없습니다."));
-      left.appendChild(re);
-    }
-    recent.forEach(function (n) {
-      var r = el("button", "hm-row"); r.type = "button"; recordDraggable(r,n);
-      var t = typeOf(n.type);
-      r.appendChild(el("span", "glyph", t.icon || "＋"));
-      var g = el("span", "grow");
-      g.appendChild(el("div", "title", n.title || "(제목 없음)"));
-      var ex = firstLine(n); if (ex) g.appendChild(el("div", "excerpt", ex));
-      r.appendChild(g);
-      r.appendChild(el("span", "time", localDay(n.updatedAt || n.createdAt)));
-      r.addEventListener("click", function () { openFromHome(n); });
-      left.appendChild(r);
-    });
-
-    var analysis=knowledgeAnalysis(live), ld=linkData();
-    left.appendChild(el('h3',null,'연결이 많은 기록'));
-    live.map(function(n){var ids=new Set(live.map(function(x){return x.id;})),manual=new Set((ld.out[n.id]||[]).map(function(l){return l.to;}).filter(function(id){return ids.has(id);}));live.forEach(function(other){if((ld.out[other.id]||[]).some(function(l){return l.to===n.id;}))manual.add(other.id);});analysis.edges.forEach(function(e){if(e.a===n.id)manual.add(e.b);if(e.b===n.id)manual.add(e.a);});return {n:n,score:manual.size};}).filter(function(x){return x.score>0;}).sort(function(a,b){return b.score-a.score;}).slice(0,6).forEach(function(x){var r=el('button','hm-row',x.n.title+' · 연결 '+x.score);r.onclick=function(){openFromHome(x.n);};left.appendChild(r);});
-    left.appendChild(el('h3',null,'자주 등장한 단어'));
-    var terms=el('div');terms.style.cssText='display:flex;flex-wrap:wrap;gap:8px';
-    analysis.words.slice(0,16).forEach(function(pair){var b=el('button','btn sm',pair[0]+' '+pair[1]);b.onclick=function(){setPage('library');searchQ=pair[0];$('search').value=searchQ;render();};terms.appendChild(b);});left.appendChild(terms);
-
-    grid.appendChild(left);
-    host.appendChild(grid);
+    search.oninput=function(){query=search.value.trim().toLowerCase();paint();};recent.onclick=function(){order='recent';paint();};connected.onclick=function(){order='connected';paint();};paint();
   }
   function goTodo() {
     setPage("library");
@@ -14929,122 +14779,11 @@
   }
 
   /* =========================================================
-     12-0. 도움말 · 연결·백링크·관계망이 뭔지 설명
+     12-0. 도움말 · 연결·관계망·관계망이 뭔지 설명
      ========================================================= */
-  function openHelp(tab) {
-    closeModal();
-    var active = tab || "link";
-    var bg = el("div", "modal-bg");
-    var m = el("div", "card modal"); m.style.maxWidth = "620px";
-
-    var head = el("div", "mhead");
-    head.appendChild(el("h3", null, "❔ 연결 사용법"));
-    head.appendChild(el("span", "spacer"));
-    var x = el("button", "btn sm ghost", "✕"); x.addEventListener("click", closeModal);
-    head.appendChild(x);
-    m.appendChild(head);
-
-    var tabs = el("div", "tabs");
-    var body = el("div", "mbody");
-    var TABS = [["link", "① 연결이란"], ["how", "② 잇는 법"], ["back", "③ 백링크"], ["graph", "④ 관계망"]];
-    TABS.forEach(function (t) {
-      var b = el("button", "tab" + (active === t[0] ? " on" : ""), t[1]);
-      b.addEventListener("click", function () { active = t[0]; paint(); });
-      tabs.appendChild(b);
-    });
-    m.appendChild(tabs); m.appendChild(body);
-
-    var foot = el("div", "mfoot");
-    foot.appendChild(el("span", "spacer"));
-    var ok = el("button", "btn primary", "알겠습니다");
-    ok.addEventListener("click", closeModal);
-    foot.appendChild(ok);
-    m.appendChild(foot);
-
-    bg.appendChild(m);
-    bg.addEventListener("click", function (e) { if (e.target === bg) closeModal(); });
-    $("modalHost").appendChild(bg);
-    modalEl = bg;
-
-    function block(title, lines) {
-      var d = el("div", "help-block");
-      if (title) d.appendChild(el("h4", null, title));
-      lines.forEach(function (l) {
-        if (typeof l === "string") d.appendChild(el("p", null, l));
-        else d.appendChild(l);
-      });
-      body.appendChild(d);
-      return d;
-    }
-    function example(text) { return el("div", "help-ex", text); }
-
-    function paint() {
-      Array.prototype.forEach.call(tabs.children, function (b, i) {
-        b.className = "tab" + (TABS[i][0] === active ? " on" : "");
-      });
-      body.innerHTML = "";
-
-      if (active === "link") {
-        block("연결이 왜 필요한가요?", [
-          "기록이 쌓이면 검색만으로는 부족해집니다. 「지난달 그 수업에서 배운 걸 이번 수업에 썼는데, 그게 뭐였더라」 같은 게 안 잡히거든요.",
-          "그래서 기록끼리 실을 매어 둡니다. 나중에 하나를 열면 관련된 것들이 따라 나옵니다.",
-          example("물의 상태변화 수업  →  온도계 사용법  →  실험 준비 체크리스트")
-        ]);
-        block("두 가지 방법이 있습니다", [
-          "① 글을 쓰다가 자연스럽게 · 문장 안에서 다른 기록을 언급하기",
-          "② 나중에 몰아서 · 관계망 화면에서 점과 점을 이어주기",
-          "둘 다 결과는 같습니다. 편한 쪽으로 하시면 됩니다."
-        ]);
-
-      } else if (active === "how") {
-        block("① 글 쓰다가 잇기", [
-          "내용 칸에 대괄호 두 개를 칩니다.",
-          example("[[  ← 이렇게 치면 기존 기록 목록이 뜹니다"),
-          "목록에서 고르면 이렇게 들어갑니다.",
-          example("얼음 실험을 했다. [[온도계 사용법]] 을 먼저 보여줄 걸 그랬다."),
-          "저장하면 그 부분이 눌러서 이동할 수 있는 링크가 됩니다.",
-          "아직 없는 제목을 적어도 됩니다. 점선으로 표시되고, 누르면 그 제목으로 새 기록이 시작됩니다."
-        ]);
-        block("② 관계망에서 잇기", [
-          "위쪽 🕸️ 관계망 을 열고, 점을 누르면 정보 창이 뜹니다.",
-          "거기서 「🔗 다른 기록과 잇기」 를 누르고, 이을 상대 점을 누르면 끝입니다.",
-          "이때 «어떤 관계인지» 설명을 달 수 있습니다. 「여기서 배움」, 「근거가 됨」 같은 짧은 말이면 충분합니다.",
-          "설명은 관계망의 선 위에 표시됩니다."
-        ]);
-
-      } else if (active === "back") {
-        block("백링크 = 나를 가리킨 기록", [
-          "연결에는 방향이 있습니다. A에서 B로 실을 매면,",
-          example("A →  나가는 연결  (A가 B를 가리킴)\nB ←  들어오는 연결 = 백링크  (B 입장에서)"),
-          "B에서는 아무것도 하지 않아도, B를 열면 「A가 나를 가리키고 있다」가 함께 표시됩니다."
-        ]);
-        block("어디서 보나요?", [
-          "각 기록 카드 아래에 이런 줄이 붙습니다.",
-          example("🔗 연결 · 나감 2 · 들어옴 1\n   → 온도계 사용법     → 모둠 운영 원칙     ← 물의 상태변화 수업"),
-          "→ 는 내가 건 연결, ← 는 나를 가리킨 기록입니다. 눌러서 바로 이동합니다.",
-          "그래서 「온도계 사용법」 하나만 열어도, 그걸 써먹은 수업들이 전부 딸려 나옵니다. 이게 백링크가 하는 일입니다."
-        ]);
-
-      } else {
-        block("관계망 화면", [
-          "쌓인 기록이 어떻게 얽혀 있는지 한눈에 보는 곳입니다.",
-          example("● 점 = 기록 하나 (유형별로 색이 다름, 연결이 많을수록 큼)\n─▶ 실선 = 기록끼리의 연결 (화살표가 방향)\n┈ 점선 = 같은 태그를 공유 (기본 꺼짐)")
-        ]);
-        block("할 수 있는 것", [
-          "· 점을 누르면 → 정보 창이 열리고, 그 기록의 나가는 연결과 백링크가 함께 보입니다",
-          "· 정보 창의 「🔗 다른 기록과 잇기」 → 상대 점을 누르면 연결이 만들어집니다",
-          "· 연결 옆 ✕ 로 끊을 수 있습니다 (글 속 [[링크]]는 글을 고쳐야 합니다)",
-          "· 점을 끌어 옮기고, 휠로 확대·축소, 빈 곳을 끌면 화면 이동",
-          "· 빈 곳을 누르면 선택이 풀립니다"
-        ]);
-        block("드라이브에도 남습니다", [
-          "여기서 만든 연결은 각 기록의 .md 파일 «## 연결» 항목에 함께 저장됩니다.",
-          example("## 연결\n\n- [[온도계 사용법]] · 여기서 배움"),
-          "그래서 이 폴더를 옵시디언으로 열어도 링크와 그래프가 그대로 동작합니다."
-        ]);
-      }
-    }
-    paint();
+  function openHelp() {
+    closeModal();var bg=el('div','modal-bg'),m=el('div','card modal'),head=el('div','mhead'),body=el('div','mbody');m.style.maxWidth='480px';head.appendChild(el('h3',null,'메뉴'));var x=el('button','btn','닫기');x.onclick=closeModal;head.appendChild(x);
+    [['전체 자료',function(){setPage('home');}],['새 기록',function(){setPage('library');openComposer();}],['지식맵',openGraph],['웹 클리퍼',openWebClip],['설정',openSettings]].forEach(function(item){var b=el('button','btn',item[0]);b.style.margin='6px';b.onclick=function(){closeModal();item[1]();};body.appendChild(b);});m.appendChild(head);m.appendChild(body);bg.appendChild(m);$('modalHost').appendChild(bg);modalEl=bg;
   }
 
   // 연결에 붙일 설명을 묻는다 (취소하면 null)
@@ -15660,14 +15399,14 @@
     var wordMode = false;
     var labelBtn = el("button", "btn sm", "🔤 이름 ON");
     var fitBtn = el("button", "btn sm", "⛶ 맞춤");
-    var helpBtn = el("button", "btn sm", "❔ 사용법");
+    var helpBtn = el("button", "btn sm", "메뉴");
     tools.appendChild(search); tools.appendChild(tagBtn); tools.appendChild(labelBtn);
     tools.appendChild(fitBtn); tools.appendChild(helpBtn);
     tools.appendChild(wordBtn);
     wordBtn.onclick=function(){wordMode=!wordMode;wordBtn.textContent=wordMode?"기록 관계망":"단어 관계망";selected=null;panel.classList.add("hidden");buildGraph(false);fit();};
     body.appendChild(tools);
     var folderTray=el('div','graph-folder-tray');folderTray.style.cssText='position:absolute;z-index:4;left:10px;right:10px;bottom:10px;display:flex;gap:6px;flex-wrap:wrap;max-height:110px;overflow:auto;padding:8px;background:var(--panel);border:1px solid var(--line);border-radius:8px';
-    if(localOn){folderTray.appendChild(el('span','desc','기록을 아래 폴더로 끌어 놓으세요.'));
+    if(localOn){
       localFolderPaths().then(function(paths){paths.forEach(function(path){var b=el('button','btn sm',path.join(' / ')||localName);b.dataset.dropPath=JSON.stringify(path);b.oncontextmenu=function(e){e.preventDefault();if(path.length)openMenuAt(e.clientX,e.clientY,[{label:'이름 바꾸기',run:function(){openLocalRename(path,null);}}]);};folderTray.appendChild(b);});}).catch(function(e){folderTray.textContent=e.message;});body.appendChild(folderTray);}
 
     var hintBar = el("div", "graphhint hidden");
@@ -16083,7 +15822,7 @@
       panel.appendChild(sec);
 
       var sec2 = el("div", "gp-sec");
-      sec2.appendChild(el("div", "gp-lab", "← 이 기록을 가리키는 것 · 백링크 (" + ins.length + ")"));
+      sec2.appendChild(el("div", "gp-lab", "← 이 기록을 가리키는 것 · 관계망 (" + ins.length + ")"));
       if (!ins.length) sec2.appendChild(el("div", "gp-none", "아직 없음"));
       ins.forEach(function (x) {
         var row = el("div", "gp-row");
@@ -16305,7 +16044,7 @@
     function paintFeedback() {
       var f = el("div", "field");
       f.appendChild(el("label", null, "의견 보내기"));
-      f.appendChild(el("p", "desc", "질문·개선 의견·오류 중 하나를 고르고 내용을 적어 보내 주세요. 오류는 어느 화면에서 무엇을 눌렀는지 적으면 확인에 도움이 됩니다."));
+
       var b = el("button", "btn primary", "의견 작성하기");
       b.addEventListener("click", function () { closeModal(); openFeedback(); });
       f.appendChild(b); body.appendChild(f);
@@ -16321,14 +16060,14 @@
       function axis(title, desc, field, opts) {
         var g = el("div", "field");
         g.appendChild(el("label", null, title));
-        g.appendChild(el("p", "desc", desc));
+
         var row = el("div", "pickrow2");
         opts.forEach(function (o) {
           var b = el("button", "pickbtn" + ((draft[field] || "") === o[0] ? " on" : ""));
           b.type = "button";
           b.appendChild(el("span", "pickico", o[1]));
           b.appendChild(el("span", "picklabel", o[2]));
-          b.appendChild(el("span", "pickwhy", o[3]));
+
           b.addEventListener("click", function () {
             draft[field] = o[0];
             applyTheme(draft.theme || "base", draft);   // 그 자리에서 바뀐다
@@ -16343,7 +16082,7 @@
       /* 색감 여섯 · 이 도구가 갈아입는 옷 */
       var gT = el("div", "field");
       gT.appendChild(el("label", null, "① 색감"));
-      gT.appendChild(el("p", "desc", ""));
+
       var tRow = el("div", "tonerow");
       var pickedTone = toneOf(draft.theme || "base", draft.tone);
       TONES.forEach(function (tn) {
@@ -16414,7 +16153,7 @@
           impL.addEventListener("click", function () { impL.disabled = true; localImport(status).then(function () { impL.disabled = false; }); });
           r01.appendChild(impL);
           f0.appendChild(r01);
-          f0.appendChild(el("p", "desc", "앱이 열려 있으면 2초마다 폴더 변경을 확인합니다. 앱을 닫은 동안에는 PC의 Google Drive가 폴더 파일을 동기화합니다. PC가 켜져 있고 Drive가 실행 중이어야 합니다. 기록 목록은 앱을 다시 열 때 갱신됩니다."));
+
         }
         body.appendChild(f0);
         var sepL = el("div", "field"); sepL.appendChild(el("label", null, "또는 · 구글 드라이브로 (휴대폰)"));
@@ -16513,8 +16252,7 @@
       }
       paintMode();
       f3.appendChild(modeGrid);
-      f3.appendChild(el("p", "desc",
-        "앞으로 저장되는 것부터 적용됩니다."));
+
       var reorg = el("button", "btn sm", "기존 파일도 새 방식으로 옮기기");
       reorg.disabled = !connected;
       reorg.addEventListener("click", function () {
@@ -16547,7 +16285,7 @@
     function paintTypes() {
       var f = el("div", "field");
       f.appendChild(el("label", null, "기록 유형"));
-      f.appendChild(el("p", "desc", "연수 · 아이디어 · 자료"));
+
       body.appendChild(f);
     }
 
@@ -16674,8 +16412,7 @@
     function paintImport() {
       var fImp = el("div", "field");
       fImp.appendChild(el("label", null, "폴더에 있는데 목록에 없는 것 가져오기"));
-      fImp.appendChild(el("p", "desc",
-        "드라이브에 직접 넣은 파일을 찾아 목록에 넣습니다."));
+
       /* ⚠️ 좁은 권한에서는 «손으로 넣은 파일» 이 훑기에 안 잡힌다.
          한 번 골라 주면 그 뒤로는 잡힌다. 그 사정을 여기서 미리 말해 둔다.
          말해 두지 않으면 «가져오기가 고장 났다» 로 읽는다. */
@@ -17016,7 +16753,7 @@
       items.push({ label: "⬇ 앱으로 설치", run: function () { inst.click(); } });
     }
     items.push({ label: "⚙️ 설정", run: function () { $("btnSettings").click(); } });
-    items.push({ label: "❔ 사용법", run: function () { $("btnHelp").click(); } });
+    items.push({ label: "메뉴", run: function () { $("btnHelp").click(); } });
     /* ⚠️ userEmail 만 보고 걸면, 열쇠가 풀린 사이에는 나가는 길이 통째로 사라진다.
        바로 그때 «다른 계정으로 갈아타고 싶다» 는 사람이 길을 잃는다.
        브라우저에 계정 흔적이 하나라도 남아 있으면 나가는 길은 보여 준다. */
