@@ -1797,7 +1797,7 @@
   .modebar { display: flex; gap: 6px; justify-content: center; margin: 0 0 12px; flex-wrap: wrap; }
 
   /* 손 메모 판 · 손가락으로 그릴 때 화면이 같이 밀리면 안 된다 */
-  /* 사진 가리기 화면 · 여러 장을 한자리에서 */
+  /* 사진 모자이크 화면 · 여러 장을 한자리에서 */
   .maskbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 8px; }
   .maskstrip { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 10px; }
   .maskthumb { position: relative; flex: none; padding: 0; border: 2px solid transparent;
@@ -2351,6 +2351,14 @@
 .layout[data-nav="1"][data-listcol="off"]{grid-template-columns:minmax(0,1fr)}
 .layout[data-listcol="off"] > .composer{grid-column:auto}
 }
+
+.entry:not(:has(.content)){padding-top:10px!important;padding-bottom:10px!important}
+.entry:not(:has(.content))>.crumbs,.entry:not(:has(.content))>.missing-note{display:none}
+.entry .titlebtn{display:inline-block;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.entry .titlebtn::before{content:'▸ ';font-size:12px}.entry .titlebtn[aria-expanded="true"]::before{content:'▾ '}
+.maskpad{touch-action:none;max-width:100%;height:auto}.maskstage{max-width:100%}
+.trash-actions-button{padding:4px 8px;margin-left:auto}
+@media(max-width:600px){.edbar{gap:4px!important}.modal .mfoot{flex-wrap:wrap}.maskstage{width:100%}.listcol,.composer{min-width:0}}
 </style>
 </head>
 <body>
@@ -2491,7 +2499,7 @@
     <div class="field">
       <label>내용</label>
       <div id="maskBar" class="maskbar hidden">
-        <button id="btnMaskAll" class="btn sm">사진 가리기</button>
+        <button id="btnMaskAll" class="btn sm">사진 모자이크</button>
         <span class="addhint" id="maskBarHint"></span>
       </div>
       <!-- 넣기 줄 · 종이 위에 붙어 다닌다. 서식 │ 줄 갈래 │ 자료 │ 출처 갈래.
@@ -2505,16 +2513,10 @@
           <button class="btn sm fb noico" data-fmt="i" title="기울임 (Ctrl+I)"><i>가</i></button>
           <button class="btn sm fb noico addx" data-fmt="s" title="취소선"><s>가</s></button>
           <span class="hlwrap"><button id="btnHl" class="btn sm fb noico" type="button" title="형광펜 · 고른 글자에 칠합니다">🖍</button><span class="hlpal" id="hlPal"></span></span>
-          <button class="btn sm fb noico addx" data-fmt="c" title="코드로">코드</button>
         </div>
         <div class="edgrp">
           <button class="btn sm" data-add="heading">소제목</button>
-          <button class="btn sm" data-add="todo">할 일</button>
-          <button class="btn sm" data-add="list">목록</button>
-          <button class="btn sm addx" data-add="olist">1. 목록</button>
-          <button class="btn sm addx" data-add="quote">인용</button>
           <button class="btn sm addx" data-add="table">표</button>
-          <button class="btn sm addx" data-add="code">코드</button>
           <button class="btn sm addx" data-add="fold">접이식</button>
           <button class="btn sm addx" data-add="divider">구분선</button>
         </div>
@@ -2523,14 +2525,10 @@
           <button class="btn sm" data-add="capture">캡처</button>
           <button class="btn sm" data-add="file">파일·영상</button>
           <button class="btn sm" data-add="link">링크</button>
-          <button class="btn sm addx" data-add="embed">코드 삽입</button>
           <button class="btn sm addx" data-add="draw">손 메모</button>
-          <button class="btn sm addx" data-add="voice">녹음</button>
+          <button class="btn sm" data-add="voice">녹음</button>
         </div>
         <div class="edgrp roles">
-          <button class="btn sm role noico" data-add="mine" title="내 생각 · 남의 자료와 구분해 둡니다">내 생각</button>
-          <button class="btn sm role noico" data-add="source" title="강사 말·책·논문·웹에서 옮긴 것 · 출처를 함께 적습니다">자료 인용</button>
-          <button class="btn sm role noico" data-add="ai" title="AI 가 답한 것 · 읽을 때는 접혀 있습니다">AI 답변</button>
         </div>
         <button id="btnAddMore" class="btn sm noico" title="취소선·코드·번호 목록·인용·표·접이식·구분선·코드 삽입·손 메모·녹음">⋯ 더</button>
       </div>
@@ -4338,6 +4336,7 @@
     var ext = extOf(original);
     var ctx = nameContext(entry, order, original, ext, block && block.caption);
     if (!ctx.stem) ctx.stem = "파일";
+    if (block && block.kind === "image") return (safeName(entry.title,60) || "사진") + ext;
     var name = applyPattern(settings.filePattern, ctx);
     if (settings.filePattern.indexOf("{확장자}") < 0) name += ext;
     return name;
@@ -6192,6 +6191,7 @@
       if (x.srcId) known[x.srcId] = 1;
       (x.blocks || []).forEach(function (b) { if (b.fileId) known[b.fileId] = 1; });
     });
+    blocks.forEach(function(b){if(b.fileId)known[b.fileId]=1;});
     var materialType = settings.types[0] ? settings.types[0].key : "";
     settings.types.forEach(function (t) { if (t.key === "material" || t.label === "자료") materialType = t.key; });
     var loose = [];   // 어느 글에도 안 걸린 자료 파일
@@ -6411,7 +6411,7 @@
   }
   /* 다시 돌아왔을 때 · 옵시디언·탐색기에서 넣거나 고친 것을 조용히 맞춘다 (보이는 동안 2초 간격으로 · 읽기·복사가 겹치면 기다림) */
   function localRescanIfStale() {
-    if (!localOn || document.hidden || localScanTask || localDropBusy || localWriteTask || syncing || Date.now() - lastLocalScan < 1500) return;
+    if (!localOn || document.hidden || attachmentSaves || localScanTask || localDropBusy || localWriteTask || syncing || Date.now() - lastLocalScan < 1500) return;
     localImport(null, { quiet: true }).catch(function () {});
   }
   window.addEventListener("focus", localRescanIfStale);
@@ -7238,7 +7238,7 @@
         img.alt = b.caption || b.original || "";
         if (pv) img.src = pv; else loadDriveImage(b.fileId, img);
         img.addEventListener("click", function () {
-          openLightbox([{ url: previewUrl(b), fileId: b.fileId, caption: b.caption || "", name: b.original || "" }], 0);
+          openMaskForBlock(b);
         });
         body.appendChild(img);
       } else if (/^(video|audio)\//.test(b.mime || "") && (pv || b.fileId)) {
@@ -7275,7 +7275,7 @@
       origName.title = origText;
       info.appendChild(origName);
       if (b.kind === "image" && (b.blob || b.fileId)) {
-        var maskBtn = abtn("🔲 가리기", b.fileId ? "얼굴·이름표를 가립니다. 저장하면 드라이브 사진도 바뀝니다" : "얼굴·이름표 같은 곳을 모자이크로 가립니다",
+        var maskBtn = abtn("사진 편집", b.fileId ? "얼굴·이름표를 가립니다. 저장하면 드라이브 사진도 바뀝니다" : "얼굴·이름표 같은 곳을 모자이크로 가립니다",
           function () { openMaskForBlock(b); });
         maskBtn.classList.add("amask");
         info.appendChild(maskBtn);
@@ -8554,7 +8554,7 @@
     closeModal();
 
     var stream = null, rec = null, chunks = [], started = 0, timer = null;
-    var recog = null, wantRecog = !!speechCtor(), recogOn = false;
+    var recog = null, wantRecog = false, recogOn = false;
     var finalText = "", interim = "", finishPromise = Promise.resolve(), autoCommit = false, closing = false, transcriptionError = "";
     var audioBlob = null, audioType = pickAudioType(), audioUrl = "";
     function setAudioSource(blob) { if (audioUrl) URL.revokeObjectURL(audioUrl); audioUrl = URL.createObjectURL(blob); player.src = audioUrl; }
@@ -8615,7 +8615,7 @@
        이 줄은 «지금 무슨 일이 일어나는가» 만 띄운다 (녹음 중·못 들었다·안 되는 것). */
     var warn = el("p", "crophint");
     warn.style.color = "var(--brand)";
-    warn.textContent = wantRecog ? "" : "이 브라우저는 받아쓰기가 안 됩니다. 소리만 담깁니다.";
+    warn.textContent = "";
     body.appendChild(warn);
     body.appendChild(el("p", "desc", "한국어로 실시간 전사합니다. 브라우저의 음성 인식 서비스에 음성이 전송될 수 있으며 인터넷 연결이 필요할 수 있습니다. 녹음 마치기를 누르면 음성과 글을 기록에 저장합니다."));
 
@@ -8637,7 +8637,7 @@
     ta.placeholder = wantRecog ? "말하면 여기에 쌓입니다." : "여기에 직접 적어도 됩니다.";
     ta.addEventListener("input", function () { finalText = ta.value; interim = ""; });
     scriptField.appendChild(ta);
-    body.appendChild(scriptField);
+    scriptField.hidden = true; body.appendChild(scriptField);
 
     var player = el("audio");
     player.controls = true;
@@ -8692,8 +8692,8 @@
     });
     var put = el("button", "btn primary", "이 녹음 넣기");
     put.style.display = "none";
-    put.textContent = "음성과 전사 저장";
-    put.addEventListener("click", function () { commit(true); });
+    put.textContent = "녹음 파일 첨부";
+    put.addEventListener("click", function () { commit(false); });
 
     /* ---- 밖에서 녹음해 온 파일 불러오기 ----
        폰 녹음기·회의 녹음기로 담아 온 것이 대부분이다. 그것도 여기서 받아 적을 수 있어야
@@ -8727,7 +8727,7 @@
           ① 이어폰을 끼면 마이크가 못 듣는다 ② 반향 제거를 꺼야 한다.
           반향 제거(echoCancellation)는 «스피커에서 나온 소리를 지우는» 기능이라,
           켜 두면 정확히 우리가 들려주려는 소리만 지워 버린다. */
-    var play = el("button", "btn", "🔊 틀어 놓고 받아 적기");
+    var play = el("button", "btn hidden", "받아쓰기");
     play.style.display = "none";
     play.addEventListener("click", function () {
       if (state === "playing") { player.pause(); return; }   // onpause 에서 정리한다
@@ -8786,14 +8786,14 @@
     function sync() {
       var busy = state === "recording" || state === "playing";
       mainBtn.style.display = (state === "done" || state === "playing") ? "none" : "";
-      mainBtn.textContent = state === "recording" ? "녹음 마치고 저장" : "● 녹음 시작";
+      mainBtn.textContent = state === "recording" ? "녹음 마치고 첨부" : "● 녹음 시작";
       mainBtn.disabled = state === "opening" || state === "finishing";
       mainBtn.className = state === "recording" ? "btn danger" : "btn primary";
       pickBtn.style.display = busy ? "none" : "";
       again.style.display = state === "done" ? "" : "none";
       put.style.display = state === "done" ? "" : "none";
       // 파일을 불러왔거나 방금 녹음했으면 «틀어 놓고 받아 적기» 를 쓸 수 있다
-      play.style.display = (state === "done" && audioBlob) || state === "playing" ? "" : "none";
+      play.style.display = "none";
       play.textContent = state === "playing" ? "■ 그만 듣기" : "🔊 틀어 놓고 받아 적기";
       play.className = state === "playing" ? "btn danger" : "btn";
       meterWrap.style.opacity = busy ? "1" : ".25";
@@ -8815,17 +8815,19 @@
         try { rec = new MediaRecorder(s, opt); }
         catch (e) { rec = new MediaRecorder(s); }
         rec.ondataavailable = function (e) { if (e.data && e.data.size) { chunks.push(e.data); checkpoint(e.data); } };
-        rec.onstop = function () {
+        rec.onstop = async function () {
           if (closing || !bg.isConnected) return;
           audioBlob = new Blob(chunks, { type: rec.mimeType || audioType || "audio/webm" });
+          try { audioBlob = await recordingWav(audioBlob); } catch(e) { /* Keep the recording if decoding is unavailable. */ }
+          if (closing || !bg.isConnected) return;
           setAudioSource(audioBlob);
           player.style.display = "";
           status.textContent = "녹음 " + mmss((Date.now() - started) / 1000) + " · " + humanSize(audioBlob.size);
-          state = "finishing"; sync(); status.textContent = "마지막 전사 결과를 기다리는 중…";
+          state = "finishing"; sync(); status.textContent = "녹음 파일을 준비하는 중…";
           finishPromise.then(function () {
             if (closing || !bg.isConnected) return;
             state = "done"; sync();
-            if (autoCommit) { autoCommit = false; commit(true); }
+            if (autoCommit) { autoCommit = false; commit(false); }
           });
         };
         rec.start(1000);          // 1초씩 끊어 담는다. 중간에 끊겨도 담긴 데까진 남는다.
@@ -8943,10 +8945,10 @@
       var text = ta.value.trim();
       var made = [];
       if (audioBlob) {
-        var ext = /mp4|aac/.test(audioBlob.type) ? ".m4a" : (/ogg/.test(audioBlob.type) ? ".ogg" : ".webm");
+        var ext = /wav/.test(audioBlob.type) ? ".wav" : (/mp4|aac/.test(audioBlob.type) ? ".m4a" : (/ogg/.test(audioBlob.type) ? ".ogg" : ".webm"));
         made.push(newBlock("file", {
           // 밖에서 불러온 파일은 «그 이름» 을 지킨다. 찾을 때 그 이름으로 찾기 때문이다.
-          original: pickedName || ("녹음_" + dateStamp() + "_" + timeStamp() + ext),
+          original: pickedName || ((safeName(tin.value,60) || safeName($("title").value,60) || "녹음") + ext),
           mime: audioBlob.type || "audio/webm",
           size: audioBlob.size,
           blob: audioBlob,
@@ -8957,11 +8959,17 @@
           caption: safeName(tin.value, 40)
         }));
       }
-      if (text) made.push(newBlock("text", { text: text }));
-      if (!text || transcriptionError) made.push(newBlock("text", { text: "전사 확인 필요: " + (transcriptionError || (wantRecog ? "인식된 글이 없습니다. 원본 음성을 확인해 주세요." : "이 브라우저는 음성 인식을 지원하지 않습니다.")) }));
+
       if (!made.length) { toast("담긴 것이 없습니다."); return; }
       if (saveNow && !$("title").value.trim()) $("title").value = tin.value.trim() || ("음성 기록 " + dateStamp() + " " + timeStamp());
       insertBlocks(made);
+      Promise.all(made.map(function(block){return idbPut(block.id,block.blob);})).then(function(saved){if(saved.every(Boolean))clearCheckpoint();});
+      if(localOn){
+        var rootAtStart=localRoot, owner=entries.find(function(n){return n.id===editingId;}), target=owner&&owner.localDir?owner.localDir.split('/'):['받은 파일'];
+        attachmentSaves++;
+        var audioSave=attachmentSaveQueue.then(async function(){for(var block of made){if(!localOn||localRoot!==rootAtStart)throw Error('저장 폴더가 바뀌었습니다.');var name=await localUnique(target,block.original);block.fileId=await localWrite(target,name,block.blob);block.name=name;refreshAtom(block.id);}touchDraft();saveDraft();}).finally(function(){attachmentSaves--;});
+        attachmentSaveQueue=audioSave.catch(function(e){toast('녹음은 임시 보관했습니다. '+e.message);});
+      }
       stopAll();
       closeModal();
       if (saveNow) {
@@ -8972,7 +8980,7 @@
           if (ok && Array.isArray(stored) && stored.some(function (n) { return (n.blocks || []).some(function (b) { return b.id === voiceBlock.id; }); })) clearCheckpoint();
         });
       }
-      toast("녹음" + (text ? "과 받아 적은 글" : "") + "을 넣었습니다.");
+      toast("녹음 파일을 첨부했습니다.");
       if (audioBlob && !tin.value.trim()) toast2("녹음 덩어리의 «제목» 칸에 적으면 파일 이름이 됩니다.");
     }
 
@@ -9154,7 +9162,7 @@
     modalCleanup = function () { window.removeEventListener("resize", refit); };
   }
 
-  /* ---------- 🔲 사진 가리기 (여러 장 한 번에) ----------
+  /* ---------- 🔲 사진 모자이크 (여러 장 한 번에) ----------
      드래그로 네모를 그리는 것보다, 얼굴 위를 «톡» 누르는 편이 훨씬 빠르다.
      그래서 원 도장이다. 크기를 고르고 누르면 그 자리에 동그랗게 뭉갠다.
      쓸어 넘기면 줄줄이 찍히니 뒷줄 아이들도 한 번에 지운다.
@@ -9202,28 +9210,20 @@
   }
 
   function loadBlockImage(b) {
-    return new Promise(function (res, rej) {
-      var url = previewUrl(b);
-      var im = new Image();
-      im.onload = function () { res(im); };
-      im.onerror = function () { rej(new Error("사진을 열지 못했습니다")); };
-      if (url) { im.src = url; return; }
-      if (!b.fileId) { rej(new Error("사진이 없습니다")); return; }
-      // 드라이브에 올라간 사진은 받아 와서 고친다 (같은 파일에 덮어쓴다)
-      driveFetch("https://www.googleapis.com/drive/v3/files/" + b.fileId + "?alt=media&supportsAllDrives=true")
-        .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.blob(); })
-        .then(function (blob) { im.src = URL.createObjectURL(blob); })
-        .catch(rej);
-    });
+    return blockFile(b).then(function(blob){return new Promise(function(resolve,reject){
+      var url=URL.createObjectURL(blob),img=new Image();
+      img.onload=function(){URL.revokeObjectURL(url);resolve(img);};
+      img.onerror=function(){URL.revokeObjectURL(url);reject(Error("사진을 열지 못했습니다."));};img.src=url;
+    });});
   }
 
-  function openPhotoMaskStudio() {
+  function openPhotoMaskStudio(selectedId) {
     syncFromPaper();   // 종이가 진실 · 지금 놓인 차례대로 사진을 센다
     var photos = blocks.filter(function (b) { return b.kind === "image" && (b.blob || b.fileId); });
     if (!photos.length) { toast("이 기록에는 아직 사진이 없습니다."); return; }
     closeModal();
 
-    var idx = 0;
+    var idx = Math.max(0,photos.findIndex(function(b){return b.id===selectedId;}));
     var work = {};        // 블록 id → { img, stamps:[{x,y,r}], done }
     var sizeStep = 1;     // 0 작게 · 1 보통 · 2 크게 · 3 아주 크게
     var SIZES = [
@@ -9238,7 +9238,7 @@
     var m = el("div", "card modal"); m.style.maxWidth = "min(920px, 97vw)";
 
     var head = el("div", "mhead");
-    head.appendChild(el("h3", null, "🔲 사진 가리기"));
+    head.appendChild(el("h3", null, "🔲 사진 모자이크"));
     head.appendChild(el("span", "spacer"));
     var x = el("button", "btn sm ghost", "✕");
     x.addEventListener("click", function () { if (confirmDrop()) closeModal(); });
@@ -9251,6 +9251,14 @@
     var strip = el("div", "maskstrip");
     body.appendChild(strip);
 
+    var photoTool = 'mosaic', penColor = '#e53935';
+    var toolsBar=el('div','modebar');
+    ['모자이크','펜'].forEach(function(label,i){var btn=el('button','btn sm',label);btn.type='button';btn.onclick=function(){photoTool=i?'pen':'mosaic';};toolsBar.appendChild(btn);});
+    var color=el('input');color.type='color';color.value=penColor;color.setAttribute('aria-label','펜 색상');color.oninput=function(){penColor=color.value;};toolsBar.appendChild(color);body.appendChild(toolsBar);
+    function paintStamp(ctx,img,stamp){
+      if(stamp.tool!=='pen'){pixelateCircle(ctx,img,stamp.x,stamp.y,stamp.r);return;}
+      ctx.save();ctx.strokeStyle=stamp.color;ctx.fillStyle=stamp.color;ctx.lineWidth=stamp.r;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(stamp.fromX,stamp.fromY);ctx.lineTo(stamp.x,stamp.y);ctx.stroke();ctx.beginPath();ctx.arc(stamp.x,stamp.y,stamp.r/2,0,Math.PI*2);ctx.fill();ctx.restore();
+    }
     // ② 크기 고르기
     var sizeBar = el("div", "modebar");
     var sizeBtns = SIZES.map(function (s, i) {
@@ -9375,7 +9383,7 @@
       cv.width = im.naturalWidth; cv.height = im.naturalHeight;
       var ctx = cv.getContext("2d");
       ctx.drawImage(im, 0, 0);
-      w.stamps.forEach(function (s) { pixelateCircle(ctx, im, s.x, s.y, s.r); });
+      w.stamps.forEach(function (s) { paintStamp(ctx, im, s); });
     }
 
     function go(i) {
@@ -9408,13 +9416,14 @@
     function stamp(ev) {
       var w = cur();
       if (!w || !w.img) return;
-      var p = toImage(ev), r = radius();
+      var p = toImage(ev), r = photoTool === "pen" ? Math.max(2,radius()/8) : radius();
       // 쓸어 넘길 때 도장이 너무 겹쳐 쌓이지 않게 반지름의 절반쯤 간격을 둔다
       if (lastAt && Math.hypot(p.x - lastAt.x, p.y - lastAt.y) < r * 0.5) return;
+      var stampData={x:p.x,y:p.y,r:r,tool:photoTool,color:penColor,fromX:lastAt?lastAt.x:p.x,fromY:lastAt?lastAt.y:p.y};
       lastAt = { x: p.x, y: p.y };
-      w.stamps.push({ x: p.x, y: p.y, r: r });
+      w.stamps.push(stampData);
       var ctx = cv.getContext("2d");
-      pixelateCircle(ctx, w.img, p.x, p.y, r);      // 방금 찍은 것만 덧그린다 (전체를 다시 그리면 느리다)
+      paintStamp(ctx, w.img, stampData);      // 방금 찍은 것만 덧그린다 (전체를 다시 그리면 느리다)
       syncAll();
     }
     cv.addEventListener("pointerdown", function (e) {
@@ -9453,7 +9462,7 @@
           out.width = w.img.naturalWidth; out.height = w.img.naturalHeight;
           var ctx = out.getContext("2d");
           ctx.drawImage(w.img, 0, 0);
-          w.stamps.forEach(function (s) { pixelateCircle(ctx, w.img, s.x, s.y, s.r); });
+          w.stamps.forEach(function (s) { paintStamp(ctx, w.img, s); });
           return new Promise(function (res) {
             var type = (b.mime === "image/png") ? "image/png" : "image/jpeg";
             out.toBlob(function (blob) {
@@ -9479,10 +9488,10 @@
     }
 
     syncSizes();
-    go(0);
+    go(idx);
   }
 
-  // 사진이 있으면 «사진 가리기» 줄을 보여 준다
+  // 사진이 있으면 «사진 모자이크» 줄을 보여 준다
   function syncMaskBar() {
     var bar = $("maskBar");
     if (!bar) return;
@@ -9502,20 +9511,7 @@
      이미 올라간 사진에서 학생 얼굴을 뒤늦게 발견했을 때다. 공유 관문이 「편집 → 가리기 로
      지우세요」 라고 일러 주는데, 정작 거기 가면 «가릴 수 없습니다» 가 떴다.
      이제는 드라이브에서 받아 와 고치고, 같은 파일에 덮어쓴다 (파일 ID 가 그대로라 색인이 안 어긋난다). */
-  function openMaskForBlock(b) {
-    if (!previewUrl(b) && !b.fileId) { toast("사진을 찾지 못했습니다."); return; }
-    if (!previewUrl(b)) toast("드라이브에서 사진을 받아 오는 중…");
-    loadBlockImage(b).then(function (im) {
-      var c = document.createElement("canvas");
-      c.width = im.naturalWidth; c.height = im.naturalHeight;
-      c.getContext("2d").drawImage(im, 0, 0);
-      // 여러 번 가려도 이름에 «_잘라냄» 이 겹겹이 붙지 않게 한 번만 남긴다
-      openCropModal(c, String(b.original || "").replace(/(_잘라냄)+(\.[^.]+)?$/, "$2"), b);
-    }).catch(function (e) {
-      toast("사진을 열지 못했습니다: " + errText(e));
-      if (b.fileId && !accessToken) toast2("구글 로그인이 풀렸습니다. [동기화] 를 눌러 다시 연결해 주세요.");
-    });
-  }
+  function openMaskForBlock(b) { openPhotoMaskStudio(b.id); }
 
   function openCropModal(canvas, srcName, replaceBlock) {
     closeModal();
@@ -9819,6 +9815,20 @@
      MediaRecorder 가 그렇게 만든다. 그래서 재생기가 「Infinity:NaN」 을 띄우고,
      막대를 끌어 옮길 수도 없어 **소리가 잘린 것처럼** 보인다. 파일이 상한 것이 아니다.
      맨 끝으로 한 번 보내면 브라우저가 길이를 세어 준다. 세고 나면 제자리로 돌려놓는다. */
+  async function recordingWav(blob) {
+    var Audio = window.AudioContext || window.webkitAudioContext;
+    var context = new Audio();
+    try {
+      var audio = await context.decodeAudioData(await blob.arrayBuffer());
+      var channels=audio.numberOfChannels, frames=audio.length, bytes=frames*channels*2;
+      var buffer=new ArrayBuffer(44+bytes), view=new DataView(buffer);
+      function word(offset,text){for(var i=0;i<text.length;i++)view.setUint8(offset+i,text.charCodeAt(i));}
+      word(0,'RIFF');view.setUint32(4,36+bytes,true);word(8,'WAVE');word(12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,channels,true);view.setUint32(24,audio.sampleRate,true);view.setUint32(28,audio.sampleRate*channels*2,true);view.setUint16(32,channels*2,true);view.setUint16(34,16,true);word(36,'data');view.setUint32(40,bytes,true);
+      var data=Array.from({length:channels},function(_,i){return audio.getChannelData(i);}),offset=44;
+      for(var f=0;f<frames;f++)for(var c=0;c<channels;c++){var v=Math.max(-1,Math.min(1,data[c][f]));view.setInt16(offset,v<0?v*32768:v*32767,true);offset+=2;}
+      return new Blob([buffer],{type:'audio/wav'});
+    }finally{await context.close();}
+  }
   function fixAudioDuration(a) {
     function tryFix() {
       if (a.duration !== Infinity && !isNaN(a.duration)) return;
@@ -9848,7 +9858,7 @@
       }
       var mime = f.type || localMime(f.name);
       made.push(newBlock(/^image\//.test(mime) ? "image" : "file", {
-        original: f.name || "file", mime: mime, size: f.size, blob: f
+        original: /^image\//.test(mime) ? (safeName($("title").value.trim(),60) || "사진") + extOf(f.name) : (f.name || "file"), mime: mime, size: f.size, blob: f
       }));
     });
     if (!made.length) return Promise.resolve();
@@ -10058,7 +10068,11 @@
       try { while (attachmentSaves) await attachmentSaveQueue; }
       finally { entrySaveWaiting = false; $("btnSave").disabled = false; }
     }
-    syncFromPaper();   // 제목이 있어도 저장 직전에 현재 본문을 읽는다.
+    syncFromPaper();
+    blocks = blocks.flatMap(function(b){
+      if(b.kind !== 'text' || b.role || !/^(?:#{1,4} |[-*+] |\d+[.)] |> |```|~~~|\|)/m.test(b.text||''))return [b];
+      return bodyToBlocks(b.text.replace(/^# /gm,'## '),[],localOn?((entries.find(function(n){return n.id===editingId;})||{}).localDir||'').split('/').filter(Boolean):null);
+    });
     var title = $("title").value.trim();
     if (!title && !hasContent()) { toast("제목이나 내용을 입력해 주세요."); return; }
 
@@ -10513,6 +10527,13 @@
     });
     host.appendChild(details);
   }
+  function trashActions(){
+    var ids=entries.filter(function(n){return n.trashed&&!n.localMissing;}).map(function(n){return n.id;});
+    return [
+      {label:'전체 복원 ('+ids.length+')',run:function(){ids.forEach(restoreEntry);}},
+      {label:'전체 삭제 ('+ids.length+')',danger:true,run:function(){if(!ids.length)return;confirmModal('휴지통을 비울까요?',ids.length+'개 기록을 완전히 삭제합니다. 연결된 파일도 삭제될 수 있으며 되돌릴 수 없습니다.',function(){ids.forEach(purgeNow);saveLocal();render();if(connected||localOn)saveIndex().catch(function(){});},'전체 삭제');}}
+    ];
+  }
   function currentViewEntries() {
     return entries.filter(function(n){
       if(n.localMissing)return false;
@@ -10822,10 +10843,11 @@
     t.appendChild(el("small", null, humanSize(b.size) + " · 눌러서 재생"));
     btn.appendChild(t);
     btn.addEventListener("click", function () {
-      if (localIsId(b.fileId)) {
-        localReadFile(b.fileId).then(function (file) {
+      if (localIsId(b.fileId) || isAudio(b)) {
+        blockFile(b).then(function (file) {
           var m = el(isAudio(b) ? "audio" : "video");
-          m.src = URL.createObjectURL(file); m.controls = true; m.autoplay = true;
+          if(isAudio(b))fixAudioDuration(m);
+          m.src = mediaObjectUrl(file,m); m.controls = true; m.autoplay = true;
           m.style.maxWidth = "100%";
           wrap.innerHTML = ""; wrap.appendChild(m);
         }).catch(function () { toast("폴더가 열려 있지 않아 재생하지 못합니다."); });
@@ -11385,6 +11407,7 @@
         var pv = previewUrl(b);
         if (pv) {
           var media = el(isVideo(b) ? "video" : "audio");
+          if(isAudio(b))fixAudioDuration(media);
           media.src = pv;
           media.controls = true;
           media.preload = "metadata";
@@ -11609,7 +11632,7 @@
            깜빡한 것을 발견한 바로 그 자리에서 고칠 수 있어야 관문이 관문 노릇을 한다. */
         var fix = el("button", "btn sm", "🔲 지금 가리기");
         fix.style.marginTop = "8px";
-        fix.title = "이 기록을 편집으로 불러와 사진 가리기 화면을 엽니다";
+        fix.title = "이 기록을 편집으로 불러와 사진 모자이크 화면을 엽니다";
         fix.addEventListener("click", function () {
           closeModal(); closeViewer();
           loadIntoComposer(n);
@@ -12954,6 +12977,13 @@
       var b = el("button", "smartrow" + (smartView === key && !filterPath.length ? " on" : ""));
       b.type = "button";
       b.title = tip || label;
+      if(key==='trash'){
+        b.addEventListener('contextmenu',function(e){e.preventDefault();e.stopPropagation();openMenuAt(e.clientX,e.clientY,trashActions());});
+        var more=el('span','trash-actions-button','⋯');more.setAttribute('role','button');more.tabIndex=0;more.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();openMenu(more,trashActions());}};more.title='휴지통 관리';more.setAttribute('aria-label','휴지통 관리');
+        more.onclick=function(e){e.stopPropagation();openMenu(more,trashActions());};
+        b.appendChild(more);
+      }
+
       b.appendChild(el("span", "sico", icon));
       b.appendChild(el("span", "n", label));
       if (count != null) b.appendChild(el("span", "cnt", String(count)));
@@ -13636,7 +13666,7 @@
     }
 
     // ---- 목록식: 제목만 한 줄씩 ----
-    if (settings.viewMode === "list") {
+    if (false && settings.viewMode === "list") {
       /* 목록 보기 = «디렉토리». 지금 정리 방식대로 폴더에 담아 보여 준다.
          드라이브를 열었을 때와 같은 모양이라, 어디에 무엇이 있는지 화면과 드라이브가 어긋나지 않는다. */
       var table = el("div", "card listview");
@@ -13701,12 +13731,12 @@
       var tbtn = el("span", "titlebtn", n.title || "(제목 없음)");
       tbtn.setAttribute("role", "button");
       tbtn.setAttribute("tabindex", "0");
-      tbtn.title = "전체 보기";
+      tbtn.title = "펼치기 / 접기"; tbtn.setAttribute("aria-expanded", String(!!expanded[n.id]));
       /* 3단일 때는 «고르면 오른쪽에서 열린다» · 그것이 3단의 전부다.
          2단·폰에서는 열 오른쪽 칸이 없으므로 전체 보기 창을 띄운다. */
-      tbtn.addEventListener("click", function () { openEntry(n); });
+      tbtn.addEventListener("click", function () { expanded[n.id] = !expanded[n.id]; render(); });
       tbtn.addEventListener("keydown", function (e) {
-        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openEntry(n); }
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); expanded[n.id] = !expanded[n.id]; render(); }
       });
       h3.appendChild(tbtn);
       head.appendChild(h3);
@@ -13761,6 +13791,7 @@
       head.appendChild(line2);
       card.appendChild(head);
 
+      if (!expanded[n.id]) { host.appendChild(card); return; }
       if ((n.tags || []).length) {
         var tg = el("div", "tags");
         n.tags.forEach(function (x) {
@@ -13780,7 +13811,7 @@
         card.appendChild(tg);
       }
 
-      var body = el("div", "content" + (expanded[n.id] ? "" : " collapsed"));
+      var body = el("div", "content");
       renderContent(n, body, { mediaFirst: true });   // 보드에서는 사진·산출물·코드가 위로
       card.appendChild(body);
 
