@@ -2338,6 +2338,8 @@
   .tag { max-width: 100%; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
   .vpaper { min-width: 0; overflow-wrap: anywhere; }
   .related-row .btn, .vrel .relchip { max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: left; }
+
+.attachment-card{display:flex;align-items:center;gap:16px;padding:18px;border:1px solid #ddd;border-radius:18px;background:#fafafa;margin:14px 0;min-width:0}.attachment-icon{display:grid;place-items:center;flex:0 0 54px;height:54px;border-radius:12px;background:#e6f2ea;color:#256540;font-size:12px;font-weight:700}.attachment-info{flex:1;min-width:0}.attachment-info strong{display:block;overflow-wrap:anywhere}.attachment-menu{position:relative;flex-shrink:0}.attachment-options{position:absolute;right:0;top:100%;z-index:30;background:white;border:1px solid #ddd;border-radius:14px;padding:10px;box-shadow:0 6px 20px #0002;min-width:220px}.attachment-options button{display:block;width:100%;text-align:left;margin:3px 0}@media(max-width:600px){.attachment-card{flex-wrap:wrap}.attachment-menu{margin-left:auto}}
 </style>
 </head>
 <body>
@@ -6391,7 +6393,7 @@
     var msg = total
       ? [added ? "글 " + added + "편" : "", addedFile ? "자료 " + addedFile + "개" : "", changed ? "고친 글 " + changed + "편" : ""].filter(Boolean).join(" · ") + " 를 폴더에서 읽었습니다."
       : "폴더에 새로 온 것이 없습니다.";
-    if (status) status.textContent = msg; else if (!opt.quiet || total) toast(msg);
+    if (status) status.textContent = msg; else if (!opt.quiet) toast(msg);
     return total;
   }
   /* 다시 돌아왔을 때 · 옵시디언·탐색기에서 넣거나 고친 것을 조용히 맞춘다 (보이는 동안 2초 간격으로 · 읽기·복사가 겹치면 기다림) */
@@ -7233,11 +7235,7 @@
         if (pv) media.src = pv;
         else blockFile(b).then(function (file) { if (media.isConnected) media.src = mediaObjectUrl(file, media); }).catch(function () { media.replaceWith(el("p", "desc", "파일을 읽지 못했습니다. 저장 폴더 연결을 확인해 주세요.")); });
       } else {
-        var row = el("div", "amedia");
-        row.appendChild(el("div", "aficon", fileIcon(b.mime, b.original)));
-        var nm0 = el("div", "afname", b.caption || b.name || b.original || "파일");
-        row.appendChild(nm0);
-        body.appendChild(row);
+        body.appendChild(attachmentCard(b));
         body.appendChild(filePreview(b));
       }
       var info = el("div", "ameta");
@@ -11003,6 +11001,21 @@
     if(!response.ok)throw new Error('미리보기를 읽지 못했습니다. 다시 요청해 주세요.');
     return response.blob();
   }
+  function attachmentCard(b) {
+    var name=b.name||b.original||"파일", extension=extOf(name).slice(1).toUpperCase();
+    var card=el("div","attachment-card"),icon=el("div","attachment-icon",extension||"파일"),info=el("div","attachment-info");
+    info.appendChild(el("strong",null,name));info.appendChild(el("div","desc",extension+(b.size?" · "+humanSize(b.size):"")));
+    var menu=el("details","attachment-menu");menu.appendChild(el("summary","btn","다음에서 열기"));var options=el("div","attachment-options");
+    function action(label,run){var button=el("button","btn",label);button.type="button";button.onclick=function(event){event.stopPropagation();menu.open=false;Promise.resolve().then(run).catch(function(e){toast(e.message||"파일을 열지 못했습니다.");});};options.appendChild(button);}
+    if(localIsId(b.fileId)&&window.PKOSBridge?.enabled){
+      function nativeAction(action){return fetch('/api/open-local',{method:'POST',headers:{'Content-Type':'application/json','X-PKOS-Local':'1'},body:JSON.stringify({path:b.fileId.slice(6),action:action})}).then(async function(r){var j=await r.json();if(!r.ok)throw Error(j.error);});}
+      action("기본 앱에서 열기",function(){return nativeAction('open');});
+      action("파일 탐색기에서 보기",function(){return nativeAction('reveal');});
+      action("파일 이름 바꾸기",function(){openLocalRename(localPathOf(b.fileId),null,true);});
+    }else if(b.fileId&&!localIsId(b.fileId)){action("Google Drive에서 열기",function(){window.open(driveLink(b.fileId),'_blank','noopener');});}
+    action("사본 다운로드",async function(){var file=await blockFile(b),a=el('a');a.href=mediaObjectUrl(file,card);a.download=name;a.click();});
+    menu.appendChild(options);card.append(icon,info,menu);return card;
+  }
   function documentPreview(b) {
     var wrap = el("div", "file-preview"), name = b.original || b.name || "파일";
     var pdf = /\.pdf$/i.test(name) || b.mime === "application/pdf";
@@ -11333,23 +11346,7 @@
         }
 
       } else if (b.kind === "file") {
-        var fileText = fileIcon(b.mime, b.name) + " " + (b.caption || b.name || b.original) +
-          (b.fileId ? "" : " · 업로드 대기");
-        var a = el("a", "fileline", fileText);
-        a.title = fileText;                              // 이름이 길어 잘렸을 때를 위해
-        if (b.fileId) { a.href = driveLink(b.fileId); a.target = "_blank"; a.rel = "noopener noreferrer"; }
-        else {
-          a.href = "#";
-          a.addEventListener("click", function (e) {
-            e.preventDefault(); e.stopPropagation();
-            blockFile(b).then(function (file) {
-              var link = document.createElement("a"); link.href = mediaObjectUrl(file, a);
-              link.download = b.original || b.name || "파일"; link.click();
-            }).catch(function () { toast("원본 파일을 읽지 못했습니다."); });
-          });
-        }
-        var w1 = el("div"); w1.appendChild(a);
-        host.appendChild(w1);
+        host.appendChild(attachmentCard(b));
         if (!stillEmbed) { var fp = filePreview(b); if (fp) host.appendChild(fp); }
 
       } else if (b.kind === "link") {
@@ -14348,6 +14345,7 @@
         return;
       }
       endTable();
+      if (/^\s*<!--\s*drive:[\s\S]*-->\s*$/.test(line)) return;
       if (/^#\s+/.test(line)) { flush(); closeOpen(); return; }              // 제목은 이미 title 로
       if ((m = /^#{2,4}\s+(.*)$/.exec(line))) { flush(); closeOpen(); out.push(newBlock("heading", { text: m[1].trim() })); return; }
       if (/^\s*(---|\*\*\*|___)\s*$/.test(line)) { flush(); closeOpen(); out.push(newBlock("divider")); return; }

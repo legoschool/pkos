@@ -211,6 +211,24 @@ def make_server(store, app, port=8788):
                     with store.lock:
                         store.recover_rename()
                         return self.reply(200, extract(store, query.get("path", [""])[0]))
+                if request.path == "/api/open-local":
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if length <= 0 or length > 8192:
+                        raise ValueError("invalid request size")
+                    payload = json.loads(self.rfile.read(length))
+                    path = store.path(payload.get("path", ""))
+                    if not path.is_file():
+                        raise ValueError("파일을 찾지 못했습니다.")
+                    import subprocess
+                    if payload.get("action") == "reveal":
+                        subprocess.Popen(["explorer.exe", "/select,", str(path)])
+                    elif payload.get("action") == "open":
+                        if path.suffix.lower() not in {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".hwp", ".hwpx", ".txt", ".md", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".mp3", ".mp4", ".wav", ".zip"}:
+                            raise ValueError("이 형식은 파일 탐색기에서 열어 주세요.")
+                        os.startfile(str(path))
+                    else:
+                        raise ValueError("invalid action")
+                    return self.reply(200, {"ok": True})
                 if request.path == "/api/rename":
                     from rename_ops import rename
                     length = int(self.headers.get("Content-Length", "0"))
