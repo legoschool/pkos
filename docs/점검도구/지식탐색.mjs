@@ -222,6 +222,7 @@ try {
  check('list toggle stays in place',await evaluate(`(()=>{const r=document.querySelector('#btnListFold').getBoundingClientRect();return Math.abs(r.x-toggleBefore.x)<1&&Math.abs(r.y-toggleBefore.y)<1;})()`));
  await evaluate(`document.querySelector('#btnListFold').click()`);
  check('storage shown once with clear local label',await evaluate(`document.querySelector('#storageChip').textContent.startsWith('저장 위치: 로컬 폴더')&&getComputedStyle(document.querySelector('#wsChip')).display==='none'&&document.querySelector('#banner').hidden`));
+ check('new record has no folder dropdown',await evaluate(`!document.querySelector('#topNewMore')&&!!document.querySelector('#topNew')&&!document.querySelector('#deskLine button')`));
  check('site shortcut matches sidebar menu',await evaluate(`document.querySelector('#webTools > button').classList.contains('nav-item')`));
 
  await evaluate(`document.querySelector('#btnCancelEdit').click();document.querySelector('#title').value='태그 저장 검사';const input=document.querySelector('#tagEntry');input.value='게임';input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',isComposing:true,bubbles:true}));`);

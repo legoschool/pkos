@@ -2435,6 +2435,19 @@
   .modebar button[aria-pressed="true"], [data-layout="plain"] .modal .modebar .btn.primary {background:var(--ink)!important;color:var(--panel)!important;border:2px solid var(--ink)!important;font-weight:700!important;}
   .photo-tools button[aria-pressed="false"] {border:1px solid var(--line-soft);}
   .grainbar[hidden] {display:none!important;}
+
+  #topNewWrap #topNew {border-radius:var(--r-btn,8px)!important;min-height:38px;}
+  header.top .top-inner {gap:10px;align-items:center;}
+  header.top .btn {min-height:38px;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+  .edbar .btn {display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:34px;}
+  .edbar .btn svg,.nav-item svg {width:18px;height:18px;flex:0 0 18px;vertical-align:middle;}
+  .modal .mhead {display:flex;align-items:center;gap:12px;}
+  .modal .mhead h3 {margin:0;line-height:1.4;}
+  .modal .mhead > button {width:36px;height:36px;min-width:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;}
+  .modal .mfoot {gap:8px;align-items:center;flex-wrap:wrap;}
+  .modal .modebar {gap:8px;flex-wrap:wrap;align-items:center;}
+  .modal .modebar input[type="color"] {width:40px;height:36px;padding:3px;border:1px solid var(--line-soft);border-radius:6px;background:var(--panel);}
+  @media(max-width:600px){header.top .top-inner{gap:6px;}header.top .btn{min-height:36px;}.modal .mfoot .btn{min-height:40px;}}
 </style>
 </head>
 <body>
@@ -2489,7 +2502,6 @@
          목록 길이에 밀리지 않는 자리에 있어야 한다 (PKOS도 머리띠에 둔다). -->
     <span id="topNewWrap" class="topnew">
       <button id="topNew" class="btn sm primary">＋ 새 기록</button>
-      <button id="topNewMore" class="btn sm primary tnmore" aria-label="양식·다른 폴더">▾</button>
     </span>
     <button id="btnLogin" class="btn sm primary">구글 로그인</button>
   </div>
@@ -3046,7 +3058,7 @@
     } catch (e) {}
   }
   function deskLabel(d) {
-    if (!d) return (folder.name || "기본 폴더");
+    if (!d) return localName || folder.name || "브라우저";
     return (d.path && d.path.length) ? d.path.join(" › ") : (d.name || "고른 폴더");
   }
   function rememberDesk(d) {
@@ -3060,7 +3072,7 @@
     desk = d || null;
     if (d) rememberDesk(d);
     saveDesk();
-    if (!quiet) toast(d ? "「" + deskLabel(d) + "」 에 씁니다." : "기본 자리에 씁니다.");
+    if (!quiet) toast(d ? "「" + deskLabel(d) + "」 에 씁니다." : "설정한 저장 위치에 씁니다.");
   }
   /* 저장할 때 진짜 폴더 ID 로 바꾼다.
      id 를 이미 아는 자리는 그대로 쓰고, 이름길만 아는 자리는 뿌리부터 한 칸씩 내려간다.
@@ -9338,7 +9350,7 @@
     var m = el("div", "card modal"); m.style.maxWidth = "min(920px, 97vw)";
 
     var head = el("div", "mhead");
-    head.appendChild(el("h3", null, "🔲 사진 모자이크"));
+    head.appendChild(el("h3", null, "사진 편집"));
     head.appendChild(el("span", "spacer"));
     var x = el("button", "btn sm ghost", "✕");
     x.addEventListener("click", function () { if (confirmDrop()) closeModal(); });
@@ -13528,17 +13540,7 @@
     }
     host.appendChild(document.createTextNode("저장 폴더: "));
     host.appendChild(el("b", null, storageKind()==='브라우저'?'브라우저':deskLabel(desk)));
-    host.appendChild(el("span", "spacer"));
-    var b = el("button", "btn xs", "폴더 변경");
-    b.type = "button";
-    b.addEventListener("click", function (e) {
-      e.stopPropagation();
-      var t = $("topNewMore");
-      if (t && getComputedStyle(t).display !== "none") { t.click(); return; }
-      var d = $("dockMore");
-      if (d) d.click();
-    });
-    host.appendChild(b);
+
   }
   /* ☰ 한 단추가 두 자리에서 같은 뜻으로 돈다 · «한 겹씩 걷는다».
      PC · 누를 때마다 세 단으로 돈다 (지금 몇 단인지는 기기에 남는다)
@@ -16105,7 +16107,7 @@
     var bg = el("div", "modal-bg");
     var m = el("div", "card modal");
     var head = el("div", "mhead");
-    head.appendChild(el("h3", null, "⚙️ 설정"));
+    head.appendChild(el("h3", null, "설정"));
     head.appendChild(el("span", "spacer"));
     var x = el("button", "btn sm ghost", "✕"); x.addEventListener("click", closeModal);
     head.appendChild(x);
@@ -16847,7 +16849,7 @@
     if (inst && inst.style.display !== "none") {
       items.push({ label: "⬇ 앱으로 설치", run: function () { inst.click(); } });
     }
-    items.push({ label: "⚙️ 설정", run: function () { $("btnSettings").click(); } });
+    items.push({ label: "설정", run: function () { $("btnSettings").click(); } });
     items.push({ label: "메뉴", run: function () { $("btnHelp").click(); } });
     /* ⚠️ userEmail 만 보고 걸면, 열쇠가 풀린 사이에는 나가는 길이 통째로 사라진다.
        바로 그때 «다른 계정으로 갈아타고 싶다» 는 사람이 길을 잃는다.
@@ -16881,17 +16883,6 @@
   paintNameHint();
 
   $("topNew").addEventListener("click", function () { closeDrawer(); setPage("library"); openComposer(); });
-  $("topNewMore").addEventListener("click", function (e) {
-    e.stopPropagation();
-    /* ⚠️ 여기는 «이 기록을 어디에 둘까» 를 고르는 자리다. 「수업 회고」·「연수 정리」
-       같은 양식까지 얹어 두었더니, 자리를 바꾸려고 연 사람 앞에 엉뚱한 두 줄이 먼저 섰다.
-       양식은 설정과 아래 바 ⋯ 에 이미 있다 · 한 자리에 두 가지 일을 시키지 않는다. */
-    var items = [];
-    items.push({ label: "📂 새 폴더 만들어 쓰기…", run: function () { createDeskFolder(); } });
-    items.push({ label: "📁 다른 폴더 골라 쓰기…", run: function () { pickDeskFolder(); } });
-    items.push({ label: "🏠 기본 자리에 쓰기", run: function () { setDesk(null); renderSideNav(); renderDeskLine(); } });
-    openMenu($("topNewMore"), items);
-  });
   $("acct").addEventListener("click", function (e) {
     e.stopPropagation();
     openMenu($("acct"), accountMenuItems());
@@ -16930,8 +16921,6 @@
     openMenu($("dockMore"), [
       { label: "📋 양식으로 시작", note: (settings.templates || []).map(function (t) { return t.name; }).join(" · ") || "설정에서 만듭니다",
         run: function () { var t = (settings.templates || [])[0]; if (t) startFromTemplate(t); else toast("아직 만들어 둔 양식이 없습니다."); } },
-      { label: "📂 새 폴더 만들어 쓰기…", run: function () { createDeskFolder(); } },
-      { label: "🏠 기본 자리에 쓰기", run: function () { setDesk(null); renderSideNav(); renderDeskLine(); } },
       "-",
       { label: "👁 보기 바꾸기", note: viewLabelNow(), run: function () { cycleView(); } },
       { label: "🗂 폴더 구조", run: function () { $("btnMap").click(); } },
