@@ -17,7 +17,8 @@
       if (at + 46 > size || v.getUint32(at, true) !== 0x02014b50) fail("압축 목록이 손상됐습니다.");
       const len = v.getUint16(at + 28, true), extra = v.getUint16(at + 30, true), comment = v.getUint16(at + 32, true);
       if (at + 46 + len + extra + comment > size) fail("압축 목록이 잘렸습니다.");
-      const name = new TextDecoder().decode(bytes.slice(at + 46, at + 46 + len));
+      const rawName=bytes.slice(at+46,at+46+len);
+      let name;try{name=new TextDecoder('utf-8',{fatal:true}).decode(rawName);}catch(_){name=new TextDecoder('euc-kr').decode(rawName);}
       if (items.has(name)) fail("같은 경로가 중복된 압축 파일입니다.");
       items.set(name, { crc: v.getUint32(at + 16, true), flags: v.getUint16(at + 8, true), method: v.getUint16(at + 10, true), packed: v.getUint32(at + 20, true), size: v.getUint32(at + 24, true), pos: v.getUint32(at + 42, true) });
       at += 46 + len + extra + comment;
@@ -194,5 +195,15 @@
     const skippedImages = withImages ? await embeddedImages(zip, imageParts) : false;
     return { sections, note: (withImages ? "텍스트와 포함된 이미지를 표시합니다. 원본의 글꼴·배치·도형 효과는 재현하지 않습니다." : "내용 미리보기입니다. 원본의 글꼴·배치·그림은 재현하지 않습니다.") + (skippedImages ? " 일부 이미지는 크기·형식·연결 문제로 생략했습니다. 원본 파일에서 확인해 주세요." : "") + (ext === "xlsx" ? " 숫자는 저장된 값으로 표시하며 날짜·통화 서식과 수식 재계산은 적용하지 않습니다." : "") };
   }
-  window.PKOSDocuments = { read, supports: name => /\.(docx|xlsx|pptx|hwpx|odt|ods|odp|zip)$/i.test(name) };
+  async function extract(file) {
+    const zip=await archive(file), files=[];
+    for(const [path] of zip.items){
+      const normalized=path.replace(/\\/g,'/');
+      if(normalized.startsWith('/')||/^[a-z]:/i.test(normalized)||normalized.split('/').some(p=>p==='..'||p==='.'||p.includes(':')))fail('압축 파일 경로가 올바르지 않습니다.');
+      if(normalized.endsWith('/')||normalized.startsWith('__MACOSX/')||normalized.split('/').pop()==='.DS_Store')continue;
+      const blob=await zip.read(path);files.push({path:normalized,blob});
+    }
+    return files;
+  }
+  window.PKOSDocuments = { read, extract, supports: name => /\.(docx|xlsx|pptx|hwpx|odt|ods|odp|zip)$/i.test(name) };
 })();

@@ -2431,6 +2431,10 @@
 @media(max-width:600px){#btnListFold{font-size:12px;width:94px;min-width:94px;} .top-inner #crumb{display:none;} }
 
 #tagEditor{display:flex;flex-direction:column;gap:6px;} #tagEntry{min-width:100px;flex:1;} #tagChips .chip{display:inline-flex;align-items:center;gap:6px;} #tagSuggestions:empty,#tagChips:empty{display:none;}
+
+  .modebar button[aria-pressed="true"], [data-layout="plain"] .modal .modebar .btn.primary {background:var(--ink)!important;color:var(--panel)!important;border:2px solid var(--ink)!important;font-weight:700!important;}
+  .photo-tools button[aria-pressed="false"] {border:1px solid var(--line-soft);}
+  .grainbar[hidden] {display:none!important;}
 </style>
 </head>
 <body>
@@ -6514,7 +6518,12 @@
   }
 
   async function expandIncomingZip(id, name) {
-    if(!/\.zip$/i.test(name) || !window.PKOSBridge?.enabled || typeof localRoot?.path!=='string')return;
+    if(!/\.zip$/i.test(name))return;
+    if(!window.PKOSBridge?.enabled || typeof localRoot?.path!=='string'){
+      try{var unpacked=await PKOSDocuments.extract(await localReadFile(id));var base=id.slice(6).split('/');base.pop();base.push(safeName(stemOf(name),80));
+        for(var item of unpacked){var path=item.path.split('/'),leaf=path.pop(),parts=base.concat(path);var unique=await localUnique(parts,leaf);await localWrite(parts,unique,item.blob);}
+      }catch(error){toast('압축 해제 실패: '+error.message);}return;
+    }
     try {
       var path=[localRoot.path,id.slice(6)].filter(Boolean).join('/');
       var response=await fetch('/api/extract-zip?path='+encodeURIComponent(path),{method:'POST',headers:{'X-PKOS-Local':'1'}}),result=await response.json();
@@ -9347,8 +9356,8 @@
     body.appendChild(strip);
 
     var photoTool = 'mosaic', penColor = '#e53935';
-    var toolsBar=el('div','modebar');
-    ['모자이크','펜'].forEach(function(label,i){var btn=el('button','btn sm',label);btn.type='button';btn.onclick=function(){photoTool=i?'pen':'mosaic';};toolsBar.appendChild(btn);});
+    var toolsBar=el('div','modebar photo-tools');
+    var toolButtons=['모자이크','펜'].map(function(label,i){var btn=el('button','btn sm',label);btn.type='button';btn.onclick=function(){photoTool=i?'pen':'mosaic';syncPhotoTools();};toolsBar.appendChild(btn);return btn;});
     var color=el('input');color.type='color';color.value=penColor;color.setAttribute('aria-label','펜 색상');color.oninput=function(){penColor=color.value;};toolsBar.appendChild(color);body.appendChild(toolsBar);
     function paintStamp(ctx,img,stamp){
       if(stamp.tool!=='pen'){pixelateCircle(ctx,img,stamp.x,stamp.y,stamp.r);return;}
@@ -9370,7 +9379,7 @@
 
     // ②-2 칸 굵기 고르기 · 「픽셀이 너무 크다」는 말을 이 자리에서 풀 수 있게
     var grainBar = el("div", "modebar grainbar");
-    grainBar.appendChild(el("span", "crophint", "칸 굵기"));
+    grainBar.appendChild(el("span", "crophint", "모자이크 입자"));
     var grainBtns = GRAINS.map(function (g, i) {
       var b = el("button", "btn sm", g.label);
       b.addEventListener("click", function () {
@@ -9383,13 +9392,17 @@
       grainBar.appendChild(b);
       return b;
     });
+    function syncPhotoTools(){
+      toolButtons.forEach(function(b,i){b.setAttribute('aria-pressed',String(photoTool===(i?'pen':'mosaic')));});
+      color.hidden=photoTool!=='pen';grainBar.hidden=photoTool==='pen';
+    }
     function syncGrain() {
       grainBtns.forEach(function (b, i) {
         b.className = "btn sm" + ((settings.maskGrain === i || (settings.maskGrain == null && i === 1)) ? " primary" : "");
       });
     }
     syncGrain();
-    body.appendChild(grainBar);
+    body.appendChild(grainBar);syncPhotoTools();
 
     // ③ 지금 고른 사진
     var stage = el("div", "maskstage");
@@ -9436,7 +9449,7 @@
     }
 
     function syncSizes() {
-      sizeBtns.forEach(function (b, i) { b.className = "btn sm" + (i === sizeStep ? " primary" : ""); });
+      sizeBtns.forEach(function (b, i) { b.className = "btn sm" + (i === sizeStep ? " primary" : ""); b.setAttribute("aria-pressed",String(i===sizeStep)); });
       ghost.style.display = "none";
     }
     function drawStrip() {
@@ -9530,7 +9543,7 @@
       painting = true; lastAt = null; stamp(e);
     });
     cv.addEventListener("pointermove", function (e) {
-      var p = toImage(e), r = radius() * p.scale;
+      var p = toImage(e), r = (photoTool === "pen" ? Math.max(2,radius()/8)/2 : radius()) * p.scale;
       ghost.style.display = "block";
       ghost.style.width = ghost.style.height = (r * 2) + "px";
       ghost.style.left = (e.clientX - stage.getBoundingClientRect().left - r) + "px";
@@ -9952,7 +9965,16 @@
 
   var attachmentSaveQueue = Promise.resolve(), attachmentSaves = 0;
   async function acceptFiles(fileList, afterBlock) {
-    var files = await chooseIncomingNames(fileList);
+    var expanded=[];
+    for(var incoming of Array.from(fileList||[])){
+      if(!/\.zip$/i.test(incoming.name)){expanded.push(incoming);continue;}
+      try{
+        var unpacked=await PKOSDocuments.extract(incoming);
+        if(!unpacked.length)throw Error('압축 안에 파일이 없습니다.');
+        unpacked.forEach(function(item){var f=new File([item.blob],item.path.split('/').pop(),{type:localMime(item.path)});f.fromArchive=true;expanded.push(f);});
+      }catch(error){toast('압축 해제 실패: '+error.message);expanded.push(incoming);}
+    }
+    var files = await chooseIncomingNames(expanded);
     if (!files.length) return Promise.resolve();
     var made = [];
     files.forEach(function (f) {
@@ -9965,7 +9987,7 @@
       }
       var mime = f.type || localMime(f.name);
       made.push(newBlock(/^image\//.test(mime) ? "image" : "file", {
-        original: /^image\//.test(mime) ? (safeName($("title").value.trim(),60) || "사진") + extOf(f.name) : (f.name || "file"), mime: mime, size: f.size, blob: f
+        original: /^image\//.test(mime) && !f.fromArchive ? (safeName($("title").value.trim(),60) || "사진") + extOf(f.name) : (f.name || "file"), mime: mime, size: f.size, blob: f
       }));
     });
     if (!made.length) return Promise.resolve();
@@ -11229,6 +11251,11 @@
           }
         } catch(error) {progress.textContent=error.message;action.disabled=false;}
       };
+      return wrap;
+    }
+    if (/\.zip$/i.test(name) && window.PKOSDocuments) {
+      var unpackButton=el('button','btn','압축 풀어 넣기');wrap.appendChild(unpackButton);
+      unpackButton.onclick=async function(e){e.stopPropagation();unpackButton.disabled=true;try{var file=await blockFile(b);await acceptFiles([new File([file],name)],b);}catch(error){toast('압축 해제 실패: '+error.message);}finally{unpackButton.disabled=false;}};
       return wrap;
     }
     if (window.PKOSDocuments && PKOSDocuments.supports(name)) {

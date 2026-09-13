@@ -139,6 +139,9 @@ await wait(2500);
 try {
  for(let i=0;i<60;i++){if(await evaluate('window.pkosLocal?.isOn()'))break;await wait(200);}
  await evaluate(`document.querySelector('[data-page="library"].nav-item').click()`);await wait(300);
+
+ check('ZIP Korean filenames and extracted bytes',await evaluate(`(async()=>{const bytes=Uint8Array.from(atob('UEsDBBQAAAAAAAAAAADiw08nDAAAAAwAAAANAAAAu+fB+C+89r73LnR4dFBLT1MgYXJjaGl2ZVBLAQIUABQAAAAAAAAAAADiw08nDAAAAAwAAAANAAAAAAAAAAAAAAAAAAAAAAC758H4L7z2vvcudHh0UEsFBgAAAAABAAEAOwAAADcAAAAAAA=='),c=>c.charCodeAt(0));const files=await PKOSDocuments.extract(new Blob([bytes]));return files.length===1&&files[0].path==='사진/수업.txt'&&await files[0].blob.text()==='PKOS archive';})()`));
+ check('ZIP parent path rejected',await evaluate(`(async()=>{try{await PKOSDocuments.extract(new Blob([Uint8Array.from(atob('UEsDBBQAAAAAAAAAAACDFtyMAQAAAAEAAAANAAAALi4vZXNjYXBlLnR4dHhQSwECFAAUAAAAAAAAAAAAgxbcjAEAAAABAAAADQAAAAAAAAAAAAAAAAAAAAAALi4vZXNjYXBlLnR4dFBLBQYAAAAAAQABADsAAAAsAAAAAAA='),c=>c.charCodeAt(0))]));return false;}catch(e){return e.message.includes('경로');}})()`));
  check('records start collapsed',await evaluate(`Array.from(document.querySelectorAll('.card.entry')).every(c=>!c.querySelector('.content'))`));
  await evaluate(`document.querySelector('[data-eid="photo-test"] .titlebtn').click()`);await wait(200);
  check('title expands inline preview',await evaluate(`!!document.querySelector('[data-eid="photo-test"] .content img')`));
@@ -160,6 +163,7 @@ try {
  await evaluate(`(()=>{const cv=document.querySelector('.maskpad');window.beforePixels=cv.toDataURL();const r=cv.getBoundingClientRect();cv.dispatchEvent(new PointerEvent('pointerdown',{clientX:r.left+r.width*.5,clientY:r.top+r.height*.5,pointerId:1,bubbles:true}));cv.dispatchEvent(new PointerEvent('pointerup',{pointerId:1,bubbles:true}));})()`);
  check('mosaic changes pixels',await evaluate(`document.querySelector('.maskpad').toDataURL()!==beforePixels`));
  await evaluate(`(()=>{Array.from(document.querySelectorAll('.modal button')).find(b=>b.textContent==='펜').click();const cv=document.querySelector('.maskpad');window.beforePen=cv.toDataURL();const r=cv.getBoundingClientRect();cv.dispatchEvent(new PointerEvent('pointerdown',{clientX:r.left+r.width*.2,clientY:r.top+r.height*.2,pointerId:2,bubbles:true}));cv.dispatchEvent(new PointerEvent('pointerup',{pointerId:2,bubbles:true}));})()`);
+ check('pen selection hides mosaic grain',await evaluate(`document.querySelector('.photo-tools [aria-pressed="true"]')?.textContent==='펜'&&document.querySelector('.grainbar').hidden&&!document.querySelector('input[aria-label="펜 색상"]').hidden`));
  check('pen changes pixels',await evaluate(`document.querySelector('.maskpad').toDataURL()!==beforePen`));
  await evaluate(`Array.from(document.querySelectorAll('.modal .mfoot button')).find(b=>b.textContent.includes('다 됐습니다')).click()`);await wait(250);
  check('photo returns to editor',await evaluate(`!document.querySelector('.maskpad')&&!!document.querySelector('#blocks .pimg')`));
@@ -191,6 +195,11 @@ try {
  check('recorded WebM converted with correct duration',await evaluate(`(async()=>{${wavCode}
  const ctx=new AudioContext(),osc=ctx.createOscillator(),out=ctx.createMediaStreamDestination();osc.connect(out);osc.start();await ctx.resume();const rec=new MediaRecorder(out.stream),chunks=[];rec.ondataavailable=e=>chunks.push(e.data);const done=new Promise(r=>rec.onstop=r);rec.start();await new Promise(r=>setTimeout(r,1100));rec.stop();await done;osc.stop();await ctx.close();const wav=await recordingWav(new Blob(chunks,{type:rec.mimeType}));const bytes=await wav.arrayBuffer();const v=new DataView(bytes);const seconds=v.getUint32(40,true)/v.getUint32(28,true);return wav.type==='audio/wav'&&seconds>.8&&seconds<1.6;
  })()`));
+
+ await evaluate(`(()=>{const dt=new DataTransfer();dt.items.add(new File([Uint8Array.from(atob('UEsDBBQAAAAAAAAAAADiw08nDAAAAAwAAAANAAAAu+fB+C+89r73LnR4dFBLT1MgYXJjaGl2ZVBLAQIUABQAAAAAAAAAAADiw08nDAAAAAwAAAANAAAAAAAAAAAAAAAAAAAAAAC758H4L7z2vvcudHh0UEsFBgAAAAABAAEAOwAAADcAAAAAAA=='),c=>c.charCodeAt(0))],'자료.zip',{type:'application/zip'}));const input=document.getElementById('fileInput');input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+ for(let i=0;i<50;i++){if(await evaluate(`!!document.querySelector('[data-incoming-save]')`))break;await wait(100);}
+ await evaluate(`document.querySelector('[data-incoming-save]').click()`);await wait(700);
+ check('ZIP upload inserts extracted attachment',await evaluate(`document.getElementById('blocks').textContent.includes('수업.txt')&&!document.getElementById('blocks').textContent.includes('자료.zip')`));
  check('no exceptions',errors.length===0,errors.join(';'));
  console.log(JSON.stringify(results));if(results.some(r=>!r.ok))process.exitCode=1;
 }finally{ws.close();edge.kill();}
