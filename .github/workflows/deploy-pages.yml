@@ -32,15 +32,27 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Pages
+        id: pages
         uses: actions/configure-pages@v5
 
       - name: Prepare public site
         shell: bash
+        env:
+          PAGE_URL: ${{ steps.pages.outputs.base_url }}
         run: |
           mkdir -p _site
           cp index.html view.html intro.html privacy.html manifest.json sw.js lecture-recorder.js document-preview.js pdf-reader.js local-bridge.js .nojekyll README.md SETUP.md LICENSE LICENSE.ko.md _site/
           cp -R vendor docs icons _site/
           find _site/docs -type f \( -name '*.mjs' -o -name '*.ps1' -o -name '*.py' \) -delete
+          # 주소는 고정이다. 어떤 판이 올라가 있는지는 주소 꼬리(?deploy=…)가 아니라 version.json 으로 확인한다.
+          node -e '
+            const { execFileSync } = require("node:child_process");
+            const log = (format) => execFileSync("git", ["log", "-1", "--format=" + format], { encoding: "utf8" }).trim();
+            const sha = process.env.GITHUB_SHA;
+            const info = { app: "PKOS", commit: sha, short: sha.slice(0, 7), time: log("%cI"), message: log("%s"), url: process.env.PAGE_URL.replace(/\/?$/, "/") };
+            process.stdout.write(JSON.stringify(info, null, 2) + "\n");
+          ' > _site/version.json
+          cat _site/version.json
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

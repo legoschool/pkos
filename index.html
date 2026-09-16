@@ -985,6 +985,7 @@
   body.focusing .colgrip,
   body.focusing .listcol,
   body.focusing #banner,
+  body.focusing #updateBar,
   body.focusing .toolbar,
   body.focusing .filters,
   body.focusing #list,
@@ -2542,6 +2543,8 @@
 <div class="wrap">
 
   <div id="banner" class="banner warn"></div>
+  <!-- 새 판이 올라왔을 때만 선다 · 주소는 그대로이고 새로고침만 하면 된다 -->
+  <div id="updateBar" class="banner ok hidden" role="status" aria-live="polite"></div>
 
   <!-- ================= 에디터 ================= -->
   <div id="draftBar" class="banner draft hidden"></div>
@@ -16651,6 +16654,35 @@
       whoUse.style.margin = "0 0 10px";
       whoUse.innerHTML = "";
 
+      /* 즐겨찾기할 주소 한 줄과 지금 연 판. 새 판을 올려도 주소는 그대로라는 것을 여기서 확인한다.
+         PC 연결 앱은 이 PC 에서만 열리는 주소라 따로 적는다. */
+      var fAddr = el("div", "field");
+      var bridged = !!(window.PKOSBridge && window.PKOSBridge.enabled);
+      fAddr.appendChild(el("label", null, bridged ? "PC 연결 앱 주소 (이 PC에서만 열립니다)" : "앱 주소 (새 판을 올려도 바뀌지 않습니다)"));
+      var deployedUrl = deployInfo.opened && /^https?:\/\//.test(deployInfo.opened.url || "") ? deployInfo.opened.url : "";
+      var appAddress = bridged ? location.origin + location.pathname + "?localBridge=1" : deployedUrl || location.origin + location.pathname;
+      var addrRow = el("div", "row");
+      var addrBox = el("div", "preview", appAddress);
+      addrBox.style.flex = "1 1 240px"; addrBox.style.marginTop = "0";
+      var copyAddr = el("button", "btn sm", "주소 복사");
+      copyAddr.type = "button";
+      copyAddr.addEventListener("click", function () {
+        copyText(appAddress).then(function () { toast("주소를 복사했습니다."); },
+          function () { toast("복사하지 못했습니다. 주소를 직접 골라 복사해 주세요."); });
+      });
+      addrRow.appendChild(addrBox); addrRow.appendChild(copyAddr);
+      fAddr.appendChild(addrRow);
+      var verLine = el("p", "desc");
+      function paintVersion() {
+        var o = deployInfo.opened, l = deployInfo.latest;
+        verLine.textContent = !o ? "배포 판 번호를 읽지 못했습니다. PC 연결 앱과 로컬 미리보기에는 원래 없습니다."
+          : "지금 연 판 " + deployLabel(o) + (l && l.commit !== o.commit ? " · 새 판 " + deployLabel(l) + " 이 올라와 있습니다. 새로고침하면 바뀝니다." : "");
+      }
+      paintVersion();
+      fAddr.appendChild(verLine);
+      body.appendChild(fAddr);
+      checkDeploy(true).then(function () { if (verLine.isConnected) paintVersion(); });
+
       var fLp = el("div", "field");
       fLp.appendChild(el("label", null, "링크 미리보기"));
       var lpRow = el("label", "checkline");
@@ -17116,8 +17148,59 @@
   restoreDraft();   // 쓰다 만 내용 되살리기
   intakeShared();   // 밖에서 «공유»·«웹 캡처» 로 보낸 것 받기 (쓰던 글 뒤에 이어 붙는다)
 
+  /* ---------- 고정 주소와 배포 판 ----------
+     주소는 하나로 고정한다. 새 판을 올려도 주소는 그대로이고, 판은 version.json 으로 확인한다.
+     version.json 은 배포할 때 GitHub Actions 가 만든다(저장소에는 없다). PC 앱·로컬 서버에는 없으니 조용히 넘어간다.
+     ⚠️ 한때 배포를 확인하려고 ?deploy=커밋 을 붙인 주소를 건넸다. 서버에서는 뜻이 없는 꼬리인데
+     사람에게는 «주소가 자꾸 바뀌는» 것으로 보였다. 들어오면 주소창에서 지워 즐겨찾기·앱 설치가 고정 주소를 잡게 한다. */
+  if (/[?&]deploy=/.test(location.search)) {
+    var deployQuery = new URLSearchParams(location.search);
+    deployQuery.delete("deploy");
+    var deployRest = deployQuery.toString();
+    history.replaceState(history.state, "", location.pathname + (deployRest ? "?" + deployRest : "") + location.hash);
+  }
+  var deployInfo = { opened: null, latest: null, checkedAt: 0, missing: false };
+  function checkDeploy(force) {
+    if (deployInfo.missing) return Promise.resolve(null);   // PC 앱·로컬 서버 · 없는 파일을 거듭 묻지 않는다
+    if (!force && Date.now() - deployInfo.checkedAt < 5 * 60 * 1000) return Promise.resolve(deployInfo.latest);
+    deployInfo.checkedAt = Date.now();
+    return fetch("version.json", { cache: "no-store" })
+      .then(function (r) { if (r.status === 404 && !deployInfo.opened) deployInfo.missing = true; return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
+      .then(function (v) {
+        if (!v || typeof v.commit !== "string" || !v.commit) return deployInfo.latest;
+        if (!deployInfo.opened) deployInfo.opened = v;
+        deployInfo.latest = v;
+        paintUpdateBar();
+        return v;
+      });
+  }
+  function deployLabel(v) {
+    var when = new Date(v.time);
+    return (v.short || v.commit.slice(0, 7)) +
+      (isNaN(when) ? "" : " · " + dateStamp(when) + " " + pad2(when.getHours()) + ":" + pad2(when.getMinutes()));
+  }
+  function paintUpdateBar() {
+    var bar = $("updateBar");
+    var fresh = !!(deployInfo.opened && deployInfo.latest && deployInfo.latest.commit !== deployInfo.opened.commit);
+    bar.classList.toggle("hidden", !fresh);
+    if (!fresh || bar.firstChild) return;
+    var g = el("div", "grow");
+    g.appendChild(el("b", null, "새 판이 올라왔습니다"));
+    g.appendChild(document.createTextNode(" · 주소는 그대로입니다. 새로고침하면 바로 씁니다."));
+    bar.appendChild(g);
+    var b = el("button", "btn sm", "새로고침");   // primary 는 기본 모양에서 흐린 회색 글자가 된다 · 저장 위치 띠의 「폴더 변경」 과 같은 단추로 둔다
+    b.type = "button";
+    b.addEventListener("click", function () { location.reload(); });
+    bar.appendChild(b);
+  }
+  window.pkosDeploy = { check: checkDeploy, info: function () { return { opened: deployInfo.opened, latest: deployInfo.latest }; } };
+  checkDeploy(true);
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") checkDeploy(); });
+  window.addEventListener("focus", function () { checkDeploy(); });
+
   /* ---------- 앱으로 설치 (PWA) ----------
-     서비스 워커는 index.html 을 캐시하지 않는다. 고치면 바로 반영돼야 하기 때문. */
+     서비스 워커는 index.html 을 «오프라인 사본» 으로만 쥔다. 열 때마다 서버에 먼저 묻는다(sw.js). */
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
       navigator.serviceWorker.register("sw.js").catch(function () { /* 설치 안 돼도 앱은 그대로 쓴다 */ });
