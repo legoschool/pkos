@@ -6272,6 +6272,9 @@
   window.addEventListener('drop',function(e){var raw=e.dataTransfer?.getData(RECORD_DRAG);if(!raw)return;e.preventDefault();document.querySelectorAll('.file-drop-target').forEach(function(n){n.classList.remove('file-drop-target');});var target=e.target.closest('[data-drop-path]');if(target){try{askTransfer(JSON.parse(raw),JSON.parse(target.dataset.dropPath),function(){if(modalEl?.querySelector('.treebox'))openFolderTree();});}catch(err){toast(err.message);}}});
 
   var lastLocalScan = 0, localScanTask = null, localDropBusy = false, localRelocationPending = false;
+  /* 마지막으로 훑었을 때 «진짜로 있던» 폴더들 (뿌리 기준 경로 문자열). 폴더를 안 붙였으면 null.
+     탐색기에서 만든 빈 폴더를 세우고, 밖에서 지운 폴더를 왼쪽에서 빼는 데 쓴다. */
+  var localDirs = null;
   function localImport(status, opt) {
     if (transferBusy) return Promise.resolve(0);
     if (localScanTask) return localScanTask.then(function () { return localImport(status, opt); });
@@ -6307,8 +6310,10 @@
     var materialType = "";
 
     var loose = [];   // 어느 글에도 안 걸린 자료 파일
+    var scanDirs = [];   // 지나간 폴더 그대로 · 글이 한 편도 없는 폴더도 들어간다
     async function walk(parts, depth) {
       visited++;
+      if (parts.length) scanDirs.push(parts.join("/"));
       var d = await localDir(parts, false), files = [], dirs = [];
       for await (var ent of d.entries()) {
         var name = ent[0], h = ent[1];
@@ -6409,6 +6414,19 @@
     } catch (e) {
       console.warn(e); if (!opt.quiet) toast("폴더 읽기에 실패했습니다. 권한과 드라이브 연결을 확인해 주세요.");
       throw e;
+    }
+    var dirsBefore = localDirs;
+    localDirs = new Set(scanDirs);
+    /* 글은 하나도 안 바뀌어도 폴더가 생기거나 사라질 수 있다. 그때도 왼쪽은 다시 그려야 한다. */
+    var dirsChanged = !dirsBefore || dirsBefore.size !== localDirs.size || scanDirs.some(function (p) { return !dirsBefore.has(p); });
+    /* 밖에서 사라진 자리는 «고른 자리» 에서도 뺀다. 안 그러면 없는 폴더가 왼쪽에 계속 서고,
+       거기에 쓴다고 적혀 있어 사람이 지운 폴더를 다시 만들게 된다. */
+    var keptDesks = deskList.filter(function (d) { return !(d.path || []).length || localDirs.has(d.path.join("/")); });
+    var deskLost = !!(desk && (desk.path || []).length && !localDirs.has(desk.path.join("/")));
+    if (keptDesks.length !== deskList.length || deskLost) {
+      deskList = keptDesks;
+      if (deskLost) desk = null;
+      saveDesk(); changed++;
     }
     async function addLoose(list) {
       for (var i = 0; i < list.length; i++) {
@@ -6515,9 +6533,10 @@
         else if (showing) closeViewer();
       }
     }
+    else if (dirsChanged) renderSideNav();   // 폴더만 생기거나 사라졌을 때 · 글 목록은 그대로 둔다
     var msg = total
       ? [added ? "글 " + added + "편" : "", addedFile ? "자료 " + addedFile + "개" : "", changed ? "고친 글 " + changed + "편" : ""].filter(Boolean).join(" · ") + " 를 폴더에서 읽었습니다."
-      : "폴더에 새로 온 것이 없습니다.";
+      : (dirsChanged ? "폴더 구조를 다시 읽었습니다." : "폴더에 새로 온 것이 없습니다.");
     if (status) status.textContent = msg; else if (!opt.quiet) toast(msg);
     return total;
   }
@@ -6621,7 +6640,7 @@
     return localAttach(h);
   }
   async function localDetach() {
-    localRoot = null; localOn = false; localPending = false; localName = "";
+    localRoot = null; localOn = false; localPending = false; localName = ""; localDirs = null;
     try { await localKv("readwrite", function (s) { return s.delete("root"); }); } catch (e) {}
     render(); updateChrome();
   }
@@ -10795,7 +10814,7 @@
        한 기록에 같은 태그가 두 번 들어 있어도 한 번만 센다. */
     var count = {}, last = {};
     entries.forEach(function (n) {
-      if (n.trashed) return;                 // 버린 것은 세지 않는다
+      if (n.trashed || n.localMissing) return;   // 버린 것도, 폴더에서 사라진 것도 세지 않는다 (목록과 같은 자)
       if (filterPinned && !n.pinned) return;
       if (filterType !== "all" && !(n.tags||[]).includes(legacyTypeTag(filterType))) return;
       if (selectedFolders.length ? !selectedFolders.some(function(p){return underPath(n,p);}) : filterPath.length && !underPath(n,filterPath)) return;
@@ -13318,11 +13337,18 @@
         if (last) { last.gone = (last.gone || 0) + (n._missing ? 1 : 0); }
       });
     });
+    /* 탐색기에서 방금 만든 빈 폴더도 세운다. 글이 한 편도 없다고 없는 자리는 아니다.
+       ⚠️ 이것이 없던 동안, 사람이 폴더를 만들어도 화면에서는 아무 일도 일어나지 않았다. */
+    if (localOn && localDirs) localDirs.forEach(function (path) {
+      var p = path.split("/").slice(0, SIDE_DEPTH);
+      if (p.length) nodeAt(p, true);
+    });
     /* 손으로 골라 둔 자리는 아직 기록이 한 편도 없어도 나무에 세운다.
        방금 만든 폴더가 안 보이면 «만들어졌나?» 하고 한 번 더 만들게 된다. */
     deskList.concat(desk ? [desk] : []).forEach(function (d) {
       var p = (d.path && d.path.length ? d.path : (d.name ? [d.name] : [])).slice(0, SIDE_DEPTH);
       if (!p.length) return;
+      if (localOn && localDirs && !localDirs.has(p.join("/"))) return;   // 밖에서 사라진 폴더는 세우지 않는다
       var node = nodeAt(p, true);
       if (node && !node.fid) node.fid = d.id || null;
     });
