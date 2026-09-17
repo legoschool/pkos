@@ -8786,7 +8786,10 @@
     closeModal();
 
     var stream = null, rec = null, chunks = [], started = 0, timer = null;
-    var recog = null, wantRecog = false, recogOn = false;
+    /* 받아쓰기 (2026-09-17 되살림) · 9월 13일에 「녹음 뒤 글까지 완성된 듯 저장된다」 는 말에 받아쓰기를 아예 껐었다.
+       사용자 뜻은 «저장만 하지 말고 받아써 달라» 였다. 그래서 다시 켜되, 받아 적은 글은 «받아쓴 글 · 다듬기 전» 으로
+       머리를 달아 본문 블록에 넣는다. 기록 저장은 여전히 사람이 누른다. 크롬·엣지에서만 된다(브라우저 음성인식). */
+    var recog = null, wantRecog = !!speechCtor(), recogOn = false;
     var finalText = "", interim = "", finishPromise = Promise.resolve(), autoCommit = false, closing = false, transcriptionError = "";
     var audioBlob = null, audioType = pickAudioType(), audioUrl = "";
     function setAudioSource(blob) { if (audioUrl) URL.revokeObjectURL(audioUrl); audioUrl = URL.createObjectURL(blob); player.src = audioUrl; }
@@ -8862,13 +8865,13 @@
 
     var scriptField = el("div", "field");
     scriptField.style.textAlign = "left";
-    scriptField.appendChild(el("label", null, "전사한 글"));
+    scriptField.appendChild(el("label", null, "받아쓴 글"));
     var ta = el("textarea", "inp");
     ta.rows = 7;
     ta.placeholder = wantRecog ? "말하면 여기에 쌓입니다." : "여기에 직접 적어도 됩니다.";
     ta.addEventListener("input", function () { finalText = ta.value; interim = ""; });
     scriptField.appendChild(ta);
-    scriptField.hidden = true; body.appendChild(scriptField);
+    body.appendChild(scriptField);
 
     var player = el("audio");
     player.controls = true;
@@ -9023,8 +9026,8 @@
       pickBtn.style.display = busy ? "none" : "";
       again.style.display = state === "done" ? "" : "none";
       put.style.display = state === "done" ? "" : "none";
-      // 파일을 불러왔거나 방금 녹음했으면 «틀어 놓고 받아 적기» 를 쓸 수 있다
-      play.style.display = "none";
+      // 파일을 불러왔거나 방금 녹음했으면 «틀어 놓고 받아 적기» 를 쓸 수 있다 (브라우저 음성인식이 있을 때만)
+      play.style.display = wantRecog && ((state === "done" && audioBlob) || state === "playing") ? "" : "none";
       play.textContent = state === "playing" ? "■ 그만 듣기" : "🔊 틀어 놓고 받아 적기";
       play.className = state === "playing" ? "btn danger" : "btn";
       meterWrap.style.opacity = busy ? "1" : ".25";
@@ -9190,6 +9193,9 @@
           caption: safeName(tin.value, 40)
         }));
       }
+      /* 받아 적은 글은 소리 아래 «글 블록» 으로. 머리 한 줄로 «기계가 받아 적은 것, 아직 안 다듬음» 을 밝힌다.
+         제목·파일명에는 절대 넣지 않는다(위 주석). */
+      if (text) made.push(newBlock("text", { text: "받아쓴 글 · 다듬기 전\n" + text }));
 
       if (!made.length) { toast("담긴 것이 없습니다."); return; }
       if (saveNow && !$("title").value.trim()) $("title").value = tin.value.trim() || ("음성 기록 " + dateStamp() + " " + timeStamp());
