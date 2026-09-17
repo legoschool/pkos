@@ -640,6 +640,48 @@
     --t3: #8C6300; --t3s: #FFEDB8; --t4: #A34615; --t4s: #FFDDC2;
     --t5: #A83567; --t5s: #FFD6E6; --t6: #6B44B0; --t6s: #E4D8F8;
   }
+  /* 레고 블록 · 종이 바탕(#F4F2E9)에 먹빛 남색 테두리 · 파랑 강조 · 노랑·빨강·초록 유형 (2026-09-17)
+     참고 사이트의 변수 그대로: --paper #f4f2e9 · --ink #172b43 · --blue #075bca · --red #e74335 · --yellow #ffcd29 · --green #13875d */
+  [data-tone="brick"] {
+    --bg: #F4F2E9; --panel: #FFFFFF; --ink: #172B43; --ink-soft: #526174;
+    --brand: #075BCA; --brand-dark: #054A9F; --brand-soft: #DDE9FA;
+    --line: #172B43; --line-soft: #D9DFE5; --hard: #172B43;
+    --warn-bg: #FFF7CF; --warn-line: #E6B800; --warn-ink: #5A4400;
+    --ok-bg: #DDF2E8; --ok-line: #13875D; --ok-ink: #0C5A3E; --pin-bg: #FFF1B8;
+    --t1: #13875D; --t1s: #DDF2E8; --t2: #075BCA; --t2s: #DDE9FA;
+    --t3: #9A7400; --t3s: #FFE99A; --t4: #E74335; --t4s: #FDE3E0;
+    --t5: #6B44B0; --t5s: #E4D8F8; --t6: #C25A00; --t6s: #FFE3C8;
+  }
+  /* 모양까지 · 이 색감에서만. 색감이 모양을 건드리는 유일한 자리다 (특별 디자인) */
+  [data-tone="brick"] {
+    --bw: 2px; --radius: 12px; --r-btn: 8px; --r-btn-sm: 7px; --r-inp: 8px; --r-block: 10px;
+    --shadow: 3px 4px 0 var(--hard);
+    --accent-w: 8px; --entry-pt: 24px; --stud: block; --stud-h: 10px; --stud-step: 19px;
+    --title-spacing: -0.5px;
+  }
+  [data-tone="brick"] .btn.primary { border: 2px solid var(--hard); box-shadow: 2px 3px 0 var(--hard); }
+  [data-tone="brick"] .btn.primary:active { transform: translate(1px, 2px); box-shadow: 1px 1px 0 var(--hard); }
+  [data-tone="brick"] #sideNav { border-right: 2px solid var(--hard); }
+  [data-tone="brick"] .nav-item.on { background: var(--brand); color: #FFFFFF; border-radius: 8px; }
+  [data-tone="brick"] header.top { border-bottom: 2px solid var(--hard); }
+  [data-tone="brick"] h1, [data-tone="brick"] h2, [data-tone="brick"] h3, [data-tone="brick"] .logo { font-weight: 800; }
+  [data-tone="brick"] .logomark { color: #FFCD29; stroke: var(--hard); }   /* 로고는 노란 블록 */
+  [data-tone="brick"] .chip.on, [data-tone="brick"] .tonebtn.on { border-color: var(--hard); }
+  /* 목록 줄은 납작한 줄이라 돌기가 제목과 겹친다. 여기서는 왼쪽 색 블록 + 작은 툭 그림자만 */
+  [data-tone="brick"][data-layout="plain"] .listcol .entry, [data-tone="brick"] .listcol .entry {
+    --stud: none; border: 0; border-left: 6px solid var(--c, var(--brand)); border-radius: 6px;
+    background: var(--panel); box-shadow: 2px 2px 0 var(--hard); margin-bottom: 6px; padding: 8px 10px; }
+  /* 지식 홈 · 제목은 노란 판(참고 사이트의 머리판), 자료 카드는 위 색줄 + 먹빛 테두리 + 툭 그림자 */
+  [data-tone="brick"] #homePage h1 { display: inline-block; background: #FFCD29; color: #172B43; border: 2px solid var(--hard);
+                                      box-shadow: 4px 5px 0 var(--hard); padding: 6px 18px; border-radius: 12px; letter-spacing: -1px; }
+  [data-tone="brick"] .knowledge-card { border: 2px solid var(--hard); border-top: 8px solid var(--brand); border-radius: 12px;
+                                        box-shadow: 3px 4px 0 var(--hard); background: var(--panel); transition: transform .15s; }
+  [data-tone="brick"] .knowledge-card:hover { transform: translate(-1px, -2px); box-shadow: 4px 6px 0 var(--hard); }
+  [data-tone="brick"] .knowledge-card:nth-child(4n+2) { border-top-color: #E74335; }
+  [data-tone="brick"] .knowledge-card:nth-child(4n+3) { border-top-color: #13875D; }
+  [data-tone="brick"] .knowledge-card:nth-child(4n+4) { border-top-color: #FFCD29; }
+  /* 편집 종이도 블록 · 기본 화면(plain 배치)이 테두리를 지우므로 그보다 세게 */
+  [data-tone="brick"][data-layout="plain"] .paper, [data-tone="brick"] .paper { border: 2px solid var(--hard); box-shadow: var(--shadow); border-radius: var(--radius); padding: 14px 16px 40px; background: var(--panel); }
   /* 하늘 · 흰 종이에 파랑 */
   [data-tone="sky"] {
     --bg: #F5F7FB; --panel: #FFFFFF; --ink: #1B2130; --ink-soft: #5A6478;
@@ -704,6 +746,16 @@
       --t1: #9FD69B; --t1s: #24331F; --t2: #96C2F0; --t2s: #1E2C3D;
       --t3: #F0D48C; --t3s: #3A3018; --t4: #F0B48C; --t4s: #3B2A1B;
       --t5: #F0A8C4; --t5s: #3A2029; --t6: #C4AEEF; --t6s: #2B2440;
+    }
+    [data-tone="brick"]:not([data-mode="light"]) {
+      --bg: #121C2B; --panel: #1B2738; --ink: #EEF3FA; --ink-soft: #A8B5C7;
+      --brand: #6FA8FF; --brand-dark: #4F8DF0; --brand-soft: #223652;
+      --line: #C9D4E3; --line-soft: #2E3D52; --hard: #C9D4E3;
+      --warn-bg: #3A3110; --warn-line: #7A6510; --warn-ink: #FFE08A;
+      --ok-bg: #10321F; --ok-line: #1E5C3C; --ok-ink: #97E0BB; --pin-bg: #3A2F12;
+      --t1: #7FD6B0; --t1s: #163B2B; --t2: #7FB0FF; --t2s: #1E3352;
+      --t3: #FFD54F; --t3s: #4A3B08; --t4: #FF8A7A; --t4s: #4A2220;
+      --t5: #C4AEEF; --t5s: #2B2440; --t6: #FFB070; --t6s: #4A2E12;
     }
     [data-tone="sky"]:not([data-mode="light"]) {
       --bg: #12161F; --panel: #1B202B; --ink: #E8ECF4; --ink-soft: #98A2B3;
@@ -776,6 +828,16 @@
     --t1: #9FD69B; --t1s: #24331F; --t2: #96C2F0; --t2s: #1E2C3D;
     --t3: #F0D48C; --t3s: #3A3018; --t4: #F0B48C; --t4s: #3B2A1B;
     --t5: #F0A8C4; --t5s: #3A2029; --t6: #C4AEEF; --t6s: #2B2440;
+  }
+  [data-tone="brick"][data-mode="dark"] {
+    --bg: #121C2B; --panel: #1B2738; --ink: #EEF3FA; --ink-soft: #A8B5C7;
+    --brand: #6FA8FF; --brand-dark: #4F8DF0; --brand-soft: #223652;
+    --line: #C9D4E3; --line-soft: #2E3D52; --hard: #C9D4E3;
+    --warn-bg: #3A3110; --warn-line: #7A6510; --warn-ink: #FFE08A;
+    --ok-bg: #10321F; --ok-line: #1E5C3C; --ok-ink: #97E0BB; --pin-bg: #3A2F12;
+    --t1: #7FD6B0; --t1s: #163B2B; --t2: #7FB0FF; --t2s: #1E3352;
+    --t3: #FFD54F; --t3s: #4A3B08; --t4: #FF8A7A; --t4s: #4A2220;
+    --t5: #C4AEEF; --t5s: #2B2440; --t6: #FFB070; --t6s: #4A2E12;
   }
   [data-tone="sky"][data-mode="dark"] {
     --bg: #12161F; --panel: #1B202B; --ink: #E8ECF4; --ink-soft: #98A2B3;
@@ -2799,7 +2861,10 @@
     { key: "sky",    label: "하늘",     sub: "흰 종이에 파랑" },
     { key: "forest", label: "숲",       sub: "연둣 종이에 짙은 초록" },
     { key: "ink",    label: "먹",       sub: "회백 종이에 먹" },
-    { key: "blue",   label: "청사진",   sub: "청회 바탕에 청록" }
+    { key: "blue",   label: "청사진",   sub: "청회 바탕에 청록" },
+    /* 레고 블록 · 특별 디자인 (2026-09-17). 참고: 레고학교 「구글 CLI 워크숍」 교재 사이트.
+       색만이 아니라 모양도 조금 바꾼다 · 검정 테두리 2px · 그림자 «툭» · 카드 위 색줄 · 돌기. 이 색감에서만. */
+    { key: "brick",  label: "레고 블록", sub: "종이 바탕에 검정 테두리 · 그림자 툭 · 돌기" }
   ];
   /* 태어날 때의 색 · 색감을 따로 안 고르면 «남색»(이전 테마의 옷)로 선다 (9/11).
      ⚠️ 이미 고른 사람의 색은 안 건드린다. settings.tone 이 적혀 있으면 그것이 이긴다.
@@ -3225,10 +3290,13 @@
     root.style.setProperty('--font-body',fonts[opt.fontFamily]||fonts.gothic);root.style.setProperty('--font-title',fonts[opt.fontFamily]||fonts.gothic);
     root.setAttribute('data-font',opt.fontFamily||'gothic');
     root.setAttribute('data-dark',String(opt.mode==='dark'||(!opt.mode&&matchMedia('(prefers-color-scheme: dark)').matches)));
-    root.style.setProperty('--line',root.dataset.tone==='plain'?(root.dataset.dark==='true'?'#728096':'#9aa6b5'):(root.dataset.dark==='true'?'#515965':'#bfc6d0'));
 
     // 색감 · 안 고르면 그 모양이 태어날 때의 색
     root.setAttribute("data-tone", toneOf(t.key, opt.tone));
+    /* 선 색은 색감을 «건 다음에» 정한다. 전에는 걸기 전에 정해 지난 색감의 값이 남았다.
+       레고 블록은 테두리가 먹빛(밝을 때 #172b43 · 어두울 때 #c9d4e3)이어야 «블록» 으로 보인다. */
+    var toneNow = root.dataset.tone, darkNow = root.dataset.dark === 'true';
+    root.style.setProperty('--line', toneNow === 'plain' ? (darkNow ? '#728096' : '#9aa6b5') : toneNow === 'brick' ? (darkNow ? '#c9d4e3' : '#172b43') : (darkNow ? '#515965' : '#bfc6d0'));
 
     // 밝기 · 빈 값이면 «기기 따름» 이라 아무것도 안 건다
     if (opt.mode === "light" || opt.mode === "dark") root.setAttribute("data-mode", opt.mode);
