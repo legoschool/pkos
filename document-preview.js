@@ -67,22 +67,37 @@
     for (const part of relative.split("/")) { if (part === "..") { if (!parts.length) fail("문서 경로가 잘못됐습니다."); parts.pop(); } else if (part && part !== ".") parts.push(part); }
     return parts.join("/");
   }
-  async function relationships(zip, base) {
-    const slash = base.lastIndexOf("/"), path = base.slice(0, slash + 1) + "_rels/" + base.slice(slash + 1) + ".rels", out = new Map();
+  async function relationshipList(zip, base) {
+    const slash = base.lastIndexOf("/"), path = base.slice(0, slash + 1) + "_rels/" + base.slice(slash + 1) + ".rels", out = [];
     if (!zip.items.has(path)) return out;
-    for (const r of nodes(await xml(zip, path), "Relationship")) if (r.getAttribute("TargetMode") !== "External") out.set(r.getAttribute("Id"), pathAt(base, r.getAttribute("Target")));
+    for (const r of nodes(await xml(zip, path), "Relationship")) if (r.getAttribute("TargetMode") !== "External") out.push({ id: r.getAttribute("Id"), type: r.getAttribute("Type") || "", target: pathAt(base, r.getAttribute("Target")) });
     return out;
   }
+  async function relationships(zip, base) {
+    const out = new Map();
+    for (const r of await relationshipList(zip, base)) out.set(r.id, r.target);
+    return out;
+  }
+  // 종류(Type)가 …/header 처럼 끝나는 관계의 대상만 (머리글·바닥글·메모·그림판)
+  async function relatedParts(zip, base, kinds) {
+    return (await relationshipList(zip, base)).filter(r => kinds.some(k => r.type.endsWith("/" + k))).map(r => r.target);
+  }
+  /* OOXML 문서 안의 그림 참조(blip) → 압축 안 경로. 못 푼 참조는 null 로 남겨 «건너뛴 그림» 으로 센다 */
+  async function blipTargets(zip, doc, path) {
+    const rels = await relationships(zip, path);
+    return nodes(doc, "blip").map(n => rels.get(relationshipAttr(n, "embed")) || null);
+  }
   const relationshipAttr = (n, attr) => n.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", attr) || n.getAttributeNS("http://purl.oclc.org/ooxml/officeDocument/relationships", attr) || n.getAttribute("r:" + attr);
-  async function embeddedImages(zip, parts) {
+  /* 2026-09-17 · 그림 찾기와 싣기를 갈랐다. 형식마다 «어디에 그림이 있나» 만 section.imageTargets 에 모으고,
+     싣는 일(크기 한도·형식 확인·data: 주소)은 여기 한 곳에서 한다. 워드 머리글·바닥글, 엑셀 그림판, 한글 BinData, 오픈문서 Pictures 가 다 이 길로 온다. */
+  async function embeddedImages(zip, sections) {
     const cache = new Map(); let total = 0, count = 0, skipped = false;
-    for (const { section, doc, path } of parts) {
+    for (const section of sections) {
+      const targets = section.imageTargets || []; delete section.imageTargets;
+      if (!targets.length) continue;
       section.images = [];
-      let rels;
-      try { rels = await relationships(zip, path); } catch (_) { skipped = true; continue; }
       const seen = new Set();
-      for (const n of nodes(doc, "blip")) {
-        const id = relationshipAttr(n, "embed"), target = rels.get(id);
+      for (const target of targets) {
         if (!target) { skipped = true; continue; }
         if (seen.has(target)) continue;
         seen.add(target);
@@ -129,6 +144,10 @@
     }
     return Array.from(node.childNodes, odfText).join("");
   }
+  const XLINK = "http://www.w3.org/1999/xlink";
+  function odfImageTargets(zip, root) {   // <draw:image xlink:href="Pictures/…"/> · 밖을 가리키는 주소는 건너뛴다
+    return odfNodes(root, "draw", "image").map(n => { const h = n.getAttributeNS(XLINK, "href") || ""; return /^[a-z][a-z0-9+.-]*:/i.test(h) || !zip.items.has(h) ? null : h; });
+  }
   function odfParagraphs(root) {
     return Array.from(root.getElementsByTagNameNS(ODF.text, "*")).filter(n => n.localName === "p" || n.localName === "h").map(odfText).filter(Boolean);
   }
@@ -137,8 +156,8 @@
     if (!body) fail("OpenDocument 본문을 찾지 못했습니다.");
     const kind = { odt: "text", ods: "spreadsheet", odp: "presentation" }[ext], main = odfNodes(body, "office", kind)[0];
     if (!main) fail("파일 확장자와 OpenDocument 본문 종류가 다릅니다.");
-    if (ext === "odt") return [{ title: "본문", lines: odfParagraphs(main) }];
-    if (ext === "odp") return odfNodes(main, "draw", "page").map((page, i) => ({ title: page.getAttributeNS(ODF.draw, "name") || "슬라이드 " + (i + 1), lines: odfParagraphs(page) }));
+    if (ext === "odt") return [{ title: "본문", lines: odfParagraphs(main), imageTargets: odfImageTargets(zip, main) }];
+    if (ext === "odp") return odfNodes(main, "draw", "page").map((page, i) => ({ title: page.getAttributeNS(ODF.draw, "name") || "슬라이드 " + (i + 1), lines: odfParagraphs(page), imageTargets: odfImageTargets(zip, page) }));
     return odfNodes(main, "table", "table").filter(table => table.parentElement === main).map(table => {
       let rowNumber = 1;
       const lines = [];
@@ -155,26 +174,57 @@
         if (cells.length) lines.push("행 " + rowNumber + (rowCount > 1 ? "~" + (rowNumber + rowCount - 1) : "") + " | " + cells.join(" | "));
         rowNumber += rowCount; if (!Number.isSafeInteger(rowNumber)) fail("문서의 행 범위를 읽지 못했습니다.");
       }
-      return { title: table.getAttributeNS(ODF.table, "name") || "시트", lines };
+      return { title: table.getAttributeNS(ODF.table, "name") || "시트", lines, imageTargets: odfImageTargets(zip, table) };
     });
   }
+  /* 한글(HWPX) 그림 · 본문의 <hc:img binaryItemIDRef="image1"/> → Contents/content.hpf 목록의 href → BinData/… */
+  async function hwpxManifest(zip) {
+    const out = new Map();
+    if (!zip.items.has("Contents/content.hpf")) return out;
+    for (const item of nodes(await xml(zip, "Contents/content.hpf"), "item")) {
+      const id = item.getAttribute("id"), href = item.getAttribute("href") || "";
+      if (!id || !href) continue;
+      const candidates = [href, "Contents/" + href, href.replace(/^Contents\//, "")];
+      out.set(id, candidates.find(c => zip.items.has(c)) || null);
+    }
+    return out;
+  }
+  function hwpxImageTargets(root, manifest) {
+    return nodes(root, "img").map(n => { const id = n.getAttribute("binaryItemIDRef"); return id ? (manifest.get(id) || null) : null; });
+  }
   async function read(file, name, options = {}) {
-    const zip = await archive(file), ext = name.split(".").pop().toLowerCase(), sections = [], imageParts = [];
+    const zip = await archive(file), ext = name.split(".").pop().toLowerCase(), sections = [];
     if (ext === "zip") return { sections: [{ title: "압축 파일 목록", lines: Array.from(zip.items, ([name, info]) => name + " (" + info.size + " bytes)") }], note: "파일 목록만 표시합니다. 압축을 풀거나 실행하지 않습니다." };
-    if (["odt", "ods", "odp"].includes(ext)) return { sections: await readOdf(zip, ext), note: "내용 미리보기입니다. 원본의 글꼴·배치·그림은 재현하지 않습니다." + (ext === "ods" ? " 반복되는 행·열은 범위로 표시하며 수식은 재계산하지 않습니다." : "") };
+    if (["odt", "ods", "odp"].includes(ext)) {
+      const odfSections = await readOdf(zip, ext), odfImages = odfSections.some(s => (s.imageTargets || []).length) && !options.fullText && options.images !== false;
+      const odfSkipped = odfImages ? await embeddedImages(zip, odfSections) : (odfSections.forEach(s => { delete s.imageTargets; }), false);
+      return { sections: odfSections, note: (odfImages ? "텍스트와 포함된 그림을 표시합니다. 원본의 글꼴·배치·도형 효과는 재현하지 않습니다." : "내용 미리보기입니다. 원본의 글꼴·배치·그림은 재현하지 않습니다.") + (odfSkipped ? " 일부 그림은 형식이나 크기 때문에 생략했습니다." : "") + (ext === "ods" ? " 반복되는 행·열은 범위로 표시하며 수식은 재계산하지 않습니다." : "") };
+    }
     if (ext === "docx") {
-      const path = "word/document.xml", doc = await xml(zip, path), section = { title: "본문", lines: paragraphs(doc) };
-      sections.push(section); imageParts.push({ section, doc, path });
+      const path = "word/document.xml", doc = await xml(zip, path), section = { title: "본문", lines: paragraphs(doc), imageTargets: await blipTargets(zip, doc, path) };
+      // 머리글·바닥글의 그림은 본문 그림 뒤에 잇는다 (로고·도장이 여기 있다)
+      for (const part of await relatedParts(zip, path, ["header", "footer"])) {
+        try { section.imageTargets.push(...await blipTargets(zip, await xml(zip, part), part)); } catch (_) { section.imageTargets.push(null); }
+      }
+      sections.push(section);
     } else if (ext === "hwpx") {
       const paths = Array.from(zip.items.keys()).filter(p => /^Contents\/section\d+\.xml$/i.test(p)).sort((a,b) => a.localeCompare(b, undefined, { numeric: true }));
       if (!paths.length) fail("한글 문서의 본문을 찾지 못했습니다.");
-      for (const path of paths) sections.push({ title: "구역 " + (sections.length + 1), lines: paragraphs(await xml(zip, path)) });
+      const manifest = await hwpxManifest(zip);
+      for (const path of paths) { const doc = await xml(zip, path); sections.push({ title: "구역 " + (sections.length + 1), lines: paragraphs(doc), imageTargets: hwpxImageTargets(doc, manifest) }); }
     } else if (ext === "pptx") {
       const path = "ppt/presentation.xml", doc = await xml(zip, path), rels = await relationships(zip, path);
       for (const slide of nodes(doc, "sldId")) {
         const part = rels.get(relationshipId(slide)); if (!part) fail("슬라이드 연결을 찾지 못했습니다.");
-        const slideDoc = await xml(zip, part), section = { title: "슬라이드 " + (sections.length + 1), lines: paragraphs(slideDoc) };
-        sections.push(section); imageParts.push({ section, doc: slideDoc, path: part });
+        const slideDoc = await xml(zip, part), section = { title: "슬라이드 " + (sections.length + 1), lines: paragraphs(slideDoc), imageTargets: await blipTargets(zip, slideDoc, part) };
+        // 발표자 메모 · 슬라이드 본문 아래 「메모:」 로 잇는다. 검색도 이 줄을 본다
+        for (const notesPart of await relatedParts(zip, part, ["notesSlide"])) {
+          try {
+            const notes = paragraphs(await xml(zip, notesPart)).filter(line => !/^\d+$/.test(line.trim()));
+            if (notes.length) section.lines.push("메모: " + notes.join(" "));
+          } catch (_) { /* 메모를 못 읽어도 슬라이드는 보인다 */ }
+        }
+        sections.push(section);
       }
     } else if (ext === "xlsx") {
       const strings = zip.items.has("xl/sharedStrings.xml") ? nodes(await xml(zip, "xl/sharedStrings.xml"), "si").map(n => textOf(n, "t")) : [];
@@ -188,11 +238,16 @@
           return (c.getAttribute("r") || "셀") + ": " + (display || (formula ? "=" + formula : ""));
         }).join(" | "));
         if (truncated) lines.push("앞부분 1000행만 표시합니다.");
-        sections.push({ title: sheet.getAttribute("name") || "시트", lines });
+        // 시트에 붙은 그림판(drawing)의 그림
+        const imageTargets = [];
+        for (const drawing of await relatedParts(zip, part, ["drawing"])) {
+          try { imageTargets.push(...await blipTargets(zip, await xml(zip, drawing), drawing)); } catch (_) { imageTargets.push(null); }
+        }
+        sections.push({ title: sheet.getAttribute("name") || "시트", lines, imageTargets });
       }
     } else fail("이 문서 형식은 아직 지원하지 않습니다.");
-    const withImages = imageParts.length && !options.fullText && options.images !== false;
-    const skippedImages = withImages ? await embeddedImages(zip, imageParts) : false;
+    const withImages = sections.some(s => (s.imageTargets || []).length) && !options.fullText && options.images !== false;
+    const skippedImages = withImages ? await embeddedImages(zip, sections) : (sections.forEach(s => { delete s.imageTargets; }), false);
     return { sections, note: (withImages ? "텍스트와 포함된 이미지를 표시합니다. 원본의 글꼴·배치·도형 효과는 재현하지 않습니다." : "내용 미리보기입니다. 원본의 글꼴·배치·그림은 재현하지 않습니다.") + (skippedImages ? " 일부 이미지는 크기·형식·연결 문제로 생략했습니다. 원본 파일에서 확인해 주세요." : "") + (ext === "xlsx" ? " 숫자는 저장된 값으로 표시하며 날짜·통화 서식과 수식 재계산은 적용하지 않습니다." : "") };
   }
   async function extract(file) {

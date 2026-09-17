@@ -3041,6 +3041,7 @@
   var selectedFolders=[], folderAnchor=null;
   var filterPath = [];      // 폴더 길로 좁혀 보기 · 길찾기 줄을 누르면 그 아래만 남는다
   var filterPinned = false; // 📌 고정한 것만 보기
+  var filterIds = null;     // 「고른 기록 묶음」 을 열었을 때 그 기록들만 (2026-09-17)
   /* 왼쪽 기둥 맨 위의 «똑똑한 목록» · 폴더가 아니라 «상태» 로 모아 보는 자리.
      "" 모두 · "todo" 아직 안 한 일이 남은 것 · "untagged" 태그가 하나도 없는 것 · "trash" 휴지통 */
   var smartView = "";
@@ -3119,7 +3120,8 @@
         query: typeof x.query === "string" ? x.query : "", type: ["all", "experience", "idea", "material"].includes(x.type) ? x.type : "all",
         tags: Array.isArray(x.tags) ? x.tags.filter(function (v) { return typeof v === "string"; }) : [],
         path: Array.isArray(x.path) ? x.path.filter(function (v) { return typeof v === "string"; }) : [],
-        pinned: !!x.pinned, smart: ["", "trash", "todo", "untagged", "inbox"].includes(x.smart) ? x.smart : "" };
+        pinned: !!x.pinned, smart: ["", "trash", "todo", "untagged", "inbox"].includes(x.smart) ? x.smart : "",
+        ids: Array.isArray(x.ids) ? x.ids.filter(function (v) { return typeof v === "string"; }).slice(0, 2000) : [] };   // 고른 기록 묶음 (2026-09-17)
     });
     /* ⚠️ 이름 규칙을 손으로 고친 사람의 것은 절대 안 건드린다.
        옛 기본값 그대로인 사람만 새 기본값으로 옮긴다 · 안 고친 것을 «고른 것» 으로 여기면 안 된다. */
@@ -4732,8 +4734,8 @@
   function gotoEntry(id) {
     closeModal(); closeViewer();
     setPage("library");
-    if (filterType !== "all" || searchQ || filterTags.length || filterPath.length || filterPinned || smartView) {
-      filterPinned = false; smartView = "";
+    if (filterType !== "all" || searchQ || filterTags.length || filterPath.length || filterPinned || smartView || filterIds) {
+      filterPinned = false; smartView = ""; filterIds = null;
       filterType = "all"; searchQ = ""; filterTags = []; filterPath = []; $("search").value = ""; render();
     }
     expanded[id] = true;
@@ -6185,15 +6187,68 @@
       return out;
     }).join('');
   }
+  /* ---- 이동·복사 복구 기록 (2026-09-17) ----
+     옮기다 전원이 나가면 «사본은 생겼는데 목록은 옛것» 이거나 «목록은 새것인데 원본이 남은» 채가 된다.
+     다음 폴더 읽기가 그것을 새 기록으로 세면 같은 파일이 둘이 된다. 그래서 옮기기 전에 무엇을 할지
+     PKOS-transfer.json 에 적어 두고, 다시 연결할 때 적힌 대로 마저 하거나 되돌린다.
+     · copy 단계(목록 저장 전)에서 끊김 → 만든 사본을 지우고, 고쳐 쓴 문서를 원문으로 되돌린다. 원본은 손대지 않는다.
+     · indexed 단계(목록 저장 뒤)에서 끊김 → 아무 기록도 안 쓰고 지문이 그대로인 원본만 지운다.
+     · 지문이 다르면(밖에서 바뀜) 그 파일은 그대로 둔다. 되돌리기는 언제나 «지문이 맞을 때만».
+     이름 변경의 복구 기록(PC 연결 프로그램 rename_journal)과 같은 생각이고, 이쪽은 브라우저가 옮기므로 폴더 안에 둔다. */
+  var TRANSFER_JOURNAL = "PKOS-transfer.json";
+  async function transferJournalRead() {
+    try { return JSON.parse(await (await localReadFile(localIdOf([TRANSFER_JOURNAL]))).text()); } catch (e) { return null; }
+  }
+  async function transferJournalWrite(journal) { await localWrite([], TRANSFER_JOURNAL, JSON.stringify(journal)); }
+  async function transferJournalClear() { await localRemove(localIdOf([TRANSFER_JOURNAL])); }
+  function transferReferenced(id) {
+    return entries.some(function (n) { return n.mdId === id || (n.blocks || []).some(function (b) { return b.fileId === id; }); });
+  }
+  async function transferRecover() {
+    var journal = await transferJournalRead();
+    if (!journal || journal.v !== 1) return null;
+    var report = { phase: journal.phase, removed: 0, restored: 0, kept: 0 };
+    if (journal.phase === "indexed") {
+      for (var src of journal.sources || []) {
+        if (transferReferenced(src.id)) { report.kept++; continue; }
+        var file; try { file = await localReadFile(src.id); } catch (e) { continue; }
+        if (await localFingerprint(file) !== src.hash) { report.kept++; continue; }
+        await localRemove(src.id); report.removed++;
+      }
+    } else {
+      for (var doc of journal.docs || []) {
+        var current; try { current = await localReadFile(doc.id); } catch (e) { continue; }
+        var hash = await localFingerprint(current);
+        if (hash === doc.afterHash) { var path = localPathOf(doc.id); await localWrite(path.slice(0, -1), path.slice(-1)[0], doc.before); report.restored++; }
+        else if (hash !== doc.beforeHash) report.kept++;
+      }
+      for (var made of journal.created || []) {
+        var copy; try { copy = await localReadFile(made.id); } catch (e) { continue; }
+        if (await localFingerprint(copy) !== made.hash) { report.kept++; continue; }
+        await localRemove(made.id); report.removed++;
+      }
+    }
+    await transferJournalClear();
+    return report;
+  }
+  function transferRecoverToast(report) {
+    if (!report) return;
+    var words = [];
+    if (report.removed) words.push(report.phase === "indexed" ? "옮기고 남은 원본 " + report.removed + "개 정리" : "끊긴 사본 " + report.removed + "개 정리");
+    if (report.restored) words.push("문서 " + report.restored + "개 되돌림");
+    if (report.kept) words.push("바뀐 파일 " + report.kept + "개는 그대로");
+    toast("지난번 옮기기를 마무리했습니다. " + (words.join(" · ") || "정리할 것이 없었습니다."));
+  }
   async function transferLocal(payload, to, mode) {
     if (!localOn || transferBusy) throw new Error('폴더 작업이 진행 중이거나 폴더가 연결되지 않았습니다.');
     if (!Array.isArray(to) || to.some(function(p){return !p || p==='.' || p==='..' || /[\\/:]/.test(p);})) throw new Error('폴더 경로를 확인해 주세요.');
     if (mode!=='copy' && mode!=='move') throw new Error('이동 또는 복사를 골라 주세요.');
     transferBusy=true;
-    var created=[], previousEntries=null, committed=false;
+    var created=[], previousEntries=null, committed=false, journal=null;
     try {
       if(localWriteTask) await localWriteTask;
       if(localScanTask) await localScanTask;
+      transferRecoverToast(await transferRecover());   // 지난번에 끊긴 것이 있으면 먼저 마무리한다
       await localDir(to,false);
       var original=payload.entryId && entries.find(function(n){return n.id===payload.entryId;});
       if(payload.entryId && (!original || original.trashed || original.id===editingId || original._dirty)) throw new Error('편집을 저장하고 기록을 닫은 뒤 옮겨 주세요.');
@@ -6209,12 +6264,16 @@
       if(original) (original.blocks||[]).forEach(function(b){if(localIsId(b.fileId)&&!sources.includes(b.fileId))sources.push(b.fileId);});
       // Read and fingerprint sources before publishing any new record.
       for(var old of sources) {var f=await localReadFile(old); files.set(old,{file:f,hash:await localFingerprint(f)});}
+      journal={v:1,mode:mode,startedAt:Date.now(),phase:"copy",sources:sources.map(function(id){return {id:id,hash:files.get(id).hash};}),created:[],docs:[]};
+      await transferJournalWrite(journal);   // 손대기 «전에» 적는다
       for(var old of sources) {
         if(original && old===source) continue;
         var f=files.get(old).file, name=await localUnique(to,f.name);
         var id=await localWrite(to,name,f); created.push(id); mapping.set(old,id);
         if(await localFingerprint(await localReadFile(id))!==files.get(old).hash) throw new Error('복사한 파일 검증에 실패했습니다. 원본은 남아 있습니다.');
+        journal.created.push({id:id,hash:files.get(old).hash});
       }
+      await transferJournalWrite(journal);
       if(candidate) {
         if(mode==='copy') {candidate.id=uid('k_');candidate.createdAt=Date.now();candidate.relations=[];candidate.blocks.forEach(function(b){b.id=uid('b_');});}
         candidate.localDir=to.join('/');candidate.srcPath=to.slice();candidate.deskPath=to.slice();candidate.folderName=null;
@@ -6223,7 +6282,8 @@
         var name=await localUnique(to,from.slice(-1)[0]);
         candidate.mdName=name;candidate.mdId=localIdOf(to.concat([name]));candidate.srcId=candidate.mdId;
         var id=await localWrite(to,name,buildMarkdown(candidate));created.push(id);mapping.set(source,id);
-        candidate.localMtime=(await localReadFile(id)).lastModified;
+        var written=await localReadFile(id); candidate.localMtime=written.lastModified;
+        journal.created.push({id:id,hash:await localFingerprint(written)}); await transferJournalWrite(journal);
         if(mode==='copy') entries.push(candidate);else entries=entries.map(function(n){return n.id===original.id?candidate:n;});
       } else if(mode==='move') {
         var documentWrites = [];
@@ -6233,8 +6293,10 @@
           if (n.localMtime && documentFile.lastModified !== n.localMtime) throw new Error('연결된 문서가 외부에서 바뀌었습니다. 폴더를 다시 읽은 뒤 옮겨 주세요.');
           var documentText = new TextDecoder('utf-8', {fatal:true,ignoreBOM:true}).decode(await documentFile.arrayBuffer());
           var revisedText = remapAttachmentMarkdown(documentText, n.mdId, mapping);
-          if (revisedText !== documentText) documentWrites.push({record:n, text:revisedText, hash:await localFingerprint(documentFile)});
+          if (revisedText !== documentText) documentWrites.push({record:n, text:revisedText, hash:await localFingerprint(documentFile), before:documentText});
         }
+        for (var write of documentWrites) journal.docs.push({id:write.record.mdId, before:write.before, beforeHash:write.hash, afterHash:await localFingerprint(new Blob([write.text]))});
+        if (documentWrites.length) await transferJournalWrite(journal);   // 문서를 고쳐 쓰기 «전에» 원문을 남긴다
         for (var write of documentWrites) {
           if (await localFingerprint(await localReadFile(write.record.mdId)) !== write.hash) throw new Error('연결된 문서가 작업 중 바뀌었습니다. 원본 파일은 남겼습니다.');
           var documentPath = localPathOf(write.record.mdId);
@@ -6245,6 +6307,7 @@
       }
       if(!await localSaveIndex()) throw new Error('기록 목록을 저장하지 못했습니다. 원본은 남아 있습니다.');
       committed=true;saveLocal();
+      journal.phase="indexed"; await transferJournalWrite(journal);   // 여기서부터는 «마저 지우기» 만 남는다
       var retained=0;
       if(mode==='move') for(var old of sources) {
         // Shared attachments stay at their old location for other records.
@@ -6253,11 +6316,13 @@
         if(await localFingerprint(latest)!==files.get(old).hash){retained++;continue;}
         var path=localPathOf(old),dir=await localDir(path.slice(0,-1),false);await dir.removeEntry(path.slice(-1)[0]);
       }
+      await transferJournalClear();
       render();return {mode:mode,paths:Array.from(mapping.values()),entryId:candidate&&candidate.id,retained:retained};
     } catch(err) {
       if(!committed && previousEntries){entries=previousEntries;saveLocal();}
-      // Keep completed destination copies on failure; never remove the source as rollback.
-      if(created.length) err.message+=' 대상 폴더에 완성된 사본이 남아 있을 수 있습니다.';
+      /* 실패하면 복구 기록대로 되돌린다 · 지문이 같은 사본만 지우고 고쳐 쓴 문서는 원문으로. 원본은 절대 지우지 않는다.
+         (committed 뒤의 실패는 «원본 마저 지우기» 단계라 되돌리지 않고 다음 연결 때 마무리한다) */
+      if(journal && !committed) { try { await transferRecover(); } catch (e) { if(created.length) err.message+=' 대상 폴더에 완성된 사본이 남아 있을 수 있습니다.'; } }
       throw err;
     } finally {transferBusy=false;}
   }
@@ -6628,6 +6693,7 @@
       await localLoad();
       localOn = true;
       saveLocal(); render(); updateChrome();
+      try { transferRecoverToast(await transferRecover()); } catch (e) { toast("지난번 옮기기를 마무리하지 못했습니다. " + (e.message || e)); }
       await localImport(null, { quiet: true });
       await localSyncPending();
       return true;
@@ -6677,6 +6743,7 @@
   window.pkosLocal = { transfer:transferLocal, folderTree:openLocalFileTree, attach: localAttach, detach: localDetach, importAll: localImport, isOn: function () { return localOn; },
                        trash: function (id) { removeEntry(id); }, restore: function (id) { restoreEntry(id); },
                        purge: function (id) { purgeNow(id); saveLocal(); render(); return saveIndex(); },
+                       fingerprint: localFingerprint, recover: transferRecover,
                        entries: function () { return entries; } };
   // 폴더 파일 링크(local://…) · 누르면 그 파일을 새 탭에 연다
   document.addEventListener("click", function (e) {
@@ -10760,9 +10827,10 @@
     settings.savedSearches.forEach(function (group) {
       var item = el("div", "row"); item.style.flexWrap = "wrap";
       var open = el("button", "btn sm", group.name); open.type = "button"; open.style.whiteSpace = "normal"; open.style.overflowWrap = "anywhere"; open.style.maxWidth = "100%";
-      open.title = [group.query, group.type !== "all" ? typeOf(group.type).label : "", group.tags.join(", "), group.path.join("/"), group.pinned ? "고정 기록" : "", ({trash:"휴지통",todo:"할 일",untagged:"분류 없음",inbox:"미정리함"})[group.smart] || ""].filter(Boolean).join(" · ") || "전체 기록";
+      open.title = [group.ids && group.ids.length ? "고른 기록 " + group.ids.length + "개" : "", group.query, group.type !== "all" ? typeOf(group.type).label : "", group.tags.join(", "), group.path.join("/"), group.pinned ? "고정 기록" : "", ({trash:"휴지통",todo:"할 일",untagged:"분류 없음",inbox:"미정리함"})[group.smart] || ""].filter(Boolean).join(" · ") || "전체 기록";
       open.addEventListener("click", function () {
         searchQ = group.query; filterType = group.type; filterTags = group.tags.slice(); filterPath = group.path.slice(); filterPinned = group.pinned; smartView = group.smart;
+        filterIds = group.ids && group.ids.length ? group.ids.slice() : null;   // 고른 기록 묶음이면 그 기록들만
         $("search").value = searchQ; scheduleAttachmentSearch(); render();
       });
       var remove = el("button", "btn sm", "삭제"); remove.type = "button"; remove.setAttribute("aria-label", group.name + " 검색 묶음 삭제");
@@ -10821,6 +10889,7 @@
     entries.forEach(function (n) {
       if (n.trashed || n.localMissing) return;   // 버린 것도, 폴더에서 사라진 것도 세지 않는다 (목록과 같은 자)
       if (filterPinned && !n.pinned) return;
+      if (filterIds && filterIds.indexOf(n.id) < 0) return;
       if (filterType !== "all" && !(n.tags||[]).includes(legacyTypeTag(filterType))) return;
       if (selectedFolders.length ? !selectedFolders.some(function(p){return underPath(n,p);}) : filterPath.length && !underPath(n,filterPath)) return;
       if (searchQ && !searchMatches(n)) return;
@@ -10907,11 +10976,11 @@
       pc.addEventListener("click", function () { filterPath = []; render(); });
       host.appendChild(pc);
     }
-    if (filterTags.length || filterType !== "all" || searchQ || filterPinned || filterPath.length || smartView) {
+    if (filterTags.length || filterType !== "all" || searchQ || filterPinned || filterPath.length || smartView || filterIds) {
       var clear = el("button", "chip clearchip", "✕ 필터 지우기");
       clear.type = "button";
       clear.addEventListener("click", function () {
-        filterTags = []; filterType = "all"; searchQ = ""; filterPinned = false; filterPath = []; smartView = ""; $("search").value = "";
+        filterTags = []; filterType = "all"; searchQ = ""; filterPinned = false; filterPath = []; smartView = ""; filterIds = null; $("search").value = "";
         render();
       });
       host.appendChild(clear);
@@ -10929,7 +10998,7 @@
     var stop=new Set('그리고 그러나 그래서 이것 저것 여기 저기 있는 없는 합니다 있습니다 대한 위해 통해 기록 제목 없음 자료 사진 파일 원본 저장 내용 image html http https www png jpg jpeg webm com'.split(' '));
     var docs=pool.map(function(n){
       var text=[n.title].concat((n.blocks||[]).map(function(b){return [b.text,b.caption,b.searchText,(b.items||[]).map(function(i){return i.t;}).join(' ')].filter(Boolean).join(' ');})).join(' ').replace(/<!--[^]*?-->/g,' ').replace(/https?:\/\/\S+/g,' ').replace(/<[^>]+>/g,' ').slice(0,100000).toLowerCase();
-      var counts=new Map();(text.match(/[가-힣a-z]{2,}/g)||[]).forEach(function(w){if(!stop.has(w)&&w.length<30)counts.set(w,(counts.get(w)||0)+1);});
+      var counts=new Map();(text.match(/[가-힣a-z]{2,}/g)||[]).forEach(function(w){w=stemKo(w);if(w.length>=2&&!stop.has(w)&&w.length<30)counts.set(w,(counts.get(w)||0)+1);});
       return {id:n.id,terms:new Map(Array.from(counts).sort(function(a,b){return b[1]-a[1];}).slice(0,40))};
     });
     var words=new Map(),postings=new Map();
@@ -10939,6 +11008,14 @@
     var edges=Array.from(pairs.values()).filter(function(e){return e.words.length>=2;}).sort(function(a,b){return b.words.length-a.words.length;}).slice(0,500);
     var degree=new Map();edges.forEach(function(e){degree.set(e.a,(degree.get(e.a)||0)+1);degree.set(e.b,(degree.get(e.b)||0)+1);});
     return {docs:docs,words:Array.from(words).sort(function(a,b){return b[1]-a[1];}).slice(0,40),edges:edges,degree:degree};
+  }
+  /* 조사·어미 떼기 (2026-09-17) · 형태소 분석이 아니다. «블록코딩을·블록코딩이·블록코딩에서» 가 한 단어로 세어지게
+     꼬리만 자른다. 자른 뒤 두 글자가 안 남으면 안 자른다(「회의」 「사이」 는 그대로). 긴 꼬리부터 본다. */
+  var KO_TAILS = ['에서는','으로는','에게서','으로써','으로서','합니다','입니다','까지','부터','에서','에게','한테','처럼','보다','으로','이나','이라','라고','라는','이며','이다','였다','했다','하는','하다','하고','하며','들은','들이','들을','들의','은','는','이','가','을','를','의','에','로','와','과','도','만','나','며','고'];
+  function stemKo(w) {
+    if (!/[가-힣]$/.test(w)) return w;
+    for (var i = 0; i < KO_TAILS.length; i++) { var t = KO_TAILS[i]; if (w.length - t.length >= 2 && w.slice(-t.length) === t) return w.slice(0, -t.length); }
+    return w;
   }
   function isInbox(n) { return !!n.inbox || !(n.tags || []).length; }
   function hasOpenTodo(n) {
@@ -11041,6 +11118,7 @@
     if (smartView === "untagged" && (n.tags || []).length) return false;
     if (smartView === "inbox" && !isInbox(n)) return false;
     if (filterPinned && !n.pinned) return false;
+    if (filterIds && filterIds.indexOf(n.id) < 0) return false;
     if (filterType !== "all" && !(n.tags||[]).includes(legacyTypeTag(filterType))) return false;
     /* 폴더 길은 «앞에서부터» 같아야 한다. 2019/3학년 을 고르면 2019/4학년 은 빠진다.
        ⚠️ 반드시 crumbsOf 로 잰다. 나무도, 길찾기 줄도 그것으로 서기 때문이다.
@@ -12410,7 +12488,20 @@
     foot.appendChild(el("span", "spacer"));
     var mdBtn = el("button", "btn", "⬇ .md");
     var htmlBtn = el("button", "btn primary", "⬇ .html");
-    foot.appendChild(mdBtn); foot.appendChild(htmlBtn);
+    /* 고른 기록을 «검색 묶음» 에 이름 붙여 남긴다 (2026-09-17). 책 제목 칸이 묶음 이름이 된다.
+       내려받기가 아니라 «다음에 또 이 기록들만 보기» 용이다. 검색 묶음 목록에서 열면 이 기록들만 보인다. */
+    var keepBtn = el("button", "btn", "묶음으로 저장"); keepBtn.type = "button"; keepBtn.title = "고른 기록을 검색 묶음에 이름 붙여 남깁니다";
+    keepBtn.addEventListener("click", function () {
+      var ids = Object.keys(picked).filter(function (id) { return picked[id]; });
+      var label = (tin.value || "").trim();
+      if (!ids.length) { toast("담을 기록을 골라 주세요."); return; }
+      if (!label) { tin.focus(); return; }
+      if (settings.savedSearches.some(function (g) { return g.name === label; })) { toast("같은 이름의 묶음이 있습니다. 다른 이름을 적어 주세요."); return; }
+      settings.savedSearches.push({ id: uid("search_"), name: label, query: "", type: "all", tags: [], path: [], pinned: false, smart: "", ids: ids });
+      persistSearchGroups(); renderSearchGroups(); closeModal();
+      toast("묶음 «" + label + "» 에 " + ids.length + "개를 담았습니다.");
+    });
+    foot.appendChild(keepBtn); foot.appendChild(mdBtn); foot.appendChild(htmlBtn);
     m.appendChild(foot);
 
     bg.appendChild(m);
@@ -12757,7 +12848,7 @@
         } },
       "-",
       { label: "📄 여기만 모아 보기", run: function () {
-          filterPath = path.slice(); smartView = ""; filterTags = [];
+          filterPath = path.slice(); smartView = ""; filterTags = []; filterIds = null;
           closeDrawer(); foldComposer(); render(); gotoList();
         } }
     ];
@@ -15121,7 +15212,7 @@
   }
   function isAppFile(name) {
     var n = String(name || "");
-    return n === INDEX_NAME || n === SETTINGS_NAME ||
+    return n === INDEX_NAME || n === SETTINGS_NAME || n === TRANSFER_JOURNAL ||
            OLD_INDEX_NAMES.indexOf(n) >= 0 || OLD_SETTINGS_NAMES.indexOf(n) >= 0;
   }
 
