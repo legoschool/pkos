@@ -19,7 +19,6 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
 <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png" />
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-<link rel="stylesheet" href="pkos-new.css" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="기록장" />
 <title>PKOS 개인지식운영체계</title>
@@ -2515,6 +2514,7 @@
   .modal .modebar input[type="color"] {width:40px;height:36px;padding:3px;border:1px solid var(--line-soft);border-radius:6px;background:var(--panel);}
   @media(max-width:600px){header.top .top-inner{gap:6px;}header.top .btn{min-height:36px;}.modal .mfoot .btn{min-height:40px;}}
 </style>
+<link rel="stylesheet" href="pkos-new.css" />
 </head>
 <body>
 
@@ -6755,19 +6755,27 @@
     } finally { localDropBusy = false; }
   }
   async function localAttach(h) {
+    window.__pkosLocalStage = "대기 작업 확인";
     if (localScanTask) await localScanTask;
     if (localWriteTask) await localWriteTask;
     localRoot = h; localName = h.name; localOn = false; localPending = false;
     if (connected) connected = false;
     try {
+      window.__pkosLocalStage = "색인 읽기";
       await localLoad();
+      window.__pkosLocalStage = "색인 읽기 완료";
       localOn = true;
       saveLocal(); render(); updateChrome();
+      window.__pkosLocalStage = "중단 작업 복구";
       try { transferRecoverToast(await transferRecover()); } catch (e) { toast("지난번 옮기기를 마무리하지 못했습니다. " + (e.message || e)); }
+      window.__pkosLocalStage = "폴더 스캔";
       await localImport(null, { quiet: true });
+      window.__pkosLocalStage = "저장 대기 반영";
       await localSyncPending();
+      window.__pkosLocalStage = "연결 완료";
       return true;
     } catch (e) {
+      window.__pkosLocalStage = "연결 실패: " + ((e && e.message) || e);
       localOn = false; localPending = true;
       toast("폴더 연결을 멈췄습니다. " + (e.message || e));
       updateChrome(); return false;

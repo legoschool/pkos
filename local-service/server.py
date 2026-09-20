@@ -187,6 +187,10 @@ def make_server(store, app, port=8788):
                     self.end_headers()
                     while chunk := stream.read(1024 * 1024):
                         self.wfile.write(chunk)
+            except (BrokenPipeError, ConnectionResetError):
+                # 화면을 닫거나 새로고침하면 파일 전송 중 연결이 끊길 수 있다.
+                # 이미 떠난 클라이언트에 오류 응답을 다시 쓰지 않는다.
+                return
             except FileNotFoundError:
                 self.reply(404, {"error": "not found"})
             except (OSError, ValueError) as exc:

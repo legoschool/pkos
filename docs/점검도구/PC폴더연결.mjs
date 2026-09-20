@@ -45,9 +45,9 @@ const edge = spawn(EDGE, [
 function stopBrowser() {
   try {
     if (process.platform === "win32") {
-      spawnSync("taskkill", ["/PID", String(edge.pid), "/T", "/F"], { stdio: "ignore" });
-      const safeProfile = profile.replaceAll("'", "''");
-      spawnSync("powershell.exe", ["-NoProfile", "-Command", `$p='${safeProfile}'; Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like ('*'+$p+'*') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`], { stdio: "ignore" });
+      spawnSync("taskkill", ["/PID", String(edge.pid), "/T", "/F"], { stdio: "ignore", timeout: 5000 });
+      const marker = `--remote-debugging-port=${PORT}`;
+      spawnSync("powershell.exe", ["-NoProfile", "-Command", `$m='${marker}'; Get-CimInstance Win32_Process | Where-Object { $_.Name -in @('msedge.exe','chrome.exe') -and $_.CommandLine -like ('*'+$m+'*') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`], { stdio: "ignore", timeout: 5000 });
     }
     else edge.kill();
   } catch {}

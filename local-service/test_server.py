@@ -1,4 +1,5 @@
 import json
+import os
 import socket
 import hashlib
 from unittest.mock import patch
@@ -15,6 +16,19 @@ from urllib.parse import urlsplit, parse_qs
 
 
 class BridgeTests(unittest.TestCase):
+    @staticmethod
+    def cleanup_test_browsers():
+        """Windows에서 강제 종료된 Node 검사가 남긴 시험용 Edge만 닫는다."""
+        if os.name != "nt":
+            return
+        command = (
+            "$items=Get-CimInstance Win32_Process | Where-Object { "
+            "$_.Name -in @('msedge.exe','chrome.exe') -and $_.CommandLine -match 'pkos-smoke-' }; "
+            "$items | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
+        )
+        subprocess.run(["powershell.exe", "-NoProfile", "-Command", command],
+                       capture_output=True, timeout=20, check=False)
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix="pkos-bridge-test-")
         self.base = Path(self.tmp.name)
@@ -170,6 +184,7 @@ class BridgeTests(unittest.TestCase):
         self.two_browser_writers(False)
 
     def two_browser_writers(self, seed):
+        self.cleanup_test_browsers()
         if seed:
             (self.root / "PKOS-index.json").write_text(json.dumps({"version":3,"app":"PKOS","entries":[],"deleted":[]}), encoding="utf-8")
         trace = []
@@ -187,9 +202,12 @@ class BridgeTests(unittest.TestCase):
         try:
             for label in ("window-A", "window-B"):
                 processes.append(subprocess.Popen(["node", str(script), self.url + "/?localBridge=1", label, str(self.base)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8"))
+                # Windows에서 두 Edge 엔진을 같은 순간에 시작하면 한쪽 CDP가 멎는 경우가 있다.
+                # 연결과 저장은 겹치되 프로세스 생성만 짧게 나눈다.
+                time.sleep(.6)
             # Google Drive 경로의 첫 브라우저 실행은 엔진과 PDF 자산을 내려받느라
             # 25초를 넘길 수 있다. 제품 쓰기 제한 시간과 별개인 시험 준비 시간이다.
-            deadline = time.monotonic() + 45
+            deadline = time.monotonic() + 90
             while time.monotonic() < deadline and not all((self.base / (label + ".ready")).exists() for label in ("window-A", "window-B")):
                 if any(p.poll() is not None for p in processes):
                     break
@@ -197,6 +215,9 @@ class BridgeTests(unittest.TestCase):
             ready = all((self.base / (label + ".ready")).exists() for label in ("window-A", "window-B"))
             if not ready:
                 diagnostics = []
+                for label in ("window-A", "window-B"):
+                    stage = self.base / (label + ".stage")
+                    diagnostics.append(label + ": " + (stage.read_text(encoding="utf-8") if stage.exists() else "시험 브라우저 시작 전"))
                 for process in processes:
                     if process.poll() is not None:
                         out, err = process.communicate(timeout=5)
@@ -217,6 +238,7 @@ class BridgeTests(unittest.TestCase):
                 if process.poll() is None:
                     process.terminate()
                 process.communicate(timeout=10)
+            self.cleanup_test_browsers()
 
     def test_unavailable_root_keeps_last_snapshot(self):
         (self.root / "keep.txt").write_text("keep", encoding="utf-8")

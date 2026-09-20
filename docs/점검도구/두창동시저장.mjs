@@ -45,9 +45,9 @@ const edge = spawn(EDGE, [
 function stopBrowser() {
   try {
     if (process.platform === "win32") {
-      spawnSync("taskkill", ["/PID", String(edge.pid), "/T", "/F"], { stdio: "ignore" });
-      const safeProfile = profile.replaceAll("'", "''");
-      spawnSync("powershell.exe", ["-NoProfile", "-Command", `$p='${safeProfile}'; Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like ('*'+$p+'*') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`], { stdio: "ignore" });
+      spawnSync("taskkill", ["/PID", String(edge.pid), "/T", "/F"], { stdio: "ignore", timeout: 5000 });
+      const marker = `--remote-debugging-port=${PORT}`;
+      spawnSync("powershell.exe", ["-NoProfile", "-Command", `$m='${marker}'; Get-CimInstance Win32_Process | Where-Object { $_.Name -in @('msedge.exe','chrome.exe') -and $_.CommandLine -like ('*'+$m+'*') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`], { stdio: "ignore", timeout: 5000 });
     }
     else edge.kill();
   } catch {}
@@ -146,13 +146,19 @@ await wait(2500);
 const {writeFileSync}=await import('node:fs');
 const label=process.argv[3], barrier=process.argv[4];
 try {
+ writeFileSync(join(barrier,label+'.stage'),'페이지 연결됨');
  // 전체 회귀를 연속 실행하면 앞선 브라우저 종료 직후 엔진 시작이 늦어질 수 있다.
- // 제품 저장 제한 시간과 별개로, 시험 준비는 최대 40초까지 기다린다.
- for(let i=0;i<400&&!await evaluate(`pkosLocal.isOn()`);i++)await wait(100);
- if(!await evaluate(`pkosLocal.isOn()`))throw Error('bridge not connected');
+ // 제품 저장 제한 시간과 별개로, 전체 회귀의 브라우저 준비는 최대 80초까지 기다린다.
+ for(let i=0;i<800&&!await evaluate(`pkosLocal.isOn()`);i++)await wait(100);
+ if(!await evaluate(`pkosLocal.isOn()`)){
+   const stage=await evaluate(`window.__pkosLocalStage||'연결 단계 없음'`);
+   writeFileSync(join(barrier,label+'.stage'),stage);
+   throw Error('bridge not connected: '+stage);
+ }
+ writeFileSync(join(barrier,label+'.stage'),'PC 폴더 연결됨');
  writeFileSync(join(barrier,label+'.ready'),'ready');
  // 먼저 준비된 창이 느린 두 번째 창을 기다리는 동안 종료되지 않게 한다.
- for(let i=0;i<700&&!existsSync(join(barrier,'go'));i++)await wait(100);
+ for(let i=0;i<1200&&!existsSync(join(barrier,'go'));i++)await wait(100);
  if(!existsSync(join(barrier,'go')))throw Error('barrier timeout');
  await evaluate(`(()=>{document.querySelector('#topNew').click();document.querySelector('#title').value=${JSON.stringify(label)};const dt=new DataTransfer();dt.items.add(new File([${JSON.stringify('bytes-'+label)}],${JSON.stringify(label+'.txt')},{type:'text/plain'}));document.querySelector('#blocks').dispatchEvent(new DragEvent('drop',{dataTransfer:dt,bubbles:true,cancelable:true}));})()`);
  await evaluate(`(()=>{const input=document.querySelector('[aria-label="저장할 파일 이름"] input');if(!input)throw Error('filename dialog missing');input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',ctrlKey:true,bubbles:true,cancelable:true}));})()`);

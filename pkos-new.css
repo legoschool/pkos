@@ -1,6 +1,7 @@
 :root {
   --pkos-nav: 220px;
   --pkos-list: 300px;
+  --app-nav: var(--pkos-nav);
   --bg: #f7f7f5;
   --panel: #fff;
   --ink: #252525;
@@ -45,14 +46,14 @@ body::before {
 #appNav #sideNav { padding: 4px 0 8px; border: 0; background: transparent; }
 #appNav .storage-chip { margin: 8px 4px 0; border-top: 1px solid var(--line); padding-top: 10px; }
 
-header.top { left: var(--pkos-nav); min-height: 48px; background: rgba(255,255,255,.96); border-bottom: 1px solid var(--line); box-shadow: none; backdrop-filter: blur(10px); }
+header.top { left: 0; min-height: 48px; background: rgba(255,255,255,.96); border-bottom: 1px solid var(--line); box-shadow: none; backdrop-filter: blur(10px); }
 header.top .top-inner { min-height: 48px; padding: 5px 16px; gap: 7px; }
 header.top .btn.sm { min-height: 34px; padding: 6px 9px; }
 header.top .topsearch { width: min(280px, 28vw); min-height: 34px; background: var(--bg); }
 .syncpill { border-radius: 5px; font-size: 12px; }
 
-.homepage { margin-left: var(--pkos-nav); padding: 42px clamp(22px,4vw,64px) 80px; background: var(--panel); }
-.layout { margin-left: var(--pkos-nav); grid-template-columns: minmax(0,1fr); min-height: calc(100vh - 48px); background: var(--panel); }
+.homepage { margin-left: 0; padding: 42px clamp(22px,4vw,64px) 80px; background: var(--panel); }
+.layout { margin-left: 0; grid-template-columns: minmax(0,1fr); min-height: calc(100vh - 48px); background: var(--panel); }
 .layout > .wrap { padding-top: 30px; background: var(--panel); }
 .listcol { background: #fbfbfa; }
 .listcol .toolbar { position: sticky; top: 0; z-index: 2; background: #fbfbfa; }
@@ -88,6 +89,7 @@ header.top .topsearch { width: min(280px, 28vw); min-height: 34px; background: v
 .pkos-connection[data-state="error"]::before { background: #c43d3d; }
 
 @media (min-width:1180px) {
+  body { padding-left: var(--pkos-nav); }
   .layout { grid-template-columns: var(--pkos-list) minmax(0,1fr); }
   .layout > .wrap { top: 48px; height: calc(100vh - 48px); padding: 30px max(24px,calc((100% - 930px)/2)) 80px; }
   .listcol { top: 48px; height: calc(100vh - 48px); padding: 0 10px 24px; }
@@ -95,9 +97,10 @@ header.top .topsearch { width: min(280px, 28vw); min-height: 34px; background: v
 }
 @media (max-width:1179px) {
   body::before { display: none; }
-  #appNav { width: min(320px,88vw); }
-  header.top { left: 0; }
-  .homepage, .layout { margin-left: 0; }
+  body { padding-left: 0 !important; }
+  #appNav { width: min(320px,88vw); transform: translateX(-105%); }
+  #appNav.open { transform: none; }
+  .burgerbtn { display: flex !important; }
   .layout > .wrap { padding: 24px clamp(18px,5vw,44px) 80px; }
 }
 @media (max-width:600px) {
