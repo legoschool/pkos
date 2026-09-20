@@ -1,7 +1,7 @@
 /* PKOS 화면 점검 · Edge 를 머리 없이 띄워 CDP 로 직접 눌러 본다.
    설치할 것 없음: 노드 24 에 들어 있는 WebSocket 만 쓴다.
    실행:  node smoke.mjs [url] */
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -42,11 +42,19 @@ const edge = spawn(EDGE, [
   "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream",
   URL_,
 ], { stdio: "ignore" });
-/* ⚠️ 끝에서만 edge.kill() 을 부르면, 도중에 넘어졌을 때 브라우저가 살아 남는다.
-   나가는 «모든» 길에서 끄도록 여기서 한 번에 걸어 둔다. */
-process.on("exit", () => { try { edge.kill(); } catch {} });
+function stopBrowser() {
+  try {
+    if (process.platform === "win32") {
+      spawnSync("taskkill", ["/PID", String(edge.pid), "/T", "/F"], { stdio: "ignore" });
+      const safeProfile = profile.replaceAll("'", "''");
+      spawnSync("powershell.exe", ["-NoProfile", "-Command", `$p='${safeProfile}'; Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like ('*'+$p+'*') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`], { stdio: "ignore" });
+    }
+    else edge.kill();
+  } catch {}
+}
+process.on("exit", stopBrowser);
 ["SIGINT", "SIGTERM"].forEach((sig) =>
-  process.on(sig, () => { try { edge.kill(); } catch {} process.exit(130); }));
+  process.on(sig, () => { stopBrowser(); process.exit(130); }));
 
 let ws, msgId = 0;
 const pending = new Map();
@@ -152,4 +160,4 @@ try {
   check('재실행 시 폴더 권한 선택 없이 기록 복원',await evaluate(`pkosLocal.isOn()&&pkosLocal.entries().some(n=>n.title==='PC 연결 저장')`));
  }
  if(errors.length||results.some(r=>!r.ok))throw Error(errors.join('\n')||'check failed');console.log('PASS local service integration');
-}finally{ws.close();edge.kill();}
+}finally{ws.close();stopBrowser();}

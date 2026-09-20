@@ -1,7 +1,7 @@
 /* PKOS 화면 점검 · Edge 를 머리 없이 띄워 CDP 로 직접 눌러 본다.
    설치할 것 없음: 노드 24 에 들어 있는 WebSocket 만 쓴다.
    실행:  node smoke.mjs [url] */
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -42,11 +42,19 @@ const edge = spawn(EDGE, [
   "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream",
   URL_,
 ], { stdio: "ignore" });
-/* ⚠️ 끝에서만 edge.kill() 을 부르면, 도중에 넘어졌을 때 브라우저가 살아 남는다.
-   나가는 «모든» 길에서 끄도록 여기서 한 번에 걸어 둔다. */
-process.on("exit", () => { try { edge.kill(); } catch {} });
+function stopBrowser() {
+  try {
+    if (process.platform === "win32") {
+      spawnSync("taskkill", ["/PID", String(edge.pid), "/T", "/F"], { stdio: "ignore" });
+      const safeProfile = profile.replaceAll("'", "''");
+      spawnSync("powershell.exe", ["-NoProfile", "-Command", `$p='${safeProfile}'; Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like ('*'+$p+'*') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`], { stdio: "ignore" });
+    }
+    else edge.kill();
+  } catch {}
+}
+process.on("exit", stopBrowser);
 ["SIGINT", "SIGTERM"].forEach((sig) =>
-  process.on(sig, () => { try { edge.kill(); } catch {} process.exit(130); }));
+  process.on(sig, () => { stopBrowser(); process.exit(130); }));
 
 let ws, msgId = 0;
 const pending = new Map();
@@ -138,10 +146,13 @@ await wait(2500);
 const {writeFileSync}=await import('node:fs');
 const label=process.argv[3], barrier=process.argv[4];
 try {
- for(let i=0;i<150&&!await evaluate(`pkosLocal.isOn()`);i++)await wait(100);
+ // 전체 회귀를 연속 실행하면 앞선 브라우저 종료 직후 엔진 시작이 늦어질 수 있다.
+ // 제품 저장 제한 시간과 별개로, 시험 준비는 최대 40초까지 기다린다.
+ for(let i=0;i<400&&!await evaluate(`pkosLocal.isOn()`);i++)await wait(100);
  if(!await evaluate(`pkosLocal.isOn()`))throw Error('bridge not connected');
  writeFileSync(join(barrier,label+'.ready'),'ready');
- for(let i=0;i<200&&!existsSync(join(barrier,'go'));i++)await wait(100);
+ // 먼저 준비된 창이 느린 두 번째 창을 기다리는 동안 종료되지 않게 한다.
+ for(let i=0;i<700&&!existsSync(join(barrier,'go'));i++)await wait(100);
  if(!existsSync(join(barrier,'go')))throw Error('barrier timeout');
  await evaluate(`(()=>{document.querySelector('#topNew').click();document.querySelector('#title').value=${JSON.stringify(label)};const dt=new DataTransfer();dt.items.add(new File([${JSON.stringify('bytes-'+label)}],${JSON.stringify(label+'.txt')},{type:'text/plain'}));document.querySelector('#blocks').dispatchEvent(new DragEvent('drop',{dataTransfer:dt,bubbles:true,cancelable:true}));})()`);
  await evaluate(`(()=>{const input=document.querySelector('[aria-label="저장할 파일 이름"] input');if(!input)throw Error('filename dialog missing');input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',ctrlKey:true,bubbles:true,cancelable:true}));})()`);
@@ -156,4 +167,4 @@ try {
  if(!complete)console.log(JSON.stringify({label,logs,state:await evaluate(`JSON.stringify({entries:pkosLocal.entries(),title:document.querySelector('#title').value,body:document.querySelector('#blocks').innerText})`),disk:await evaluate(`fetch('/api/file?path=PKOS-index.json').then(r=>r.text())`)}));
  check('동시 저장 후 두 기록과 첨부가 목록에 존재',complete,label);
  if(errors.length||results.some(r=>!r.ok))throw Error(errors.join('\n')||'check failed');console.log('PASS two browser save '+label);
-}finally{ws.close();edge.kill();}
+}finally{ws.close();stopBrowser();}

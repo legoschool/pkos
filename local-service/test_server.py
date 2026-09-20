@@ -187,12 +187,21 @@ class BridgeTests(unittest.TestCase):
         try:
             for label in ("window-A", "window-B"):
                 processes.append(subprocess.Popen(["node", str(script), self.url + "/?localBridge=1", label, str(self.base)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8"))
-            deadline = time.monotonic() + 25
+            # Google Drive 경로의 첫 브라우저 실행은 엔진과 PDF 자산을 내려받느라
+            # 25초를 넘길 수 있다. 제품 쓰기 제한 시간과 별개인 시험 준비 시간이다.
+            deadline = time.monotonic() + 45
             while time.monotonic() < deadline and not all((self.base / (label + ".ready")).exists() for label in ("window-A", "window-B")):
                 if any(p.poll() is not None for p in processes):
                     break
                 time.sleep(.1)
-            self.assertTrue(all((self.base / (label + ".ready")).exists() for label in ("window-A", "window-B")), "both browsers must be ready")
+            ready = all((self.base / (label + ".ready")).exists() for label in ("window-A", "window-B"))
+            if not ready:
+                diagnostics = []
+                for process in processes:
+                    if process.poll() is not None:
+                        out, err = process.communicate(timeout=5)
+                        diagnostics.append(out + err)
+                self.fail("both browsers must be ready\n" + "\n".join(diagnostics))
             (self.base / "go").write_text("go")
             for process in processes:
                 out, err = process.communicate(timeout=40)

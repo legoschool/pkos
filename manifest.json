@@ -1,13 +1,13 @@
 {
   "name": "PKOS 개인지식운영체계",
-  "short_name": "기록장",
+  "short_name": "PKOS NEW",
   "description": "수업·공부·일상의 생각을 사진·링크와 함께 남기고 내 구글 드라이브 폴더에 마크다운으로 보관하는 개인 기록장",
   "lang": "ko",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#2f5fd6",
+  "theme_color": "#4e6f91",
   "share_target": {
     "action": "./share",
     "method": "POST",
