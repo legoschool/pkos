@@ -2,6 +2,7 @@ import json
 import os
 import socket
 import hashlib
+import http.client
 from unittest.mock import patch
 from pathlib import Path
 import tempfile
@@ -62,6 +63,34 @@ class BridgeTests(unittest.TestCase):
         self.assertEqual(self.call("/api/file?path=data.bin"), (200, blob))
         self.assertEqual(self.call("/api/file?path=data.bin", "PUT", b"replacement", headers)[0], 409)
         self.assertEqual((self.root / "data.bin").read_bytes(), blob)
+
+    def test_metadata_does_not_open_file_content(self):
+        path = self.root / 'metadata.bin'
+        path.write_bytes(b'only metadata is needed')
+        with patch.object(Path, 'open', side_effect=AssertionError('content read')):
+            status, body = self.call('/api/stat?path=metadata.bin')
+        self.assertEqual(status, 200)
+        info = json.loads(body)
+        self.assertEqual(info['size'], path.stat().st_size)
+        self.assertEqual(info['lastModified'], path.stat().st_mtime_ns // 1000000)
+        self.assertEqual(info['version'], file_version(path))
+
+    def test_http_connection_is_reused_for_folder_scans(self):
+        (self.root / 'keep.txt').write_text('content', encoding='utf-8')
+        conn = http.client.HTTPConnection('127.0.0.1', self.server.server_port, timeout=5)
+        try:
+            conn.request('GET', '/api/stat?path=keep.txt')
+            first = conn.getresponse()
+            self.assertEqual(first.status, 200)
+            first.read()
+            sock = conn.sock
+            self.assertIsNotNone(sock)
+            conn.request('GET', '/api/file?path=keep.txt')
+            second = conn.getresponse()
+            self.assertEqual(second.read(), b'content')
+            self.assertIs(conn.sock, sock)
+        finally:
+            conn.close()
 
     def test_stale_writer_preserves_newer_file(self):
         path = self.root / "conflict.txt"

@@ -17,6 +17,11 @@
   }
   class FileHandle {
     constructor(path) {this.path=path;this.name=path.split("/").pop();this.kind="file";}
+    async getMetadata() {
+      var row = await (await request('stat', this.path)).json();
+      if (typeof row.size !== 'number' || typeof row.lastModified !== 'number') return this.getFile();
+      return {name:this.name, size:row.size, lastModified:row.lastModified};
+    }
     async getFile() {
       var r=await request("file",this.path), b=await r.blob();
       versions.set(this.path, r.headers.get("ETag"));

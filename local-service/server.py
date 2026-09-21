@@ -100,6 +100,18 @@ def make_server(store, app, port=8788):
     previews = PresentationPreviews(store)
 
     class Handler(BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"
+
+        def setup(self):
+            super().setup()
+            self.connection.settimeout(30)
+
+        def handle(self):
+            try:
+                super().handle()
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+                self.close_connection = True
+
         def log_message(self, *_):
             pass
 
@@ -110,6 +122,10 @@ def make_server(store, app, port=8788):
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Content-Length", str(len(body)))
+            if code >= 400:
+                # Rejected writes can still have an unread request body.
+                self.send_header("Connection", "close")
+                self.close_connection = True
             self.end_headers()
             self.wfile.write(body)
 
@@ -145,7 +161,8 @@ def make_server(store, app, port=8788):
                     path = store.path(query.get("path", [""])[0])
                     if not path.exists():
                         return self.reply(404, {"error": "not found"})
-                    return self.reply(200, {"name": path.name, "kind": "directory" if path.is_dir() else "file", "version": file_version(path)})
+                    stat = path.stat()
+                    return self.reply(200, {"name": path.name, "kind": "directory" if path.is_dir() else "file", "version": file_version(path), "size": stat.st_size, "lastModified": stat.st_mtime_ns // 1000000})
                 if request.path == "/api/list":
                     parent = store.path(query.get("path", [""])[0])
                     rows = []
@@ -187,7 +204,7 @@ def make_server(store, app, port=8788):
                     self.end_headers()
                     while chunk := stream.read(1024 * 1024):
                         self.wfile.write(chunk)
-            except (BrokenPipeError, ConnectionResetError):
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
                 # 화면을 닫거나 새로고침하면 파일 전송 중 연결이 끊길 수 있다.
                 # 이미 떠난 클라이언트에 오류 응답을 다시 쓰지 않는다.
                 return

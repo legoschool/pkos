@@ -1,0 +1,9 @@
+/* Standalone shared documents and policy pages use the same v2 palette. */
+:root,html[data-theme]{--bg:#f7f7f5;--panel:#fff;--ink:#252525;--ink-soft:#686868;--brand:#4e6f91;--line:#e8e8e5;--line-soft:#efefed;--radius:6px;--bw:1px;--shadow:none;--font-body:"Pretendard Variable","Malgun Gothic",system-ui,sans-serif;--font-title:var(--font-body);}
+body{background:var(--panel);color:var(--ink);font-family:var(--font-body);line-height:1.75;}
+h1,h2,h3{font-family:var(--font-title);letter-spacing:-.025em;}
+a{color:var(--brand);}
+button,input,select{font:inherit;border-radius:6px;}
+.card,article{box-shadow:none;border-color:var(--line);}
+.wrap{max-width:900px;}
+@media(prefers-color-scheme:dark){:root,html[data-theme]{--bg:#191a1c;--panel:#1f2022;--ink:#e6e6e6;--ink-soft:#a9adb3;--brand:#9cbbdd;--line:#36383a;--line-soft:#303234;}}

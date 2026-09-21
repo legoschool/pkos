@@ -41,9 +41,9 @@ jobs:
           PAGE_URL: ${{ steps.pages.outputs.base_url }}
         run: |
           mkdir -p _site
-          cp index.html view.html intro.html privacy.html manifest.json sw.js pkos-new.css pkos-new.js lecture-recorder.js document-preview.js pdf-reader.js local-bridge.js .nojekyll README.md SETUP.md LICENSE LICENSE.ko.md _site/
+          cp index.html view.html intro.html privacy.html manifest.json sw.js pkos-new.css pkos-new.js pkos-document.css knowledge-graph.js lecture-recorder.js document-preview.js pdf-reader.js local-bridge.js .nojekyll README.md SETUP.md PKOS_NEW_작업일지.md LICENSE LICENSE.ko.md _site/
           cp -R vendor docs icons _site/
-          find _site/docs -type f \( -name '*.mjs' -o -name '*.ps1' -o -name '*.py' \) -delete
+          find _site/docs -type f \( -name '*.mjs' -o -name '*.cjs' -o -name '*.ps1' -o -name '*.py' \) -delete
           # 주소는 고정이다. 어떤 판이 올라가 있는지는 주소 꼬리(?deploy=…)가 아니라 version.json 으로 확인한다.
           node -e '
             const { execFileSync } = require("node:child_process");

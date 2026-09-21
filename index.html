@@ -314,12 +314,12 @@
     padding: 8px 10px; border-radius: var(--r-btn); font-size: calc(14px * var(--fs));
   }
   .smartrow:hover, .quickrow:hover, .tagrow:hover { background: var(--brand-soft); }
-  .smartrow.on, .tagrow.on { background: var(--brand-soft); color: var(--brand-dark); font-weight: 700; }
+  .smartrow.on, .quickrow.on, .tagrow.on { background: var(--brand-soft); color: var(--brand-dark); font-weight: 700; }
   .smartrow .sico, .quickrow .sico, .tagrow .sico { flex: 0 0 auto; width: 18px; text-align: center;
                                                     color: var(--ink-soft); font-size: calc(13px * var(--fs)); }
   .smartrow.on .sico, .tagrow.on .sico { color: var(--brand); }
   .smartrow .n, .quickrow .n, .tagrow .n { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .smartrow .cnt, .tagrow .cnt { flex: 0 0 auto; font-size: calc(12px * var(--fs)); color: var(--ink-soft); }
+  .smartrow .cnt, .quickrow .cnt, .tagrow .cnt { flex: 0 0 auto; font-size: calc(12px * var(--fs)); color: var(--ink-soft); }
   .quickrow { font-size: calc(13.5px * var(--fs)); padding: 7px 10px; }
   .sidemore { display: block; width: 100%; text-align: left; background: none; border: none; cursor: pointer;
               color: var(--ink-soft); font-size: calc(12.5px * var(--fs)); padding: 6px 10px 2px; font-family: inherit; }
@@ -482,8 +482,6 @@
            box-shadow: 0 6px 20px rgba(15,20,35,.22); transition: .15s; }
   .fbbtn:hover { background: var(--brand-dark); box-shadow: 0 8px 26px rgba(15,20,35,.3); }
   .fbbtn .fbi { font-size: calc(15px * var(--fs)); line-height: 1; }
-  /* 집중해서 쓰는 동안에는 비켜 준다 */
-  body.focusing .fbbtn { display: none; }
   @media (max-width: 1020px) {
     /* 아래 바를 가리면 안 된다 · 바 높이는 --dockh 한 곳에만 적혀 있다 */
     .fbbtn { right: 12px; bottom: calc(var(--dockh, 74px) + 12px + env(safe-area-inset-bottom, 0px));
@@ -1033,35 +1031,10 @@
   .menupop button.danger:hover { background: var(--warn-bg); color: var(--danger); }
   .menupop .sep { height: 1px; background: var(--line-soft); margin: 4px 2px; }
 
-  /* 작성칸 머리줄 · 제목과 집중 단추 */
+  /* 작성칸 머리줄 · 제목과 저장 단추 */
   .chead { display: flex; align-items: center; gap: 8px; }
   .chead h2 { margin: 0; }
 
-  /* ---------- 집중 모드 · 적는 칸만 남긴다 ---------- */
-  /* ⚠️ 예전에는 «가운데 칸» 을 안 감췄다. 안의 것(머리줄·거르개·목록·꼬리)만 감추니
-     빈 칸 하나가 화면 높이만큼 그대로 서 있었고, 적는 칸은 그 아래로 밀려
-     집중을 켜면 흰 화면만 보였다. 칸째로 감춘다 · 손잡이와 가림막도 같이. */
-  body.focusing header.top,
-  body.focusing #sideNav,
-  body.focusing #drawerScrim,
-  body.focusing .colgrip,
-  body.focusing .listcol,
-  body.focusing #banner,
-  body.focusing #updateBar,
-  body.focusing .toolbar,
-  body.focusing .filters,
-  body.focusing #list,
-  body.focusing footer.site,
-  body.focusing .dock { display: none !important; }
-  body.focusing .layout { grid-template-columns: minmax(0, 1fr); max-width: none; margin: 0; }
-  /* ⚠️ 넓은 화면에서 오른쪽 칸은 «화면에 붙어 스스로 구르는 칸» 이다 (position: sticky ·
-     height: 100vh - 머리띠). 머리띠를 감춘 채로 그 값을 그대로 두면 66px 만큼 빈 자리가
-     생기고 칸이 화면보다 길어진다. 집중일 때는 그냥 보통 쪽으로 되돌린다. */
-  body.focusing .layout > .wrap,
-  body.focusing .wrap { position: static; height: auto; max-height: none; overflow: visible;
-                        max-width: 820px; margin: 0 auto; padding: 28px 20px 96px; }
-  body.focusing .composer { border: none; box-shadow: none; background: transparent; }
-  body.focusing #btnFocus { border-color: var(--brand); color: var(--brand); }
 
   /* 제목을 누르면 열린다 · 카드에서 가장 많이 하는 일이 가장 가까운 자리에 */
   .titlebtn { cursor: pointer; }
@@ -2147,8 +2120,6 @@
   /* 쪽 · 홈이면 3단을 감추고, 기록·자료실이면 홈을 감춘다 */
   body[data-page="home"] .layout, body[data-page="home"] #listRail { display: none !important; }
   body[data-page="library"] #homePage { display: none; }
-  body.focusing #appNav { display: none !important; }
-  body.focusing { padding-left: 0 !important; }
   /* 폰 · 기둥이 서랍이 된다 */
   @media (max-width: 1020px) {
     #appNav { width: 280px; transform: translateX(-105%); transition: transform .18s ease; z-index: 60;
@@ -2626,7 +2597,7 @@
       <span class="spacer"></span>
       <!-- 고치는 중일 때만 선다 · 새로 쓰는 중에는 지울 것이 없다 -->
       <button id="btnDeleteEntry" class="btn sm ghost danger hidden" title="이 기록을 지웁니다">삭제</button>
-      <button id="btnFocus" class="btn sm ghost" title="쓰는 데만 집중합니다 (Esc 로 나오기)">집중</button>
+      <button id="btnSaveTop" class="btn primary" type="button">기록 저장</button>
     </div>
     <!-- 이 기록이 갈 자리. 쓰기 전에 보여야 한다 · 쓰고 나서 알면 늦다 -->
     <div id="deskLine" class="deskline hidden"></div>
@@ -2730,6 +2701,7 @@
 
 <script src="local-bridge.js"></script>
 <script src="pkos-new.js"></script>
+<script src="knowledge-graph.js"></script>
 <script>
 (function () {
   "use strict";
@@ -3288,6 +3260,7 @@
     var root = document.documentElement;
     root.setAttribute("data-theme", t.key);
     root.setAttribute('data-layout','plain');
+    root.setAttribute('data-design','v2');
     var fonts={gothic:'"Malgun Gothic", "Apple SD Gothic Neo", sans-serif',serif:'"Batang", "Noto Serif KR", Georgia, serif',system:'system-ui, sans-serif',rounded:'Gulim, "Apple SD Gothic Neo", sans-serif',mono:'Consolas, "D2Coding", monospace'};
     root.style.setProperty('--font-body',fonts[opt.fontFamily]||fonts.gothic);root.style.setProperty('--font-title',fonts[opt.fontFamily]||fonts.gothic);
     root.setAttribute('data-font',opt.fontFamily||'gothic');
@@ -4853,7 +4826,7 @@
         그래야 드라이브에 남는 .md 가 옵시디언·깃허브에서도 그대로 읽힌다.
         형광펜(==노랑==)과 밑줄(<u>)만 마크다운 표준 밖이라 흔한 확장 표기를 따른다.
      한 번에 하나씩만 본다 · 겹쳐 쓰는 것(굵은 형광펜)까지 받으면 파서가 커진다. */
-  var INLINE_RE = /(\*\*|__)(?=\S)([\s\S]*?\S)\1|(~~)(?=\S)([\s\S]*?\S)\3|(==)(?=\S)([\s\S]*?\S)\5|(`)([^`\n]+?)\6|(\*|_)(?=\S)([\s\S]*?\S)\8/;
+  var INLINE_RE = /(?<![\p{L}\p{N}_])(\*\*|__)(?=\S)([\s\S]*?\S)\1|(~~)(?=\S)([\s\S]*?\S)\3|(==)(?=\S)([\s\S]*?\S)\5|(`)([^`\n]+?)\7|(?<![\p{L}\p{N}_])(\*|_)(?=\S)([\s\S]*?\S)\9(?![\p{L}\p{N}_])/u;
   /* 색 있는 형광펜 · 마크다운에는 «색» 이라는 것이 없어서 <mark> 를 그대로 쓴다.
      ⚠️ HTML 을 통째로 해석하지 않는다. 여는 표가 «색 하나» 인 이 모양일 때만 알아본다.
         그래야 남이 보낸 글에 붙어 온 딴 표가 그대로 살아나는 일이 없다. */
@@ -5186,7 +5159,7 @@
       if (b.kind === "text") {
         if (b.text && b.text.trim()) { L.push(b.text.trim()); L.push(""); }
       } else if (b.kind === "heading") {
-        if (b.text && b.text.trim()) { L.push(hh + " " + b.text.trim()); L.push(""); }
+        if (b.text && b.text.trim()) { L.push((b.level ? '#'.repeat(Math.max(2, Math.min(5, b.level + 1))) : hh) + " " + b.text.trim()); L.push(""); }
       } else if (b.kind === "quote") {
         if (b.text && b.text.trim()) {
           /* 출처 갈래는 옵시디언 «콜아웃» 첫 줄로 남긴다 · [!ai]- 는 옵시디언에서도 접혀서 열린다 */
@@ -5545,6 +5518,7 @@
   function slimBlock(b) {
     var o = { id: b.id, kind: b.kind };
     if (b.kind === "text" || b.kind === "heading" || b.kind === "quote") o.text = b.text || "";
+    if (b.kind === "heading" && b.level) o.level = b.level;
     if (b.kind === "quote") { o.role = b.role || ""; o.src = b.src || ""; }   // 누가 말한 것인지
     if (b.kind === "todo") o.items = (b.items || []).map(function (it) { return { t: it.t || "", done: !!it.done }; });
     if (b.kind === "list") { o.ordered = !!b.ordered; o.items = (b.items || []).map(function (it) { return { t: it.t || "", d: it.d || 0 }; }); }
@@ -6174,10 +6148,27 @@
   }
   async function localPurgeEntry(n) {
     if (!localOn) return;
+    var oldDir = n.localDir;
     if (localIsId(n.mdId) && !referencedByOtherRecord(n.mdId, n)) await localRemove(n.mdId);
     var bl = n.blocks || [];
     for (var i = 0; i < bl.length; i++) if (localIsId(bl[i].fileId) && !referencedByOtherRecord(bl[i].fileId, n)) await localRemove(bl[i].fileId);
-    if (n.localDir) await localRemoveDirIfEmpty(n.localDir.split("/").filter(Boolean));
+    if (oldDir) {
+      var oldParts = oldDir.split("/").filter(Boolean);
+      await localRemoveDirIfEmpty(oldParts);
+      /* 완전히 지운 뒤 실제 폴더가 없어졌으면 왼쪽 나무에서도 바로 뺀다.
+         localDirs 는 마지막 「폴더 다시 읽기」 결과라 그대로 두면 빈 폴더 이름이 남는다. */
+      if (localDirs) {
+        try {
+          await localDir(oldParts, false);       // 다른 파일이 남은 실제 폴더는 계속 보인다
+          localDirs.add(oldDir);
+        } catch (e) {
+          if (e.name !== "NotFoundError") throw e;
+          Array.from(localDirs).forEach(function (p) {
+            if (p === oldDir || p.indexOf(oldDir + "/") === 0) localDirs.delete(p);
+          });
+        }
+      }
+    }
   }
   /* 폴더 다시 읽기 · 폴더에 «사람이 넣거나 고친 것» 을 목록에 맞춘다 (옵시디언 볼트를 그대로 읽는 길)
      ① 색인에 없는 .md → 새 기록   ② 밖에서 고친 .md(파일 시각이 더 새것) → 제목·태그·본문을 다시 읽음
@@ -6462,7 +6453,7 @@
         else if (!/^(PKOS|TRACE|PEER|PKEMS)-(index|settings|files).*\.json$/i.test(name)) files.push({ name: name, handle: h });
       }
       for (var sf of files) {
-        var statFile = await sf.handle.getFile();
+        var statFile = await (sf.handle.getMetadata ? sf.handle.getMetadata() : sf.handle.getFile());
         seenFiles[localIdOf(parts.concat([sf.name]))] = { modified: statFile.lastModified, size: statFile.size };
       }
       var siblings = files.map(function (f) { return { name: f.name, id: localIdOf(parts.concat([f.name])), mimeType: localMime(f.name), size: 0 }; });
@@ -6571,7 +6562,7 @@
     async function addLoose(list) {
       for (var i = 0; i < list.length; i++) {
         var L = list[i], mime = localMime(L.name), mod = 0;
-        try { mod = (await L.handle.getFile()).lastModified; } catch (e) {}
+        try { mod = seenFiles[L.id] ? seenFiles[L.id].modified : (await L.handle.getFile()).lastModified; } catch (e) {}
         var block = /^image\//.test(mime)
           ? newBlock("image", { caption: "", original: L.name, name: L.name, mime: mime, size: 0, fileId: L.id })
           : newBlock("file", { caption: "", original: L.name, name: L.name, mime: mime, size: 0, fileId: L.id });
@@ -7269,7 +7260,7 @@
   function inlineText(node) {
     var out = "";
     Array.prototype.forEach.call(node.childNodes, function (c) {
-      if (c.nodeType === 3) { out += c.nodeValue.replace(/ /g, " "); return; }
+      if (c.nodeType === 3) { out += c.nodeValue.replace(/\u200b/g, '').replace(/ /g, " "); return; }
       if (c.nodeType !== 1) return;
       var t = c.tagName, cl = c.classList;
       if (t === "BR") { out += "\n"; return; }
@@ -7308,7 +7299,7 @@
       });
     }
     if (k === "heading") {
-      var h = el("h3", "ph");
+      var h = el("h" + Math.max(1, Math.min(4, b.level || 3)), "ph");
       h.setAttribute("data-bid", b.id);
       paintInline(h, b.text || "");
       if (!h.childNodes.length) h.appendChild(el("br"));
@@ -7769,7 +7760,7 @@
       })(nd, 0);
       return { id: bid, kind: "list", ordered: tag === "OL", items: its };
     }
-    if (/^H[1-4]$/.test(tag)) return { id: bid, kind: "heading", text: inlineText(nd).trim() };
+    if (/^H[1-4]$/.test(tag)) return { id: bid, kind: "heading", level:Number(tag.slice(1)), text: inlineText(nd).trim() };
     if (tag === "PRE") return { id: bid, kind: "code", lang: "", text: nd.textContent.replace(/\n$/, "") };
     var txt = inlineText(nd).replace(/\n+$/, "");
     return txt.trim() ? { id: bid, kind: "text", text: txt } : null;
@@ -8262,6 +8253,7 @@
 
   /* ---------- 종이 위 자판 ---------- */
   function onPaperKey(e) {
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.target !== paper && e.target.closest && e.target.closest(".atom, .qlabel")) return;   // 덩어리 안 입력칸은 각자
     if (!$("wikiPop").classList.contains("hidden") && wikiState.field === paper) { wikiKeydown(e); if (e.defaultPrevented) return; }
     if (slashOpen() && slashKey(e)) return;
@@ -8367,6 +8359,42 @@
     ensureTail();
   }
 
+  // Convert only the current text run, never replace the editor while IME is composing.
+  function applyMarkdownTyping() {
+    var s = window.getSelection();
+    if (!s.rangeCount || !s.isCollapsed) return;
+    var r = s.getRangeAt(0), node = r.startContainer;
+    if (node.nodeType !== 3 || !paper.contains(node) || node.parentElement.closest('.atom, .qlabel, pre, code, a')) return;
+    var para = caretPara(), before = node.nodeValue.slice(0, r.startOffset), match;
+    if (para && para.tagName === 'P' && para.parentNode === paper && para.textContent.replace(/\u00a0/g, ' ') === before.replace(/\u00a0/g, ' ')) {
+      var prefix = before.replace(/\u00a0/g, ' '), made;
+      if (/^#{1,3} $/.test(prefix)) made = el('h' + (prefix.length - 1), 'ph');
+      else if (/^[-*+] $/.test(prefix)) made = listNode(newBlock('list', {items:[]}));
+      else if (/^1[.)] $/.test(prefix)) made = listNode(newBlock('list', {ordered:true, items:[]}));
+      else if (/^(?:\[ \]|\[x\]) $/i.test(prefix)) made = todoNode(newBlock('todo', {items:[{t:'',done:/x/i.test(prefix)}]}));
+      else if (prefix === '> ') made = quoteNode(newBlock('quote', {text:''}));
+      if (made) {
+        histCommit();
+        made.setAttribute('data-bid', para.getAttribute('data-bid') || uid());
+        if (!made.childNodes.length) made.appendChild(el('br'));
+        para.replaceWith(made); placeCaret(made, true); ensureTail(); histCommit(); touchDraft(); return;
+      }
+    }
+    var patterns = [ [/\*\*([^*\n]+)\*\*$/, 'strong'], [/~~([^~\n]+)~~$/, 's'], [/`([^`\n]+)`$/, 'code'], [/(?:^|(?<=[\s(]))\*([^*\n]+)\*$/, 'em'] ];
+    for (var i = 0; i < patterns.length; i++) {
+      match = patterns[i][0].exec(before);
+      if (!match || !match[1].trim()) continue;
+      histCommit();
+      var range = document.createRange(); range.setStart(node, match.index); range.setEnd(node, r.startOffset);
+      var mark = el(patterns[i][1], null, match[1]);
+      range.deleteContents(); range.insertNode(mark);
+      var after = mark.nextSibling;
+      if (!after || after.nodeType !== 3) { after = document.createTextNode(''); mark.after(after); }
+      after.nodeValue = '\u200b' + after.nodeValue;
+      range.setStart(after, 1); range.collapse(true); s.removeAllRanges(); s.addRange(range);
+      rememberCaret(); histCommit(); touchDraft(); return;
+    }
+  }
   function initPaper() {
     paper = $("blocks");
     if (!paper) return;
@@ -8374,10 +8402,18 @@
     try { document.execCommand("styleWithCSS", false, false); } catch (e) {}
     paper.addEventListener("keydown", onPaperKey);
     paper.addEventListener("paste", onPaperPaste);
+    var composing = false;
+    paper.setAttribute('aria-label', '본문');
+    var help = el('p', 'markdown-help', '마크다운: **굵게** · *기울임* · ~~취소선~~ · `코드` / 줄 시작에 #, -, 1., > 입력 후 스페이스');
+    paper.after(help);
+    paper.addEventListener('compositionstart', function () { composing = true; });
+    paper.addEventListener('compositionend', function () { composing = false; normalizePaper(); applyMarkdownTyping(); histTouch(); });
     paper.addEventListener("input", function (e) {
+      if (composing || e.isComposing) return;
       histTouch();
       if (e.target !== paper && e.target.closest && e.target.closest(".atom, .qlabel")) return;
       normalizePaper();
+      if (!e.inputType || e.inputType === 'insertText') applyMarkdownTyping();
       clearTimeout(paper._linkTimer);paper._linkTimer=setTimeout(refreshTextPreviews,600);
       updateSlash();
       updateWikiPaper();
@@ -10390,6 +10426,7 @@
   }
 
   function loadIntoComposer(n) {
+    closeViewer();
     unifyRecordTags(n);
     lectureDraftVersion++;
     editingId = n.id;
@@ -10635,7 +10672,13 @@
     if (!n) return;
     var imported = !!n.srcId;
     if (localOn) {
-      localPurgeEntry(n);            // 폴더의 파일을 진짜로 지운다 (.trash 에 있든 제자리에 있든)
+      localPurgeEntry(n).then(function () {
+        /* 파일 삭제가 끝난 다음 한 번 더 그려야, 방금 없어진 실제 폴더가 즉시 빠진다. */
+        saveLocal(); render();
+      }).catch(function (e) {
+        console.error("폴더 파일 완전 삭제 실패", e);
+        toast2("목록에서는 지웠지만 폴더 파일을 다 지우지 못했습니다. 폴더를 다시 읽어 확인해 주세요.");
+      });                            // 폴더의 파일을 진짜로 지운다 (.trash 에 있든 제자리에 있든)
     } else if (connected && !imported) {
       // Delete known, unshared files individually: folder contents may be referenced elsewhere.
       var ownedFiles = new Set([n.mdId].concat((n.blocks || []).map(function (b) { return b.fileId; })));
@@ -11724,7 +11767,7 @@
       if (b.kind === "text") {
         var p = el("p"); appendRichText(p, b.text); host.appendChild(p);textUrls(b.text).forEach(function(url){host.appendChild(linkCard({url:url}));});
       } else if (b.kind === "heading") {
-        var h = el("h4"); appendRichText(h, b.text); host.appendChild(h);
+        var h = el("h" + Math.max(1, Math.min(4, b.level || 4))); appendRichText(h, b.text); host.appendChild(h);
       } else if (b.kind === "quote") {
         host.appendChild(quoteView(b));
       } else if (b.kind === "todo") {
@@ -12214,6 +12257,7 @@
   function closeViewer() {
     if (!viewerEl) return;
     viewerEl.remove(); viewerEl = null;
+    document.body.classList.remove('pkos-reading');
     document.body.style.overflow = "";
   }
   function openViewer(n) {
@@ -12221,6 +12265,7 @@
     var t = typeOf(n.type);
 
     var box = el("div", "viewer"); box.dataset.recordId = n.id;
+    if (threePane() && document.body.dataset.page === 'library') { box.classList.add('pkos-inline-reader'); document.body.classList.add('pkos-reading'); }
     var top = el("div", "vtop");
 
     var back = el("button", "btn sm", "← 닫기");
@@ -12309,12 +12354,13 @@
     }
 
     var suggestions = relatedPanel(n);
-    if (suggestions) paper.appendChild(suggestions);
+    if (suggestions) { var relatedFold=el('details','pkos-related-fold');relatedFold.appendChild(el('summary',null,'함께 볼 기록 '+suggestions.querySelectorAll('.related-row').length+'개'));relatedFold.appendChild(suggestions);paper.appendChild(relatedFold); }
     scroll.appendChild(paper);
     box.appendChild(top);
     box.appendChild(scroll);
     $("modalHost").appendChild(box);
     viewerEl = box;
+    document.querySelectorAll('#list [data-eid]').forEach(function(card){card.classList.toggle('sel',card.dataset.eid===n.id);});
     document.body.style.overflow = "hidden";
     scroll.scrollTop = 0;
   }
@@ -12793,6 +12839,16 @@
      고른 길(filterPath)은 저절로 펴진다 · 내가 보고 있는 곳이 접혀 있으면 안 된다.
      편 것은 기기에 남는다 · 매번 다시 펴게 하면 아무도 안 편다. */
   var sideOpen = safeParse(localStorage.getItem("pkos.sideOpen.v1")) || {};
+  /* 윈도우 탐색기의 빠른 접근처럼, 어느 폴더를 얼마나 자주 열었는지 이 기기에만 남긴다.
+     기록 내용은 넣지 않고 폴더 길·횟수·마지막 시각만 둔다. */
+  var folderUse = safeParse(localStorage.getItem("pkos.folderUse.v1")) || {};
+  function rememberFolder(path) {
+    if (!path || !path.length) return;
+    var key = path.join("/");
+    var old = folderUse[key] || {};
+    folderUse[key] = { path: path.slice(), visits: (Number(old.visits) || 0) + 1, last: Date.now() };
+    try { localStorage.setItem("pkos.folderUse.v1", JSON.stringify(folderUse)); } catch (e) {}
+  }
   function saveSideOpen() {
     try { localStorage.setItem("pkos.sideOpen.v1", JSON.stringify(sideOpen)); } catch (e) {}
   }
@@ -13049,7 +13105,6 @@
     if (!composerFolded) w.push(editingId ? "기록 편집" : "새 기록 쓰기");
     if (smartView) w.push("목록 · " + smartView);
     if (filterPath && filterPath.length) w.push("폴더 · " + filterPath.join("/"));
-    if (document.body.classList.contains("focusing")) w.push("집중 모드");
     return w.join(" · ") || "목록";
   }
   function fbContext() {
@@ -13477,6 +13532,55 @@
       host.appendChild(b);
       return open;
     }
+
+    /* 내 기록장 아래의 빠른 폴더 · 자주 연 세 곳과 최근 세 곳을 겹치지 않게 놓는다.
+       아직 연 적이 없으면 최근에 고친 기록이 든 폴더부터 보여 처음부터 빈칸이 아니다. */
+    var folderFacts = {};
+    live.forEach(function (n) {
+      var p = crumbsOf(n).slice(0, SIDE_DEPTH);
+      if (!p.length) return;
+      var key = p.join("/");
+      var f = folderFacts[key] || (folderFacts[key] = { key: key, path: p, count: 0, changed: 0, fid: null });
+      f.count++;
+      f.changed = Math.max(f.changed, Number(n.updatedAt || n.createdAt) || 0);
+      if (!f.fid) f.fid = n.deskId || n.srcFolderId || null;
+    });
+    if (localOn && localDirs) localDirs.forEach(function (key) {
+      var p = key.split("/").filter(Boolean).slice(0, SIDE_DEPTH);
+      if (p.length && !folderFacts[p.join("/")]) folderFacts[p.join("/")] = { key: p.join("/"), path: p, count: 0, changed: 0, fid: null };
+    });
+    Object.keys(folderUse).forEach(function (key) { if (!folderFacts[key]) delete folderUse[key]; });
+    var folderChoices = Object.keys(folderFacts).map(function (key) {
+      var f = folderFacts[key], use = folderUse[key] || {};
+      f.visits = Number(use.visits) || 0; f.last = Number(use.last) || 0;
+      return f;
+    });
+    var pickedFolders = [];
+    function takeFolders(rows, limit) {
+      rows.forEach(function (f) {
+        if (pickedFolders.length >= 6 || limit <= 0 || pickedFolders.some(function (x) { return x.key === f.key; })) return;
+        pickedFolders.push(f); limit--;
+      });
+    }
+    takeFolders(folderChoices.filter(function (f) { return f.visits > 0; }).sort(function (a, b) { return b.visits - a.visits || b.last - a.last; }), 3);
+    takeFolders(folderChoices.filter(function (f) { return f.last > 0; }).sort(function (a, b) { return b.last - a.last; }), 3);
+    takeFolders(folderChoices.slice().sort(function (a, b) { return b.changed - a.changed || b.count - a.count || a.key.localeCompare(b.key, "ko"); }), 6);
+
+    var quickFoldersOpen = pickedFolders.length ? capRow("자주 찾는 폴더", "recentFolders", pickedFolders.length) : false;
+    if (quickFoldersOpen) pickedFolders.forEach(function (f) {
+      var b = el("button", "quickrow folderquick" + (samePath(filterPath, f.path) ? " on" : ""));
+      b.type = "button"; b.title = f.path.join(" / ");
+      var ico = el("span", "sico"); ico.appendChild(folderSvg(15)); b.appendChild(ico);
+      var nm = el("span", "n", f.path[f.path.length - 1]); nm.title = f.path.join(" / "); b.appendChild(nm);
+      b.appendChild(el("span", "cnt", String(f.count)));
+      b.addEventListener("click", function () {
+        rememberFolder(f.path);
+        smartView = ""; filterPath = f.path.slice(); selectedFolders = []; filterTags = []; filterType = "all"; filterPinned = false;
+        setDesk({ id: f.fid || null, name: f.path[f.path.length - 1], path: f.path.slice() }, true);
+        sideMenuOpen = false; closeDrawer(); foldComposer(); render(); gotoList();
+      });
+      host.appendChild(b);
+    });
     var treeOpen = capRow("폴더 구조", "folders", null);
 
     // 색인이 아는 길로 나무를 세운다
@@ -13568,7 +13672,7 @@
         var key=JSON.stringify(path),rows=Array.from(host.querySelectorAll('[data-select-folder]')).map(function(x){return x.dataset.selectFolder;});
         if(e.shiftKey&&folderAnchor&&rows.includes(folderAnchor)){var start=rows.indexOf(folderAnchor),end=rows.indexOf(key);var range=rows.slice(Math.min(start,end),Math.max(start,end)+1).map(JSON.parse);selectedFolders=(e.ctrlKey||e.metaKey?selectedFolders:[]).concat(range).filter(function(p,i,all){return all.findIndex(function(q){return samePath(p,q);})===i;});}
         else if(e.ctrlKey||e.metaKey){if(!selectedFolders.length&&filterPath.length)selectedFolders=[filterPath.slice()];var at=selectedFolders.findIndex(function(p){return samePath(p,path);});if(at<0)selectedFolders.push(path.slice());else selectedFolders.splice(at,1);folderAnchor=key;}
-        else {selectedFolders=[];folderAnchor=key;}
+        else {selectedFolders=[];folderAnchor=key;rememberFolder(path);}
         filterPath = path.slice();
         if(e.ctrlKey||e.metaKey||e.shiftKey){smartView='';filterTags=[];filterType='all';if(selectedFolders.length===1)filterPath=selectedFolders[0].slice();else if(!selectedFolders.length)filterPath=[];render();return;}
         smartView = "";          // 폴더로 찾기와 «상태» 로 찾기는 동시에 서지 않는다
@@ -13798,6 +13902,7 @@
     applyComposerFold();
   }
   function openComposer() {
+    closeViewer();
     composerFolded = false;
     applyComposerFold();
     renderDeskLine();
@@ -13813,7 +13918,7 @@
   /* 기록 하나를 «연다» · 자리가 있으면 오른쪽 칸에서, 없으면 전체 보기 창으로 */
   function openEntry(n) {
     if (n.trashed) { openViewer(n); return; }   // 휴지통 것은 고치는 자리가 아니다
-    if (threePane()) { loadIntoComposer(n); return; }
+    if (threePane()) { openViewer(n); return; }
     openViewer(n);
   }
   function gotoList() {
@@ -13837,13 +13942,9 @@
     if (!host) return;
     host.innerHTML = "";
     host.classList.remove("hidden");
-    if (editingId) {
-      // 고쳐 쓰는 중에는 자리를 안 건드린다 · 이미 어딘가에 살고 있는 글이다
-      host.classList.add("hidden");
-      return;
-    }
-    host.appendChild(document.createTextNode("저장 폴더: "));
-    host.appendChild(el("b", null, storageKind()==='브라우저'?'브라우저':deskLabel(desk)));
+    var owner = editingId && entries.find(function (n) { return n.id === editingId; });
+    host.appendChild(el('span', null, '저장 위치  '));
+    host.appendChild(el("b", null, storageKind()==='브라우저'?'이 브라우저':(owner ? (owner.localDir || (owner.srcPath || []).join(' / ') || storageKind()) : deskLabel(desk))));
 
   }
   /* ☰ 한 단추가 두 자리에서 같은 뜻으로 돈다 · «한 겹씩 걷는다».
@@ -14156,12 +14257,12 @@
       var tbtn = el("span", "titlebtn", n.title || "(제목 없음)");
       tbtn.setAttribute("role", "button");
       tbtn.setAttribute("tabindex", "0");
-      tbtn.title = "펼치기 / 접기"; tbtn.setAttribute("aria-expanded", String(!!expanded[n.id]));
+      tbtn.title = "기록 읽기";
       /* 3단일 때는 «고르면 오른쪽에서 열린다» · 그것이 3단의 전부다.
          2단·폰에서는 열 오른쪽 칸이 없으므로 전체 보기 창을 띄운다. */
-      tbtn.addEventListener("click", function () { expanded[n.id] = !expanded[n.id]; render(); });
+      tbtn.addEventListener("click", function () { openEntry(n); });
       tbtn.addEventListener("keydown", function (e) {
-        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); expanded[n.id] = !expanded[n.id]; render(); }
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openEntry(n); }
       });
       h3.appendChild(tbtn);
       head.appendChild(h3);
@@ -14215,6 +14316,7 @@
       line2.appendChild(pin);
       head.appendChild(line2);
       card.appendChild(head);
+      var excerpt=el('p','pkos-excerpt',entryText(Object.assign({},n,{title:'',tags:[],localDir:'',mdName:''})).replace(/<[^>]*>/g,' ').slice(0,100));card.appendChild(excerpt);
 
       if (!expanded[n.id]) { host.appendChild(card); return; }
       if ((n.tags || []).length) {
@@ -14305,6 +14407,7 @@
      ========================================================= */
   var page = "library";
   function setPage(p) {
+    closeViewer();
     page = (p === "library") ? "library" : "home";
     document.body.setAttribute("data-page", page);
     try { localStorage.setItem("pkos.page.v1", page); } catch (e) {}
@@ -14685,7 +14788,7 @@
      할 일(- [ ]) · 목록(- / 1.) · 코드 울타리 · 파이프 표 · 콜아웃([!ai]-) 까지 알아본다.
      ⚠️ 모르는 것은 버리지 않는다 · 글로 남긴다. */
   function bodyToBlocks(body, siblings, localBase) {
-    var out = [], buf = [], fence = null, table = null;
+    var out = [], buf = [], fence = null, table = null, fold = null;
     siblings = siblings || [];
     function flush() {
       var t = buf.join("\n").trim();
@@ -14731,6 +14834,19 @@
         else fence.lines.push(line);
         return;
       }
+      if (fold) {
+        if (/^\s*<\/details>\s*$/i.test(line)) {
+          var folded=fold.lines.join('\n');
+          var summary=/^\s*<summary>([\s\S]*?)<\/summary>\s*\n?/i.exec(folded);
+          if (summary) out.push(newBlock('fold',{title:summary[1],text:folded.slice(summary[0].length).trim(),open:fold.open}));
+          else out.push(newBlock('text',{text:fold.start+'\n'+folded+'\n'+line}));
+          fold=null;
+        } else fold.lines.push(line);
+        return;
+      }
+      if (/^\s*<details(?:\s+open)?\s*>\s*$/i.test(line)) {
+        flush();endTable();closeOpen();fold={start:line,open:/\sopen\b/i.test(line),lines:[]};return;
+      }
       if ((m = /^(`{3,}|~{3,})\s*([\w+-]*)\s*$/.exec(line))) { flush(); endTable(); closeOpen(); fence = { mark: m[1], lang: m[2] || "", lines: [] }; return; }
       if (/^\s*\|.*\|\s*$/.test(line)) {                          // 파이프 표
         flush(); closeOpen();
@@ -14743,7 +14859,7 @@
       endTable();
       if (/^\s*<!--\s*drive:[\s\S]*-->\s*$/.test(line)) return;
       if (/^#\s+/.test(line)) { flush(); closeOpen(); return; }              // 제목은 이미 title 로
-      if ((m = /^#{2,4}\s+(.*)$/.exec(line))) { flush(); closeOpen(); out.push(newBlock("heading", { text: m[1].trim() })); return; }
+      if ((m = /^(#{2,5})\s+(.*)$/.exec(line))) { flush(); closeOpen(); out.push(newBlock("heading", { text: m[2].trim(), level:m[1].length - 1 })); return; }
       if (/^\s*(---|\*\*\*|___)\s*$/.test(line)) { flush(); closeOpen(); out.push(newBlock("divider")); return; }
       if ((m = /^>\s?(.*)$/.exec(line))) {
         if (buf.length) flush();
@@ -14810,6 +14926,7 @@
       buf.push(line);
     });
     flush(); endTable();
+    if (fold) out.push(newBlock('text',{text:fold.start+'\n'+fold.lines.join('\n')}));
     if (fence) out.push(newBlock("code", { lang: fence.lang, text: fence.lines.join("\n") }));
     out.forEach(function (b) { delete b._open; });
     return out;
@@ -15818,7 +15935,7 @@
     var m = el("div", "card modal graphmodal");
 
     var head = el("div", "mhead");
-    head.appendChild(el("h3", null, "🕸️ 관계망"));
+    head.appendChild(el("h3", null, "지식맵"));
     head.appendChild(el("span", "spacer"));
     var x = el("button", "btn sm ghost", "✕"); x.addEventListener("click", closeModal);
     head.appendChild(x);
@@ -15831,16 +15948,97 @@
     var tools = el("div", "graphtools");
     var search = el("input", "inp"); search.placeholder = "제목 찾기";
     var tagBtn = el("button", "btn sm", "🏷️ 태그 OFF");
-    var wordBtn = el("button", "btn sm", "단어 관계망");
-    var wordMode = false;
-    var labelBtn = el("button", "btn sm", "🔤 이름 ON");
-    var fitBtn = el("button", "btn sm", "⛶ 맞춤");
-    var helpBtn = el("button", "btn sm", "메뉴");
+    var wordBtn = el("button", "btn sm", "자주 쓰는 주제");
+    var recordBtn = el('button','btn sm','기록 사이의 관계');
+    var modeTabs=el('div','graph-mode-tabs');modeTabs.setAttribute('role','tablist');modeTabs.setAttribute('aria-label','지식맵 종류');
+    modeTabs.append(recordBtn,wordBtn);
+    [recordBtn,wordBtn].forEach(function(b){b.setAttribute('role','tab');});
+    var wordMode = false, wordMinimum = 2;
+    var labelBtn = el("button", "btn sm", "이름 표시");
+    labelBtn.setAttribute('aria-pressed','true');
+    var fitBtn = el("button", "btn sm", "전체 보기");
+    var helpBtn = el("button", "btn sm", "도움말");
     tools.appendChild(search); tools.appendChild(tagBtn); tools.appendChild(labelBtn);
     tools.appendChild(fitBtn); tools.appendChild(helpBtn);
-    tools.appendChild(wordBtn);
-    wordBtn.onclick=function(){wordMode=!wordMode;wordBtn.textContent=wordMode?"기록 관계망":"단어 관계망";selected=null;panel.classList.add("hidden");buildGraph(false);fit();};
+    var graphOptions={selected:['body','title','similar','tag','folder','direct'],folderKinds:['same','parent','name'],threshold:1,minWords:1,synonyms:true,weights:Object.assign({},PKOSGraph.defaults)};
+    var criteria=el('div');criteria.setAttribute('aria-label','연결 기준');criteria.style.cssText='display:flex;flex-wrap:wrap;gap:4px;flex-basis:100%';tools.prepend(criteria);
+    var criterionButtons=[];
+    function checkboxState(b,state){b.setAttribute('role','checkbox');b.setAttribute('aria-checked',String(state));b.setAttribute('aria-pressed',String(state===true));b.classList.add('graph-check');}
+    function paintCriteria(){criterionButtons.forEach(function(b){var all=b.dataset.criterion==='all';var on=all?graphOptions.selected.length===6:graphOptions.selected.includes(b.dataset.criterion);checkboxState(b,all&&!on&&graphOptions.selected.length?'mixed':on);b.classList.toggle('primary',on);});}
+    [['all','전체 선택'],['body','본문 단어'],['title','제목'],['similar','비슷한 표현'],['tag','태그'],['folder','폴더'],['direct','직접 연결']].forEach(function(pair){var b=el('button','btn sm',pair[1]);b.type='button';b.dataset.criterion=pair[0];b.onclick=function(){if(pair[0]==='all')graphOptions.selected=graphOptions.selected.length===6?[]:['body','title','similar','tag','folder','direct'];else{var at=graphOptions.selected.indexOf(pair[0]);if(at<0)graphOptions.selected.push(pair[0]);else graphOptions.selected.splice(at,1);}paintCriteria();rebuildKnowledge();};criterionButtons.push(b);criteria.appendChild(b);});paintCriteria();
+    var clearCriteria=el('button','btn sm','선택 해제');clearCriteria.onclick=function(){graphOptions.selected=[];paintCriteria();rebuildKnowledge();};criteria.appendChild(clearCriteria);
+    var searchFields=['title','body','folder','tag'];
+    search.placeholder='제목이나 단어 검색';search.setAttribute('aria-label','지식맵 검색');
+    var searchScopes=el('div');searchScopes.style.cssText='display:flex;gap:4px;flex-wrap:wrap';searchScopes.appendChild(el('span',null,'검색 범위'));
+    [['title','제목'],['body','본문'],['folder','폴더'],['tag','태그']].forEach(function(pair){var b=el('button','btn sm primary',pair[1]);b.dataset.searchScope=pair[0];checkboxState(b,true);b.onclick=function(){var at=searchFields.indexOf(pair[0]);if(at<0)searchFields.push(pair[0]);else searchFields.splice(at,1);checkboxState(b,at<0);b.classList.toggle('primary',at<0);showSearchResults();};searchScopes.appendChild(b);});tools.appendChild(searchScopes);
+    var searchResults=el('div');searchResults.setAttribute('aria-live','polite');searchResults.dataset.graphSearchResults='true';searchResults.style.cssText='flex-basis:100%;max-height:100px;overflow:auto';tools.appendChild(searchResults);
+    function showSearchResults(){searchResults.replaceChildren();if(!query)return;if(wordMode){var found=nodes.filter(function(n){return normTitle(n.label).includes(normTitle(query));});searchResults.textContent='찾은 단어 '+found.length+'개';return;}if(!searchFields.length){searchResults.textContent='검색 범위를 하나 이상 선택하세요.';return;}var matches=knowledgeEntries().filter(function(n){return PKOSGraph.matches(n,query,searchFields,graphBody,crumbsOf);});searchResults.appendChild(el('span',null,'찾은 글 '+matches.length+'개 '));matches.forEach(function(n){var b=el('button','btn sm',n.title||'제목 없음');b.onclick=function(){selectNode(byId[n.id]);};searchResults.appendChild(b);});}
+    function graphBody(n){return (n.blocks||[]).map(function(b){return [b.text,b.caption,b.searchText,(b.items||[]).map(function(i){return i.t;}).join(' '),(b.head||[]).join(' '),(b.rows||[]).map(function(r){return r.join(' ');}).join(' ')].filter(Boolean).join(' ');}).join(' ');}
+    var tuning=el('details');tuning.style.cssText='background:var(--panel);padding:6px;border-radius:8px;max-width:280px';tuning.appendChild(el('summary',null,'연결 비중·표시 조절'));
+    function rebuildKnowledge(){selected=null;panel.classList.add('hidden');buildGraph(true);settleAndFit();showSearchResults();}
+    function slider(label,key,max,value,change){var row=el('label');row.style.cssText='display:flex;align-items:center;gap:6px';var caption=el('span',null,label+' '+value);var input=el('input');input.type='range';input.min=key==='minWords'?1:0;input.max=max;input.value=value;input.setAttribute('aria-label',label);input.style.width='100px';input.oninput=function(){caption.textContent=label+' '+this.value;};input.onchange=function(){change(Number(this.value));rebuildKnowledge();};row.appendChild(caption);row.appendChild(input);tuning.appendChild(row);}
+    [['body','본문'],['title','제목'],['similar','비슷한 표현'],['tag','태그'],['folder','폴더']].forEach(function(p){slider(p[1]+' 비중',p[0],100,graphOptions.weights[p[0]],function(v){graphOptions.weights[p[0]]=v;});});
+    slider('최소 연결 점수','threshold',100,1,function(v){graphOptions.threshold=v;});
+    slider('최소 공통어','minWords',10,1,function(v){graphOptions.minWords=v;});
+    [['same','같은 실제 폴더'],['parent','같은 상위 폴더'],['name','경로가 달라도 같은 폴더명']].forEach(function(p){var label=el('label',null,p[1]);label.style.display='block';var box=el('input');box.type='checkbox';box.checked=true;box.onchange=function(){var at=graphOptions.folderKinds.indexOf(p[0]);if(this.checked&&at<0)graphOptions.folderKinds.push(p[0]);else if(!this.checked&&at>=0)graphOptions.folderKinds.splice(at,1);rebuildKnowledge();};label.prepend(box);tuning.appendChild(label);});
+    tuning.appendChild(el('p','desc','선택한 기준의 비중만 합산합니다. 직접 연결도 버튼으로 켜고 끕니다. 비슷한 표현은 AI·인공지능, feedback·피드백 사전을 사용합니다. 검색어를 띄어 쓰면 모두 포함한 글을 강조합니다. 첨부는 추출된 텍스트만 분석합니다.'));
+    tools.appendChild(tuning);tagBtn.style.display='none';
+    // Search, relationship criteria and view controls have separate places.
+    var searchRow=el('div','graph-search-row');
+    var searchLabel=el('label','graph-search-label','글 찾기');
+    search.id='graphSearch';searchLabel.htmlFor=search.id;
+    searchRow.append(searchLabel,search);
+    var scopeDetails=el('details','graph-search-options');
+    scopeDetails.append(el('summary',null,'검색 범위'),searchScopes);
+    searchScopes.firstChild.remove();
+    searchRow.appendChild(scopeDetails);
+    var criteriaRow=el('section','graph-criteria-row');
+    var criteriaHeading=el('div','graph-section-label','연결 기준');
+    criteriaHeading.appendChild(el('span',null,'여러 개 선택할 수 있어요'));
+    criteriaRow.append(criteriaHeading,criteria);
+    var viewRow=el('div','graph-view-tools');
+    tuning.className='graph-tuning';tuning.removeAttribute('style');
+    checkboxState(labelBtn,true);
+    viewRow.append(tuning,el('span','spacer'),labelBtn,helpBtn);
+    var wordOptions=el('div','graph-word-options');
+    var wordLabel=el('label',null,'함께 등장한 글 수 '),wordInput=el('input','inp');
+    wordInput.type='number';wordInput.min='1';wordInput.max='999';wordInput.value='2';wordInput.setAttribute('aria-label','최소 함께 등장한 글 수');
+    wordLabel.append(wordInput,document.createTextNode('개 이상'));
+    wordOptions.append(wordLabel,el('span','desc','같은 글에 함께 나온 단어끼리 연결합니다.'));
+    wordInput.onchange=function(){wordMinimum=Math.max(1,Math.min(999,Math.floor(Number(this.value)||2)));this.value=wordMinimum;rebuildKnowledge();};
+    tools.replaceChildren(modeTabs,searchRow,searchResults,criteriaRow,wordOptions,viewRow,tagBtn);
+    function paintMode(){
+      recordBtn.setAttribute('aria-selected',String(!wordMode));wordBtn.setAttribute('aria-selected',String(wordMode));
+      recordBtn.tabIndex=wordMode?-1:0;wordBtn.tabIndex=wordMode?0:-1;
+      criteriaRow.hidden=wordMode;tuning.hidden=wordMode;scopeDetails.hidden=wordMode;wordOptions.hidden=!wordMode;
+      searchLabel.textContent=wordMode?'단어 찾기':'글 찾기';search.placeholder=wordMode?'찾을 단어 입력':'제목이나 단어 검색';
+    }
+    function changeMode(on){if(wordMode===on)return;wordMode=on;paintMode();selected=null;panel.classList.add('hidden');buildGraph(false);settleAndFit();showSearchResults();}
+    recordBtn.onclick=function(){changeMode(false);};wordBtn.onclick=function(){changeMode(true);};
+    modeTabs.onkeydown=function(e){if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();changeMode(e.key==='Home'?false:e.key==='End'?true:!wordMode);(wordMode?wordBtn:recordBtn).focus();}};
+    paintMode();
     body.appendChild(tools);
+    m.classList.add('graph-workspace');
+    var settingsBtn=el('button','btn sm ghost','보기 설정');settingsBtn.id='graphSettingsButton';settingsBtn.setAttribute('aria-expanded','false');settingsBtn.setAttribute('aria-controls','graphSettings');
+    tools.id='graphSettings';tools.hidden=true;tools.setAttribute('aria-label','지식맵 보기 설정');
+    var settingsHead=el('div','graph-settings-head');settingsHead.appendChild(el('h4',null,'보기 설정'));
+    var settingsClose=el('button','btn sm ghost','닫기');settingsClose.setAttribute('aria-label','보기 설정 닫기');settingsHead.appendChild(settingsClose);
+    var modeHelp=el('p','graph-mode-help','기록 사이의 관계는 글을, 자주 쓰는 주제는 글 속 핵심어를 점으로 보여줍니다.');
+    tools.prepend(settingsHead,modeTabs,modeHelp);
+    scopeDetails.open=true;tools.insertBefore(scopeDetails,criteriaRow);
+    tools.appendChild(searchLabel);searchLabel.className='sr-only';
+    searchRow.replaceChildren(search);search.placeholder='기록 검색';
+    head.insertBefore(searchRow,x);head.insertBefore(settingsBtn,x);
+    searchResults.className='graph-search-results';body.appendChild(searchResults);
+    function settingsOpen(on){tools.hidden=!on;settingsBtn.setAttribute('aria-expanded',String(on));if(on){selectNode(null);settingsClose.focus();}else settingsBtn.focus();}
+    settingsBtn.onclick=function(){settingsOpen(tools.hidden);};settingsClose.onclick=function(){settingsOpen(false);};
+    tools.addEventListener('keydown',function(e){if(e.key==='Escape'){e.stopPropagation();settingsOpen(false);}});
+    var zoomTools=el('div','graph-zoom-tools');zoomTools.setAttribute('aria-label','지식맵 확대 축소');
+    var zoomOut=el('button','btn sm','−'),zoomIn=el('button','btn sm','+');
+    zoomOut.setAttribute('aria-label','축소');zoomIn.setAttribute('aria-label','확대');
+    zoomTools.append(zoomOut,zoomIn,fitBtn);body.appendChild(zoomTools);
+    function zoomBy(factor){var next=Math.max(.02,Math.min(4,scale*factor)),cx=canvas.clientWidth/2,cy=canvas.clientHeight/2;panX=cx-(cx-panX)*next/scale;panY=cy-(cy-panY)*next/scale;scale=next;}
+    zoomOut.onclick=function(){zoomBy(1/1.25);};zoomIn.onclick=function(){zoomBy(1.25);};
     var folderTray=el('div','graph-folder-tray');folderTray.style.cssText='position:absolute;z-index:4;left:10px;right:10px;bottom:10px;display:flex;gap:6px;flex-wrap:wrap;max-height:110px;overflow:auto;padding:8px;background:var(--panel);border:1px solid var(--line);border-radius:8px';
     if(localOn){
       localFolderPaths().then(function(paths){paths.forEach(function(path){var b=el('button','btn sm',path.join(' / ')||localName);b.dataset.dropPath=JSON.stringify(path);b.oncontextmenu=function(e){e.preventDefault();if(path.length)openMenuAt(e.clientX,e.clientY,[{label:'이름 바꾸기',run:function(){openLocalRename(path,null);}}]);};folderTray.appendChild(b);});}).catch(function(e){folderTray.textContent=e.message;});body.appendChild(folderTray);}
@@ -15862,6 +16060,8 @@
     var stat = el("span", "desc"); stat.style.margin = "0";
     foot.appendChild(stat);
     foot.appendChild(el("span", "spacer"));
+    tools.appendChild(legend);
+    foot.appendChild(el('span','graph-instruction','점을 선택하면 연결된 기록을 볼 수 있습니다'));
     m.appendChild(foot);
 
     bg.appendChild(m);
@@ -15872,7 +16072,7 @@
     /* ---- 그래프 데이터 ---- */
     var showTags = false, showLabels = true, query = "";
     var nodes = [], edges = [], byId = {}, raf = null, alive = true;
-    var selected = null, connectFrom = null, heat = 1;
+    var selected = null, connectFrom = null, heat = 1, hoverNode = null;
 
     function buildGraph(keepPositions) {
       var prev = {};
@@ -15884,7 +16084,7 @@
         var ang = i * 2.399, rad = 30 + 14 * Math.sqrt(i);
         var p = prev[n.id];
         var node = {
-          id: n.id, kind: "entry", label: n.title || "(제목 없음)", color: typeColor(n.type),
+          id: n.id, kind: "entry", label: n.title || "(제목 없음)", color: getComputedStyle(document.documentElement).getPropertyValue('--brand').trim() || '#4e6f91',
           x: p ? p.x : w / 2 + Math.cos(ang) * rad,
           y: p ? p.y : h / 2 + Math.sin(ang) * rad,
           vx: 0, vy: 0, deg: 0
@@ -15928,8 +16128,15 @@
         nodes=[];edges=[];byId={};
         analysis.words.forEach(function(pair,i){var id='word:'+pair[0],angle=i*2.399;var node={id:id,kind:'word',label:pair[0],color:'#238d85',x:w/2+Math.cos(angle)*(40+i*4),y:h/2+Math.sin(angle)*(40+i*4),vx:0,vy:0,deg:Math.sqrt(pair[1])*2};nodes.push(node);byId[id]=node;});
         var co=new Map();analysis.docs.forEach(function(d){var terms=Array.from(d.terms.keys()).filter(function(t){return byId['word:'+t];});for(var i=0;i<terms.length;i++)for(var j=i+1;j<terms.length;j++){var k=JSON.stringify([terms[i],terms[j]].sort());co.set(k,(co.get(k)||0)+1);}});
-        Array.from(co).filter(function(p){return p[1]>=2;}).sort(function(a,b){return b[1]-a[1];}).slice(0,160).forEach(function(p){var t=JSON.parse(p[0]);edges.push({a:byId['word:'+t[0]],b:byId['word:'+t[1]],kind:'similar',weight:p[1],label:p[1]+'개 기록에서 함께 등장'});});
-      } else analysis.edges.forEach(function(e){if(!byId[e.a]||!byId[e.b])return;edges.push({a:byId[e.a],b:byId[e.b],kind:'similar',weight:e.words.length,label:e.words.join(', ')});byId[e.a].deg++;byId[e.b].deg++;});
+        Array.from(co).filter(function(p){return p[1]>=wordMinimum;}).sort(function(a,b){return b[1]-a[1];}).slice(0,160).forEach(function(p){var t=JSON.parse(p[0]);edges.push({a:byId['word:'+t[0]],b:byId['word:'+t[1]],kind:'similar',weight:p[1],label:p[1]+'개 기록에서 함께 등장'});});
+      } else {
+        var weighted=PKOSGraph.analyze(knowledgeEntries(),Object.assign({},graphOptions,{
+          stem:stemKo,path:crumbsOf,text:function(n){return (n.blocks||[]).map(function(b){return [b.text,b.caption,b.searchText,(b.items||[]).map(function(i){return i.t;}).join(' '),(b.head||[]).join(' '),(b.rows||[]).map(function(r){return r.join(' ');}).join(' ')].filter(Boolean).join(' ');}).join(' ');},
+          links:function(a,b){return (ld.out[a]||[]).filter(function(l){return l.to===b;}).concat((ld.out[b]||[]).filter(function(l){return l.to===a;})).map(function(l){return l.label||'기록 연결';});}
+        }));
+        edges=weighted.edges.map(function(e){return {a:byId[e.a],b:byId[e.b],kind:'similar',weight:e.score/10,score:e.score,direct:e.direct,label:'관련 점수 '+e.score+'/100\n'+e.reasons.join('\n')};});
+        nodes.forEach(function(n){n.deg=weighted.degree.get(n.id)||0;});
+      }
       emptyMsg.style.display = nodes.length ? "none" : "flex";
       emptyMsg.textContent = "아직 기록이 없습니다. 먼저 하나 써 보세요.";
       var linkCount = edges.filter(function (e) { return e.kind !== "tag"; }).length;
@@ -15941,6 +16148,8 @@
 
     function paintLegend() {
       legend.innerHTML = "";
+      legend.appendChild(el('div',null,wordMode?'원 크기: 단어 등장 횟수':'연결된 글 수: 원 0~2 · 6각별 3~5 · 8각별 6~9 · 10각별 10개 이상'));
+      legend.appendChild(el('div',null,wordMode?'선 굵기: 함께 등장한 글 수 · 상위 160개 연결 표시':'선 굵기: 관련 점수 · 파란 선: 직접 연결'));
       if (showTags) {
         var row2 = el("div", "lg");
         var d2 = el("span", "dot"); d2.style.background = "#94a3b8";
@@ -15951,6 +16160,7 @@
 
     /* ---- 물리 계산 ---- */
     function tick() {
+      if (heat===0) return;
       var w = canvas.clientWidth, h = canvas.clientHeight, cx = w / 2, cy = h / 2;
       var i, j, a, b, dx, dy, d2, d, f;
       for (i = 0; i < nodes.length; i++) {
@@ -15970,8 +16180,8 @@
       edges.forEach(function (e) {
         dx = e.b.x - e.a.x; dy = e.b.y - e.a.y;
         d = Math.sqrt(dx * dx + dy * dy) || 1;
-        var rest = e.kind === "tag" ? 130 : 95;
-        f = (d - rest) * (e.kind === "tag" ? 0.006 : 0.014);
+        var rest = e.kind === "tag" ? 130 : 180 + Math.min(120, Math.max(e.a.deg,e.b.deg)*9);
+        f = (d - rest) * (e.kind === "tag" ? 0.006 : 0.014 / Math.sqrt(Math.max(1,e.a.deg,e.b.deg)));
         e.a.vx += f * dx / d; e.a.vy += f * dy / d;
         e.b.vx -= f * dx / d; e.b.vy -= f * dy / d;
       });
@@ -16013,9 +16223,9 @@
 
       var q = normTitle(query);
       var hi = {};
-      if (q) nodes.forEach(function (n) { if (normTitle(n.label).indexOf(q) >= 0) hi[n.id] = 1; });
+      if (q) nodes.forEach(function (n) { var record=entryOf(n.id);if(record?PKOSGraph.matches(record,query,searchFields,graphBody,crumbsOf):normTitle(n.label).includes(q))hi[n.id]=1; });
 
-      function radiusOf(n) { return (n.kind === "tag" ? 4 : 6) + Math.min(9, n.deg * 1.3); }
+      function radiusOf(n) { return ((n.kind === "tag" ? 4 : 6) + Math.min(10, Math.sqrt(n.deg) * 1.8))/Math.max(1,scale); }
       // 선택한 점과 이웃을 강조
       var near = {};
       if (selected) {
@@ -16029,10 +16239,10 @@
       edges.forEach(function (e) {
         var touched = selected && (e.a.id === selected.id || e.b.id === selected.id);
         var dim = (q && !hi[e.a.id] && !hi[e.b.id]) || (selected && !touched);
-        ctx.strokeStyle = e.kind === "tag" ? "rgba(148,163,184,.35)" : (touched ? "#2f5fd6" : "rgba(120,140,190,.55)");
+        ctx.strokeStyle = e.kind === "tag" ? "rgba(148,163,184,.15)" : (touched || e.direct ? "#4e6f91" : "rgba(120,140,160,"+Math.max(.018,.18/Math.sqrt(Math.max(1,edges.length/nodes.length)))+")");
         if (dim) ctx.strokeStyle = "rgba(150,150,160,.12)";
-        ctx.lineWidth = (e.weight ? Math.min(8,1+Math.sqrt(e.weight)) : (e.kind === "tag" ? 1 : (touched ? 2.4 : 1.6))) / scale;
-        if (e.kind === "tag") ctx.setLineDash([4 / scale, 4 / scale]); else ctx.setLineDash([]);
+        ctx.lineWidth = (touched ? 1.8 : e.direct ? 1.2 : Math.min(1.1,.35+Math.sqrt(e.weight||1)*.15)) / scale;
+        ctx.setLineDash([]);
 
         var dx = e.b.x - e.a.x, dy = e.b.y - e.a.y;
         var len = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -16075,12 +16285,15 @@
       });
       ctx.setLineDash([]);
 
+      var labelCandidates=[];
       nodes.forEach(function (n) {
         var r = radiusOf(n);
         var dim = (q && !hi[n.id]) || (selected && !near[n.id]);
         ctx.globalAlpha = dim ? 0.18 : 1;
         ctx.beginPath();
-        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+        var points=n.kind==='entry'?PKOSGraph.shape(n.deg):0;
+        if(points){for(var k=0;k<points*2;k++){var angle=-Math.PI/2+k*Math.PI/points,rr=k%2?r*.63:r;var px=n.x+Math.cos(angle)*rr,py=n.y+Math.sin(angle)*rr;if(k)ctx.lineTo(px,py);else ctx.moveTo(px,py);}ctx.closePath();}
+        else ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
         ctx.fillStyle = n.color;
         ctx.fill();
         if (selected && n.id === selected.id) {
@@ -16096,17 +16309,24 @@
           ctx.lineWidth = 2 / scale; ctx.strokeStyle = "#1a9e5f"; ctx.stroke();
           ctx.setLineDash([]);
         }
-        if (showLabels && scale > 0.55) {
-          ctx.globalAlpha = dim ? 0.2 : 0.92;
-          ctx.fillStyle = css.color;
-          ctx.font = (n.kind === "tag" ? 11 : 12) + "px system-ui, sans-serif";
-          ctx.textAlign = "center";
-          var lab = n.label.length > 18 ? n.label.slice(0, 17) + "…" : n.label;
-          ctx.fillText(lab, n.x, n.y + r + 13);
+        if (showLabels) {
+          if(!dim)labelCandidates.push({node:n,r:r,priority:(selected&&selected.id===n.id?100000:0)+(hoverNode&&hoverNode.id===n.id?90000:0)+(hi[n.id]?50000:0)+n.deg});
         }
         ctx.globalAlpha = 1;
       });
       ctx.restore();
+      var placed=[];ctx.font='13px system-ui, sans-serif';ctx.textAlign='center';
+      labelCandidates.sort(function(a,b){return b.priority-a.priority;}).forEach(function(item){
+        if(placed.length>=(canvas.clientWidth<600?8:14)&&item.priority<50000)return;
+        var n=item.node,lab=n.label.length>22?n.label.slice(0,21)+'…':n.label;
+        var px=n.x*scale+panX,py=(n.y+item.r)*scale+panY+17,tw=ctx.measureText(lab).width;
+        var box={left:px-tw/2-4,right:px+tw/2+4,top:py-14,bottom:py+4};
+        if(box.left<8||box.right>canvas.clientWidth-8||box.top<8||box.bottom>canvas.clientHeight-64)return;
+        if(placed.some(function(b){return box.left<b.right&&box.right>b.left&&box.top<b.bottom&&box.bottom>b.top;}))return;
+        placed.push(box);ctx.globalAlpha=.94;ctx.fillStyle=getComputedStyle(m).backgroundColor;ctx.fillRect(box.left,box.top,box.right-box.left,box.bottom-box.top);
+        ctx.globalAlpha=1;ctx.fillStyle=css.color;ctx.fillText(lab,px,py);
+      });
+      canvas.dataset.labelBoxes=JSON.stringify(placed);
     }
     function loop() {
       if (!alive) return;
@@ -16123,7 +16343,7 @@
     function hitTest(w) {
       for (var i = nodes.length - 1; i >= 0; i--) {
         var n = nodes[i];
-        var r = ((n.kind === "tag" ? 4 : 6) + Math.min(9, n.deg * 1.3)) + 6;
+        var r = ((n.kind === "tag" ? 4 : 6) + Math.min(10, Math.sqrt(n.deg) * 1.8))/Math.max(1,scale)+6/scale;
         if ((w.x - n.x) * (w.x - n.x) + (w.y - n.y) * (w.y - n.y) <= r * r) return n;
       }
       return null;
@@ -16174,19 +16394,21 @@
         // 빈 곳을 누르면 선택 해제
         if (connectFrom) cancelConnect(); else {
           var point=toWorld(ev),hit=edges.find(function(e){var dx=e.b.x-e.a.x,dy=e.b.y-e.a.y,len=dx*dx+dy*dy;if(!len)return false;var t=Math.max(0,Math.min(1,((point.x-e.a.x)*dx+(point.y-e.a.y)*dy)/len));return Math.hypot(point.x-e.a.x-t*dx,point.y-e.a.y-t*dy)<8/scale;});
-          if(hit&&hit.kind==='similar'){selected=null;panel.replaceChildren(el('h4',null,hit.a.label+' / '+hit.b.label),el('p',null,wordMode?hit.label:'공통 단어: '+hit.label));panel.classList.remove('hidden');}else selectNode(null);
+          if(hit&&hit.kind==='similar'){selected=null;panel.replaceChildren(el('h4',null,hit.a.label+' / '+hit.b.label),el('p',null,hit.label));panel.style.whiteSpace='pre-line';panel.classList.remove('hidden');}else selectNode(null);
         }
       }
       dragNode = null; panning = false; downPt = null;
     }
     canvas.addEventListener("mousedown", down);
+    canvas.addEventListener('mousemove',function(ev){if(!downPt){hoverNode=hitTest(toWorld(ev));canvas.title=hoverNode?hoverNode.label:'';}});
+    canvas.addEventListener('mouseleave',function(){hoverNode=null;canvas.title='';});
     canvas.addEventListener("touchstart", down, { passive: false });
     canvas.addEventListener("wheel", function (ev) {
       ev.preventDefault();
       var r = canvas.getBoundingClientRect();
       var mx = ev.clientX - r.left, my = ev.clientY - r.top;
       var k = ev.deltaY < 0 ? 1.12 : 1 / 1.12;
-      var ns = Math.max(0.2, Math.min(4, scale * k));
+      var ns = Math.max(0.005, Math.min(4, scale * k));
       panX = mx - (mx - panX) * (ns / scale);
       panY = my - (my - panY) * (ns / scale);
       scale = ns;
@@ -16197,6 +16419,7 @@
 
     function selectNode(node) {
       selected = node;
+      if(node){tools.hidden=true;settingsBtn.setAttribute('aria-expanded','false');}
       if (!node) { panel.classList.add("hidden"); return; }
       var n = entryOf(node.id);
       if (!n) { panel.classList.add("hidden"); return; }
@@ -16213,6 +16436,8 @@
 
       panel.appendChild(el("h4", "gp-title", n.title || "(제목 없음)"));
       panel.appendChild(el("div", "gp-when", formatDate(n.createdAt)));
+      panel.appendChild(el('p',null,'현재 기준으로 연결된 글 '+node.deg+'개'));
+      edges.filter(function(e){return e.a.id===node.id||e.b.id===node.id;}).forEach(function(e){var other=e.a.id===node.id?e.b:e.a;var detail=el('details');detail.appendChild(el('summary',null,other.label+' · '+(e.score||0)+'점'));var reason=el('p',null,e.label);reason.style.whiteSpace='pre-line';detail.appendChild(reason);var jump=el('button','btn sm','이 글 중심으로 보기');jump.onclick=function(){selectNode(other);};detail.appendChild(jump);panel.appendChild(detail);});
 
       var preview = "";
       (n.blocks || []).forEach(function (b) {
@@ -16297,22 +16522,27 @@
 
     function fit() {
       if (!nodes.length) return;
-      var x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
-      nodes.forEach(function (n) {
-        x1 = Math.min(x1, n.x); y1 = Math.min(y1, n.y);
-        x2 = Math.max(x2, n.x); y2 = Math.max(y2, n.y);
-      });
-      // 위쪽 도구막대에 가려지지 않도록 여백을 잡는다
-      var w = canvas.clientWidth, h = canvas.clientHeight;
-      var padTop = (tools.offsetHeight || 0) + 24, padSide = 46, padBottom = 34;
-      var availW = Math.max(80, w - padSide * 2), availH = Math.max(80, h - padTop - padBottom);
-      var bw = (x2 - x1) || 1, bh = (y2 - y1) || 1;
-      scale = Math.max(0.25, Math.min(2, Math.min(availW / bw, availH / bh)));
-      panX = padSide + availW / 2 - ((x1 + x2) / 2) * scale;
-      panY = padTop + availH / 2 - ((y1 + y2) / 2) * scale;
+      var w=canvas.clientWidth,h=canvas.clientHeight,aw=Math.max(1,w-32),ah=Math.max(1,h-100);
+      var ctx=canvas.getContext('2d');ctx.font='13px system-ui, sans-serif';
+      function bounds(s){var b={left:Infinity,top:Infinity,right:-Infinity,bottom:-Infinity};nodes.forEach(function(n){
+        var r=(n.kind==='tag'?4:7)+Math.min(18,Math.sqrt(n.deg)*3),lab=n.label.length>18?n.label.slice(0,17)+'…':n.label;
+        // Labels are collision-culled; long titles must not shrink the whole map.
+        var half=Math.max(r*s+4,showLabels?Math.min(w<600?40:72,ctx.measureText(lab).width/2+4):0);
+        b.left=Math.min(b.left,n.x*s-half);b.right=Math.max(b.right,n.x*s+half);
+        b.top=Math.min(b.top,(n.y-r)*s-4);b.bottom=Math.max(b.bottom,(n.y+r)*s+(showLabels?22:4));
+      });return b;}
+      var lo=.005,hi=2;
+      for(var i=0;i<30;i++){var mid=(lo+hi)/2,b=bounds(mid);if(b.right-b.left<=aw&&b.bottom-b.top<=ah)lo=mid;else hi=mid;}
+      scale=lo;var b=bounds(scale);panX=16+(aw-b.right-b.left)/2;panY=16+(ah-b.bottom-b.top)/2;
+      canvas.dataset.fitBounds=JSON.stringify({left:b.left+panX,top:b.top+panY,right:b.right+panX,bottom:b.bottom+panY,width:w,height:h});
+    }
+    function settleAndFit(){
+      if(!edges.length&&nodes.length){var cols=Math.ceil(Math.sqrt(nodes.length*canvas.clientWidth/Math.max(1,canvas.clientHeight)));nodes.forEach(function(n,i){n.x=(i%cols)*180;n.y=Math.floor(i/cols)*100;});}
+      else for(var i=0;i<220;i++)tick();
+      heat=0;nodes.forEach(function(n){n.vx=0;n.vy=0;});resize();fit();
     }
 
-    search.addEventListener("input", function () { query = this.value.trim(); });
+    search.addEventListener("input", function () { query = this.value.trim(); showSearchResults(); });
     helpBtn.addEventListener("click", function () { openHelp("graph"); });
     tagBtn.addEventListener("click", function () {
       showTags = !showTags;
@@ -16321,16 +16551,18 @@
     });
     labelBtn.addEventListener("click", function () {
       showLabels = !showLabels;
-      labelBtn.textContent = showLabels ? "🔤 이름 ON" : "🔤 이름 OFF";
+      checkboxState(labelBtn,showLabels);fit();
     });
-    fitBtn.addEventListener("click", fit);
+    fitBtn.addEventListener("click", settleAndFit);
+    var graphObserver=new ResizeObserver(function(){resize();fit();});graphObserver.observe(canvas);
 
-    var onResize = function () { resize(); };
+    var onResize = function () { resize(); fit(); };
     window.addEventListener("resize", onResize);
 
     modalCleanup = function () {
       alive = false;
       if (raf) cancelAnimationFrame(raf);
+      graphObserver.disconnect();
       window.removeEventListener("resize", onResize);
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
@@ -16342,8 +16574,7 @@
     setTimeout(function () {
       resize();
       buildGraph();
-      for (var i = 0; i < 220; i++) tick();   // 미리 안정화
-      fit();
+      settleAndFit();
       loop();
     }, 30);
   }
@@ -17092,6 +17323,13 @@
   $("typeChips").addEventListener("click", touchDraft);
 
   $("btnSave").addEventListener("click", saveEntry);
+  function syncSaveButtons() {
+    $("btnSaveTop").textContent = $("btnSave").textContent;
+    $("btnSaveTop").disabled = $("btnSave").disabled;
+  }
+  $("btnSaveTop").addEventListener("click", function () { $("btnSave").click(); });
+  new MutationObserver(syncSaveButtons).observe($("btnSave"), {childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:["disabled"]});
+  syncSaveButtons();
   $("btnCancelEdit").addEventListener("click", function () { clearDraft(true); resetComposer(); });
   $("btnUnfold").addEventListener("click", openComposer);
   /* 처음 열 때 · 폰·2단이고 이미 쓴 것이 있으면 «목록부터» 보여 준다.
@@ -17101,15 +17339,6 @@
     applyComposerFold();
   }
 
-  /* ---- 집중 모드 ----
-     쓰는 동안 옆의 것들이 다 보이면 «지금 무엇을 쓰고 있었지» 를 자꾸 놓친다.
-     기둥·목록·머리띠를 감추고 적는 칸만 남긴다. Esc 한 번이면 되돌아온다. */
-  function setFocus(on) {
-    document.body.classList.toggle("focusing", !!on);
-    var b = $("btnFocus");
-    if (b) { b.textContent = on ? "🎯 집중 끄기" : "🎯 집중"; }
-    if (on) { composerFolded = false; applyComposerFold(); }
-  }
   /* 넣기 줄의 «⋯ 더» · 자주 안 쓰는 갈래는 접어 둔다.
      매일 넣는 것(소제목·글·할 일·목록·표·캡처·사진·파일)만 처음부터 보인다.
      ⚠️ 뜬 메뉴로 덮지 않는다 · 적던 자리를 가리면 무엇을 쓰던 중이었는지 놓친다.
@@ -17117,9 +17346,6 @@
   $("addbar").classList.add("open");
   $("btnAddMore").remove();
 
-  $("btnFocus").addEventListener("click", function () {
-    setFocus(!document.body.classList.contains("focusing"));
-  });
   $("btnDeleteEntry").addEventListener("click", function () { deleteEditing(); });
   syncDeleteBtn();
   $("btnUndo").addEventListener("click", function (e) { e.preventDefault(); undoPaper(); });
@@ -17142,9 +17368,6 @@
   /* 지난번에 못 보낸 것이 있으면 조용히 다시 던진다 · 사람이 다시 적게 하면 안 된다 */
   setTimeout(fbFlush, 2500);
   window.addEventListener("online", function () { setTimeout(fbFlush, 800); });
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && document.body.classList.contains("focusing")) setFocus(false);
-  });
 
   /* ---- 나가기 한 군데에 ----
      설정 안과 머리줄이 각자 지우면 한쪽만 고치는 날이 온다.

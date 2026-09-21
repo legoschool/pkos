@@ -52,6 +52,23 @@
     var create = byId("topNew");
     if (create) create.title = "새 기록, 단축키 Ctrl N";
   }
-  function boot() { addSkipLink(); addConnectionLabel(); addKeyboardShortcuts(); improveLabels(); }
+  function applyWorkspaceDesign() {
+    document.documentElement.dataset.design='v2';
+    var logo=byId('btnHome');if(logo){logo.textContent='PKOS';logo.setAttribute('aria-label','PKOS 개인지식운영체계 홈');}
+    var navSearch=document.createElement('button');navSearch.className='pkos-nav-search';navSearch.textContent='자료 검색     Ctrl K';navSearch.onclick=function(){var s=byId('search');s.focus();s.select();};
+    var brand=document.querySelector('#appNav .brand');if(brand)brand.after(navSearch);
+    var bar=byId('addbar');
+    if(bar){
+      var insert=document.createElement('details');insert.className='pkos-insert';
+      var summary=document.createElement('summary');summary.textContent='+ 삽입';insert.appendChild(summary);
+      var menu=document.createElement('div');menu.className='pkos-insert-menu';insert.appendChild(menu);
+      Array.from(bar.querySelectorAll('[data-add]')).forEach(function(b){if(b.dataset.add!=='heading'){menu.appendChild(b);b.addEventListener('click',function(){insert.open=false;});}});
+      bar.appendChild(insert);
+      Array.from(bar.querySelectorAll('.edgrp')).forEach(function(g){if(!g.children.length)g.remove();});
+      document.addEventListener('click',function(e){if(!insert.contains(e.target))insert.open=false;});
+      insert.addEventListener('keydown',function(e){if(e.key==='Escape'){insert.open=false;summary.focus();}});
+    }
+  }
+  function boot() { addSkipLink(); addConnectionLabel(); addKeyboardShortcuts(); improveLabels(); applyWorkspaceDesign(); }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 }());

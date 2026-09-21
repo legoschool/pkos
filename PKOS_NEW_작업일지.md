@@ -1,5 +1,15 @@
 # PKOS NEW 작업 일지
 
+## 2026-09-21 GitHub Pages 재배포 준비
+
+9월 20일 이후의 디자인 v2, 편집기, 지식맵과 로컬 연결 수정분을 기존 `legoschool/pkos` 저장소의 `main`에 반영한다. 공개 주소는 `https://legoschool.github.io/pkos/`를 유지한다.
+
+배포 목록에서 빠진 `knowledge-graph.js`, `pkos-document.css`와 이 작업 일지를 추가했다. 서비스 워커 캐시를 `pkos-shell-20260921-new-release-v8`로 갱신했다. 생성된 시험 기록·첨부 폴더는 Git 대상에서 제외하고 로컬에 보존한다.
+
+이번 실행에서 파일 서비스 회귀 62개, 모의 Drive 18개, 지식맵 가중치 검사가 통과했다. 실제 배포 목록으로 만든 임시 정적 사이트에서 `PKOS_NEW_화면.mjs`도 통과했다. PC·태블릿·휴대폰 크기, 지식맵, Markdown 입력·저장·재편집, 접이식 복원, 설정과 JavaScript 오류 부재를 확인했다. agent-browser의 Edge 시작은 실패하여 프로젝트의 기존 Edge 직접 검사기를 사용했다.
+
+개인 기록, Google 계정 왕복, 실물 휴대폰은 이번 검사 대상이 아니다. 공개 웹은 정적 앱이며 PC 연결 기능은 로컬 Python 서비스가 필요하다. GitHub Actions 배포 성공과 공개 `version.json`의 커밋 일치는 업로드 후 별도로 확인한다.
+
 ## 2026-09-20 새 프로젝트 생성
 
 기존 PKOS 커밋 `db155dc0e90d42083d5af1938df2707af877d1c6`에서 독립 작업 폴더를 만들었다. 개인 기록과 기존 실행 상태는 복사하지 않았다.

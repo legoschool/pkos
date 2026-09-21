@@ -1,0 +1,16 @@
+const fs=require('node:fs');
+const vm=require('node:vm');
+const assert=require('node:assert/strict');
+const html=fs.readFileSync('index.html','utf8');
+const start=html.indexOf('  function bodyToBlocks(');
+const end=html.indexOf('\n  /*',start);
+const context={newBlock:(kind,data)=>({kind,...data})};
+vm.createContext(context);vm.runInContext(html.slice(start,end),context);
+const parse=t=>JSON.parse(JSON.stringify(context.bodyToBlocks(t,[])));
+assert.deepEqual(parse('<details open>\n<summary>접었을 때?</summary>\n\n펼쳤을 때!!\n\n</details>'),[{kind:'fold',title:'접었을 때?',text:'펼쳤을 때!!',open:true}]);
+assert.equal(parse('<details>\n<summary>제목</summary>\n**내용**\n</details>')[0].open,false);
+assert.equal(parse('```html\n<details>\n</details>\n```')[0].kind,'code');
+assert.equal(parse('<details>\n끝나지 않은 내용')[0].text,'<details>\n끝나지 않은 내용');
+assert.equal(parse('<details>\n제목 없는 내용\n</details>')[0].kind,'text');
+assert.equal(parse('앞 문단\n<details>\n<summary>요약</summary>\n본문\n</details>\n뒤 문단').length,3);
+console.log('PASS: 접이식 복원 6개');

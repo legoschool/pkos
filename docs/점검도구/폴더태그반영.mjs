@@ -93,6 +93,7 @@ updated: 2026-09-16T01:00:00.000Z
 탐색기에서 만든 파일입니다.
 `;
 const folderRows = `Array.from(document.querySelectorAll('#sideNav .siderow .n')).map(e => e.textContent)`;
+const quickFolderRows = `Array.from(document.querySelectorAll('#sideNav .folderquick .n')).map(e => e.textContent)`;
 const tagChips = `Array.from(document.querySelectorAll('#tagFilters .chip')).map(e => e.textContent)`;
 const tagRows = `Array.from(document.querySelectorAll('#sideNav .tagrow .n')).map(e => e.textContent)`;
 const listTitles = `Array.from(document.querySelectorAll('#list .entry h3')).map(e => e.textContent)`;
@@ -115,9 +116,12 @@ await waitFor(`!!document.getElementById('composer') && document.readyState === 
 
 try {
   await evaluate(writeMd(["수업자료"], "2026-09-16_수업기록.md", note("수업 기록", "시험태그")));
+  await evaluate(writeMd(["지난폴더"], "2026-09-16_지난기록.md", note("지난 기록", "지난태그")));
+  await evaluate(writeMd(["자주폴더"], "2026-09-16_자주기록.md", note("자주 기록", "자주태그")));
   await evaluate(`(async () => { await pkosLocal.attach(await navigator.storage.getDirectory()); })()`);
   check("폴더를 붙이면 그 안의 글을 읽는다", await waitFor(`${listTitles}.some(t => t.includes('수업 기록'))`));
   check("만든 폴더가 왼쪽에 선다", await waitFor(`${folderRows}.includes('수업자료')`), await evaluate(folderRows).then(JSON.stringify));
+  check("내 기록장에 여러 빠른 폴더가 함께 보인다", await waitFor(`${quickFolderRows}.length >= 3`), await evaluate(quickFolderRows).then(JSON.stringify));
   check("그 글의 태그가 선다", await waitFor(`${tagChips}.some(t => t.includes('시험태그')) && ${tagRows}.includes('시험태그')`));
 
   /* ---- 탐색기에서 폴더째 지운다 (앱은 켜 둔 채) ---- */
@@ -134,6 +138,24 @@ try {
   await evaluate(mkdir(["새폴더"]));
   const madeEmpty = await waitFor(`${folderRows}.includes('새폴더')`, 12000);
   check("새로 만든 빈 폴더가 왼쪽에 선다", madeEmpty, await evaluate(folderRows).then(JSON.stringify));
+
+  /* ---- 앱에서 기록을 완전히 지우면 실제 빈 폴더와 왼쪽 줄도 함께 빠진다 ---- */
+  await evaluate(writeMd(["완전삭제"], "2026-09-16_지울기록.md", note("지울 기록", "삭제시험")));
+  check("완전히 지울 기록의 폴더가 먼저 선다", await waitFor(`${folderRows}.includes('완전삭제')`, 12000));
+  await evaluate(`(() => {
+    const row = Array.from(document.querySelectorAll('#sideNav .siderow')).find(b => b.querySelector('.n')?.textContent === '완전삭제');
+    if (!row) return false;
+    row.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 240, clientY: 240 }));
+    const menu = Array.from(document.querySelectorAll('.menupop button')).find(b => b.textContent.includes('완전히 삭제'));
+    if (!menu) return false;
+    menu.click();
+    const yes = Array.from(document.querySelectorAll('#modalHost button')).find(b => b.textContent.trim() === '완전히 삭제');
+    if (!yes) return false;
+    yes.click();
+    return true;
+  })()`);
+  const purgedFolder = await waitFor(`!${folderRows}.includes('완전삭제')`, 12000);
+  check("완전히 지운 빈 폴더가 왼쪽에서 바로 빠진다", purgedFolder, await evaluate(folderRows).then(JSON.stringify));
 
   /* ---- 저장 위치로 골라 둔 폴더를 밖에서 지우면 ---- */
   await evaluate(writeMd(["연수"], "2026-09-16_연수기록.md", note("연수 기록", "연수태그")));
