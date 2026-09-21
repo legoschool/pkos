@@ -43,6 +43,7 @@ const c = {
   readStrayShards: (x) => Promise.resolve(x), migrate: (x) => x, loadSharded: (j) => Promise.resolve(j),
   toast() {}, setSyncPill() {}, absorbIndex() {}, saveLocal() {}, render() {},
   syncPending: () => Promise.resolve(true),
+  reconcileDriveFiles: () => Promise.resolve(true), syncedAgo: () => 'checked',
 };
 vm.createContext(c); vm.runInContext(logic, c);
 const downloads = () => calls.filter((x) => x === 'media').length;
@@ -93,4 +94,16 @@ const [a, b] = await Promise.all([c.pollIndexStamp(), c.pollIndexStamp()]);
 // 물음 하나 + 내려받을 때 loadIndex 가 다시 찍는 도장 하나 = meta 둘. 겹친 둘째 물음은 아무것도 부르지 않는다
 ok('overlapping ticks: one poll, one download', metas() === 2 && downloads() === 1 && (a || b) && !(a && b));
 
+// A failed body download must neither merge an empty index nor consume its version.
+const readMedia = c.readMedia;
+remoteStamp='5@2026-09-21T00:00:00.000Z';
+c.readMedia=()=>Promise.reject(new Error('download failed'));
+let merges=0, writes=0;
+c.absorbIndex=()=>{merges++;}; c.syncPending=()=>{writes++;return Promise.resolve(true);};
+ok('failed download reports false',await c.pollIndexStamp()===false);
+ok('failed download does not merge or upload',merges===0&&writes===0);
+ok('failed download leaves version retryable',c.indexStamp===null);
+c.readMedia=readMedia;calls.length=0;
+ok('same remote version retries after failed download',await c.pollIndexStamp()===true&&downloads()===1);
+ok('successful retry merges and uploads once',merges===1&&writes===1);
 console.log('PASS ' + pass + '/' + pass);

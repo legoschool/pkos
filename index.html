@@ -3068,8 +3068,12 @@
      ========================================================= */
   var settings = normalizeSettings(safeParse(localStorage.getItem(LS.settings)));
   var entries = migrate(safeParse(localStorage.getItem(LS.entries)) || []);
+  entries.forEach(function(n){delete n._driveRoot;});
   var tombstones = safeParse(localStorage.getItem(LS.tombs)) || []; // 기기 간 삭제 전파용
   var folder = safeParse(localStorage.getItem(LS.folder)) || { id: "", name: "" };
+  var workspaceAccount = localStorage.getItem(LS.email) || '';
+  var driveDirectories = null, driveProbeTask = Promise.resolve(), driveScanTask = null, driveScanAt = 0;
+  var driveScanIssue = '';
   var clientId = OWNER_CLIENT_ID || localStorage.getItem(LS.cid) || "";
 
   var blocks = [];          // 작성 중인 블록
@@ -3095,8 +3099,27 @@
         휴지통에 가면 안 된다. 그래서 이름을 달리해 따로 들고, 지우기는 여기를 안 본다.
      id 가 없을 수도 있다 · 왼쪽 나무에서 고른 자리는 이름길만 안다.
      그때는 저장하는 순간 ensureNamedFolder 로 찾아(없으면 만들어) 쓴다. */
-  var desk = safeParse(localStorage.getItem("pkos.desk.v1")) || null;   // {id,name,path:[]}
-  var deskList = safeParse(localStorage.getItem("pkos.deskList.v1")) || []; // 손으로 고른 자리들
+  // Previous selections are history, not evidence that a folder still exists.
+  // Keep the old storage keys intact, but require a fresh selection for this session.
+  var desk = null;
+  var deskList = [];
+  function activateDriveFolder(f) {
+    var changed = folder.id && (folder.id!==f.id || (workspaceAccount && userEmail && workspaceAccount!==userEmail));
+    if(changed){
+      // Keep each connected folder's cache separate; changing a root is not a migration.
+      var key=function(email,id){return 'pkos.workspace-cache.v1.'+encodeURIComponent(email+':'+id);};
+      if(draftHasContent())saveDraft();
+      localStorage.setItem(key(workspaceAccount,folder.id),JSON.stringify({entries:entries,tombstones:tombstones},function(k,v){return k==='blob'||k==='dataUrl'?undefined:v;}));
+      var cached=safeParse(localStorage.getItem(key(userEmail||'',f.id)))||{};
+      entries=migrate(cached.entries||[]);tombstones=cached.tombstones||[];
+      filterPath=[];selectedFolders=[];filterTags=[];filterIds=null;searchQ='';$('search').value='';smartView='';
+      closeViewer();resetComposer();offerStoredDraft();
+    }
+    if(changed || folder.id!==f.id){desk=null;deskList=[];driveDirectories=null;driveScanAt=0;}
+    workspaceAccount=userEmail||workspaceAccount;
+    folder={id:f.id,name:f.name,link:f.link};
+    localStorage.setItem(LS.folder,JSON.stringify(folder));
+  }
   function saveDesk() {
     try {
       localStorage.setItem("pkos.desk.v1", desk ? JSON.stringify(desk) : "");
@@ -3317,6 +3340,9 @@
         두 번째 태그로만 쓰인 「질문」 폴더는 나무에 아예 없었다.
         드라이브에는 있는 폴더가 앱에는 없었던 것이다. */
   function placesOf(n) {
+    if (folder.id && !localOn && !localPending) {
+      return n._driveRoot === folder.id ? [(n.srcPath || []).slice()] : [[]];
+    }
     var out = [];
     /* ① 진짜 파일이 놓인 자리 · 이것이 대표 자리(길찾기 줄)가 된다.
        손으로 고른 자리는 정리 방식보다 먼저다 · 「부기」에 쓴 글이 태그 이름으로 잡히면 안 된다. */
@@ -5551,6 +5577,7 @@
       mdId: n.mdId || null, mdName: n.mdName || null,
       docId: n.docId || null, htmlId: n.htmlId || null,
       srcId: n.srcId || null,          // 폴더에서 끌어온 것이라면, 그 원본 파일 ID
+      driveMirror: !!n.driveMirror,
       srcFolderId: n.srcFolderId || null, srcFolderName: n.srcFolderName || null,
       srcPath: (n.srcPath || []).slice(),
       folderId: n.folderId || null, folderName: n.folderName || null,
@@ -6839,6 +6866,7 @@
   var driveSyncIssue = readDriveSyncIssue();
   function pendingDriveRecords() {
     return entries.filter(function (n) {
+      if(n._missing || n._away || n.localMissing || (n.driveMirror&&!n._dirty))return false;
       return !n.trashed && !localIsId(n.mdId) && (n._dirty || !n.mdId || (n.blocks || []).some(function (b) { return b.blob && (!b.fileId || b._remask); }));
     }).length;
   }
@@ -6851,7 +6879,8 @@
       /* ⚠️ 휴지통에 든 것은 «올리지» 않는다. 버렸는데 그 글이 드라이브에 다시 쓰이면
          버린 뜻이 없어진다. 버렸다는 사실 자체는 색인(saveIndex)이 실어 나른다.
          아직 한 번도 안 올라간 기록도 마찬가지다 · 버린 것을 새로 올릴 이유가 없다. */
-      if (n.trashed) return false;
+      if (n.trashed || n.localMissing || n._missing || n._away) return false;
+      if(n.driveMirror && !n._dirty)return false;
       if (localIsId(n.mdId)) return false;     // PC 폴더가 쓴 기록 · 드라이브 API 로는 안 건드린다
       if (n._dirty || !n.mdId) return true;
       return (n.blocks || []).some(function (b) {
@@ -6986,7 +7015,7 @@
         return verifyFolder(id);
       })
       .then(function (f) {
-        folder = { id: f.id, name: f.name, link: f.link };
+        activateDriveFolder(f);
         driveSyncIssue = readDriveSyncIssue();
         localStorage.setItem(LS.folder, JSON.stringify(folder));
         connected = true;
@@ -7006,9 +7035,10 @@
         return loadIndex();
       })
       .then(function (remote) {
+        if(indexIncomplete)throw new Error('색인 읽기가 완료되지 않았습니다.');
         absorbIndex(remote);
         saveLocal(); render();
-        return syncPending();
+        return reconcileDriveFiles(true).then(function(checked){return checked ? syncPending() : false;});
       })
       .then(function (saved) {
         progress(saved === false ? 0 : 100);
@@ -10291,7 +10321,34 @@
   /* =========================================================
      8-9. 임시저장 · 쓰다가 창이 꺼져도 그대로 남는다
      ========================================================= */
-  var draftDirty = false, draftRestored = false;
+  var draftDirty = false, draftRestored = false, pendingStoredDraft = false;
+  function draftScope() {
+    return localOn || localPending ? 'local:' + localName : folder.id ? 'drive:' + (workspaceAccount || userEmail || '') + ':' + folder.id : 'browser';
+  }
+  function preserveStoredDraft() {
+    if (!pendingStoredDraft) return;
+    var d = safeParse(localStorage.getItem(LS.draft));
+    if (d) {
+      var saved = safeParse(localStorage.getItem('pkos.draft-history.v1')) || [];
+      if (!saved.some(function (x) { return JSON.stringify(x) === JSON.stringify(d); })) saved.push(d);
+      localStorage.setItem('pkos.draft-history.v1', JSON.stringify(saved));
+    }
+    pendingStoredDraft = false;
+  }
+  function offerStoredDraft() {
+    var d = safeParse(localStorage.getItem(LS.draft));
+    if (!d || !Array.isArray(d.blocks)) return false;
+    pendingStoredDraft = true;
+    var bar = $('draftBar'); bar.replaceChildren(); bar.classList.remove('hidden');
+    bar.appendChild(el('span', 'grow', '이 브라우저에 이전 초안이 있습니다. 현재 폴더의 파일과는 별도입니다.'));
+    var restore = el('button', 'btn sm', '이전 초안 불러오기');
+    restore.onclick = function () {
+      if (draftHasContent()) { toast('현재 작성 중인 내용을 먼저 저장해 주세요.'); return; }
+      pendingStoredDraft = false; restoreDraft(); renderDeskLine();
+    };
+    bar.appendChild(restore);
+    return true;
+  }
   function touchDraft() { draftDirty = true; }
 
   function draftHasContent() {
@@ -10299,8 +10356,11 @@
   }
   var lastDraftBody = null;
   function saveDraft() {
+    if (pendingStoredDraft && !draftHasContent()) return;
+    try { preserveStoredDraft(); } catch (e) { toast('이전 초안을 보존하지 못해 임시 저장을 멈췄습니다.'); return; }
     if (!draftHasContent()) { clearDraft(true); return; }
     var body = {
+      scope: draftScope(),
       editingId: editingId,
       type: currentType,
       title: $("title").value,
@@ -10321,11 +10381,22 @@
     showDraftBar(payload.savedAt);
   }
   function clearDraft(silent) {
+    try { preserveStoredDraft(); } catch (e) { toast('이전 초안을 보존하지 못했습니다.'); return Promise.resolve(false); }
     var d = safeParse(localStorage.getItem(LS.draft));
     localStorage.removeItem(LS.draft);
     // Include attachments added since the last autosave, but retain every saved record reference.
     var candidates = (d && d.blocks || []).concat(blocks || []), keep = {}, removed = {};
     entries.forEach(function (n) { (n.blocks || []).forEach(function (b) { keep[b.id] = 1; }); });
+    (safeParse(localStorage.getItem('pkos.draft-history.v1')) || []).forEach(function (d) { (d.blocks || []).forEach(function (b) { keep[b.id] = 1; }); });
+    for (var i = 0; i < localStorage.length; i++) {
+      var cacheKey = localStorage.key(i);
+      if (cacheKey && cacheKey.indexOf('pkos.workspace-cache.v1.') === 0) {
+        var cachedWorkspace = safeParse(localStorage.getItem(cacheKey));
+        (cachedWorkspace && cachedWorkspace.entries || []).forEach(function (n) {
+          (n.blocks || []).forEach(function (b) { keep[b.id] = 1; });
+        });
+      }
+    }
     var ids = candidates.filter(function (b) {
       if (!b.id || keep[b.id] || removed[b.id]) return false;
       removed[b.id] = true; dropPreview(b.id); return true;
@@ -10346,7 +10417,8 @@
       d.blocks.some(function (b) { return b.text || b.url || b.name; });
     if (!hasText) { localStorage.removeItem(LS.draft); return false; }
 
-    editingId = d.editingId || null;
+    var original = entries.find(function (n) { return n.id === d.editingId && !n.trashed && !n.localMissing && !n._missing && !n._away; });
+    editingId = original && (!d.scope || d.scope === draftScope()) ? original.id : null;
     var draftLegacyTag=legacyTypeTag(d.type);currentType="";
     $("title").value = d.title || "";
     $("tags").value = cleanTags((d.tags||"")+","+draftLegacyTag).join(", "); renderTagChips();
@@ -10357,6 +10429,10 @@
       $("btnSave").textContent = "수정 저장";
       $("btnCancelEdit").classList.remove("hidden");
       syncDeleteBtn();
+    } else {
+      $('composerTitle').textContent = '복원한 초안 · 새 기록';
+      $('btnSave').textContent = '새 기록으로 저장';
+      $('btnCancelEdit').classList.add('hidden');
     }
     renderTypeChips(); renderBlocks(); histReset();
     // 파일 본문 되살리기
@@ -10372,6 +10448,7 @@
     draftRestored = true;
     lastDraftBody = null;
     showDraftBar(d.savedAt, true);
+    renderDeskLine();
     toast("쓰다 만 내용을 되살렸습니다. 이어서 쓰시면 됩니다.");
     return true;
   }
@@ -10494,7 +10571,11 @@
     var now = Date.now(), n;
     if (editingId) {
       n = entries.filter(function (x) { return x.id === editingId; })[0];
-      if (!n) { resetComposer(); return; }
+      if (!n || n.trashed || n.localMissing || n._missing || n._away) {
+        saveDraft();
+        toast('원본을 현재 목록에서 확인하지 못했습니다. 작성 내용은 초안으로 보존했습니다.');
+        return;
+      }
       if (localOn && localIsId(n.mdId) && n.localMtime) {
         var originalEntry = n, changedOutside = false;
         entrySaveWaiting = true; $("btnSave").disabled = true;
@@ -10577,6 +10658,7 @@
     if (renamedFrom && renamedFrom !== n.title) renameWikiTargets(renamedFrom, n.title);
     saveLocal();
     indexAttachmentRecords([n]).then(function (count) { if (count) { saveLocal(); render(); } });
+    preserveStoredDraft();
     localStorage.removeItem(LS.draft);   // 진짜 저장됐으니 임시본은 지운다
     draftDirty = false; lastDraftBody = null;
     hideDraftBar();
@@ -10975,6 +11057,8 @@
   }
   function currentViewEntries() {
     return entries.filter(function(n){
+      if(smartView==='unavailable')return !n.trashed && !!(n.localMissing || n._missing || n._away);
+      if(n._missing || n._away)return false;
       if(n.localMissing)return false;
       if(smartView==='trash')return !!n.trashed;
       if(n.trashed)return false;
@@ -11116,7 +11200,7 @@
 
   /* 휴지통에 든 것은 «없는 것» 처럼 군다 · 세는 자리도, 나무도, 목록도 다 이 자를 쓴다 */
   function liveEntries() {
-    return entries.filter(function (n) { return !n.trashed && !n.localMissing; });
+    return entries.filter(function (n) { return !n.trashed && !n.localMissing && !n._missing && !n._away; });
   }
   /* 미정리함 · 급히 남긴 것. 태그가 없거나 «나중에 정리» 로 둔 기록.
      분류 안 했다고 저장을 막지 않는다 · 대신 여기 모아 두고 나중에 손본다. */
@@ -11237,7 +11321,8 @@
     }, 300);
   }
   function matches(n) {
-    if (n.localMissing) return false;
+    if (smartView === 'unavailable') { if (n.trashed || !(n.localMissing || n._missing || n._away)) return false; }
+    else if (n.localMissing || n._missing || n._away) return false;
     /* 휴지통은 «따로 보는 자리» 다. 평소 목록에는 절대 섞이지 않는다 */
     if (smartView === "trash") { if (!n.trashed) return false; }
     else if (n.trashed) return false;
@@ -13492,6 +13577,23 @@
       return b;
     }
     smartRow("📄", "모든 기록", live.length, "", "휴지통을 뺀 모든 기록");
+    var unavailable = entries.filter(function(n){return !n.trashed && (n.localMissing || n._missing || n._away);});
+    if (unavailable.length) smartRow('⚠', '원본 확인 필요', unavailable.length, 'unavailable', '원본이 없거나 연결 범위에서 벗어난 기록의 보관 사본');
+    var draftHistory = safeParse(localStorage.getItem('pkos.draft-history.v1')) || [];
+    if (draftHistory.length) {
+      var history = el('details'); history.appendChild(el('summary', 'siderow', '보관된 초안 ' + draftHistory.length));
+      draftHistory.forEach(function(d){
+        var button = el('button', 'siderow', d.title || '제목 없는 초안');
+        button.onclick = function(){
+          if(draftHasContent()){toast('현재 작성 중인 내용을 먼저 저장해 주세요.');return;}
+          try { preserveStoredDraft(); localStorage.setItem(LS.draft, JSON.stringify(d)); }
+          catch(e){toast('초안을 불러오지 못했습니다.');return;}
+          restoreDraft(); setPage('library'); composerFolded=false; applyComposerFold();
+        };
+        history.appendChild(button);
+      });
+      host.appendChild(history);
+    }
     /* ---- 빠른 접근 · 고정해 둔 기록으로 바로 ---- */
     var pins = live.filter(function (n) { return n.pinned; });
     if (pins.length) {
@@ -13627,11 +13729,15 @@
       var p = path.split("/").slice(0, SIDE_DEPTH);
       if (p.length) nodeAt(p, true);
     });
+    if (connected && !localOn && driveDirectories) driveDirectories.forEach(function(d){
+      var node = nodeAt(d.path.slice(0, SIDE_DEPTH), true); if(node)node.fid=d.id;
+    });
     /* 손으로 골라 둔 자리는 아직 기록이 한 편도 없어도 나무에 세운다.
        방금 만든 폴더가 안 보이면 «만들어졌나?» 하고 한 번 더 만들게 된다. */
     deskList.concat(desk ? [desk] : []).forEach(function (d) {
       var p = (d.path && d.path.length ? d.path : (d.name ? [d.name] : [])).slice(0, SIDE_DEPTH);
       if (!p.length) return;
+      if (connected && !localOn && (!driveDirectories || !driveDirectories.some(function(x){return x.id===d.id && samePath(x.path,d.path);}))) return;
       if (localOn && localDirs && !localDirs.has(p.join("/"))) return;   // 밖에서 사라진 폴더는 세우지 않는다
       var node = nodeAt(p, true);
       if (node && !node.fid) node.fid = d.id || null;
@@ -13943,8 +14049,13 @@
     host.innerHTML = "";
     host.classList.remove("hidden");
     var owner = editingId && entries.find(function (n) { return n.id === editingId; });
-    host.appendChild(el('span', null, '저장 위치  '));
-    host.appendChild(el("b", null, storageKind()==='브라우저'?'이 브라우저':(owner ? (owner.localDir || (owner.srcPath || []).join(' / ') || storageKind()) : deskLabel(desk))));
+    var verifiedOwner = owner && !owner.trashed && !owner.localMissing && !owner._missing && !owner._away;
+    var root = localOn || localPending ? localName : folder.id ? folder.name : '이 브라우저';
+    var path = verifiedOwner ? localOn ? owner.localDir : owner._driveRoot === folder.id ? (owner.srcPath || []).join(' / ') : '' : desk ? (desk.path || []).join(' / ') : '';
+    host.appendChild(el('span', null, editingId && !verifiedOwner ? '초안 보존 위치  ' : '저장 위치  '));
+    host.appendChild(el('b', null, editingId && !verifiedOwner ? '이 브라우저 · 원본 확인 필요' : [root, path].filter(Boolean).join(' / ')));
+    if (folder.id && !localOn && !localPending) host.appendChild(el('span', null, !connected ? ' · Drive 연결 필요' : verifiedOwner && !owner._driveRoot ? ' · 원본 위치 미확인' : ''));
+    var change = el('button', 'btn sm', '저장 위치 확인·변경'); change.type='button'; change.onclick=function(){openSettings('storage');}; host.appendChild(change);
 
   }
   /* ☰ 한 단추가 두 자리에서 같은 뜻으로 돈다 · «한 겹씩 걷는다».
@@ -14128,6 +14239,7 @@
     if (lt) {
       lt.textContent =
         smartView === "trash" ? "휴지통" :
+        smartView === "unavailable" ? "원본 확인 필요 · 보관 사본" :
         smartView === "todo" ? "할 일" :
         smartView === "untagged" ? "분류 없음" :
         smartView === "inbox" ? "미정리함" :
@@ -14425,8 +14537,9 @@
     if(ws)ws.textContent=storageKind();
     if(nc)nc.textContent=String(liveEntries().length||'');
     if(sc){sc.replaceChildren();sc.appendChild(el('b',null,'저장 위치: '+storageKind()));
-      var detail=localPending?'연결 필요: '+localName:localOn?localName:folder.id?(folder.name||'')+(!connected?' (연결 필요)':''):'';
+    var detail=localPending?'연결 필요: '+localName:localOn?localName:folder.id?(folder.name||'')+(!connected?' (연결 필요)':''):'';
       if(detail){sc.appendChild(el('br'));sc.appendChild(document.createTextNode(detail));}
+      if(folder.id&&!localOn&&!localPending){var a=el('a',null,'Drive 폴더 열기');a.href='https://drive.google.com/drive/folders/'+encodeURIComponent(folder.id);a.target='_blank';a.rel='noopener noreferrer';sc.appendChild(el('br'));sc.appendChild(a);}
     }
   }
   /* 기록의 첫 글줄 · 홈 목록의 발췌 */
@@ -14493,6 +14606,7 @@
      11. 상단/배너
      ========================================================= */
   function updateChrome() {
+    renderAppNav(); renderDeskLine();
     var acct = $("acct");
     acct.textContent = userEmail ? "👤 " + userEmail : "";
     acct.hidden = !userEmail;
@@ -14593,9 +14707,10 @@
         .then(function (j) {
           out = out.concat(j.files || []);
           if (j.nextPageToken && out.length < LIST_PAGE_MAX) return page(j.nextPageToken);
+          if (j.nextPageToken) out.truncated = true;
         });
     }
-    return page("").then(function () { return out; }).catch(function () { return out; });
+    return page("").then(function () { return out; });
   }
   /* 연결 폴더 아래를 깊이까지 훑는다.
      학년·학기·과목처럼 여러 겹으로 정리해 두어도 찾아낸다.
@@ -14619,6 +14734,7 @@
         visited++;
         if (onStep) onStep(visited, files.length);
         return listChildren(dir.id).then(function (kids) {
+          if(kids.truncated)truncated=true;
           kids.forEach(function (k) {
             if (k.mimeType === "application/vnd.google-apps.folder") {
               if (!seen[k.id]) {
@@ -14693,29 +14809,98 @@
      그래서 단정하기 전에 파일 ID 로 «너 살아 있니» 를 한 번 직접 물어본다.
      드라이브가 «있다» 고 하면 그것이 진실이다 · «없다·못 준다» 고 할 때만 안 보인다고 적는다. */
   var PROBE_MAX = 40;   // 한 번에 물어볼 수 · 수천 편이 걸려도 드라이브를 두들기지 않는다
+  function reconcileDriveFiles(force) {
+    if (!connected || localOn || !folder.id) return Promise.resolve(false);
+    if (driveScanTask) return driveScanTask;
+    if (!force && Date.now()-driveScanAt<15000) return Promise.resolve(true);
+    var rootId=folder.id;
+    driveScanTask=scanFolder().then(function(scan){
+      if(!connected||localOn||folder.id!==rootId)return false;
+      driveProbeTask=Promise.resolve();
+      relearnPlaces(scan);
+      return driveProbeTask.then(function(){return refreshDriveMirror(scan,rootId);}).then(function(){
+        if(folder.id!==rootId)return false;
+        driveScanAt=Date.now();driveScanIssue=scan.truncated?'폴더 일부만 확인됨':'';
+        if(desk && driveDirectories && !driveDirectories.some(function(d){return d.id===desk.id&&samePath(d.path,desk.path);}))desk=null;
+        saveLocal();render();return true;
+      });
+    }).catch(function(e){driveScanIssue='Drive 파일 확인 실패 · 다시 시도 필요';console.warn('Drive 폴더 대조 실패',e);return false;})
+      .finally(function(){driveScanTask=null;});
+    return driveScanTask;
+  }
+  async function refreshDriveMirror(scan, rootId) {
+    var known = new Map(), attachments = new Set();
+    entries.forEach(function(n){
+      [n.srcId,n.mdId,n.docId,n.htmlId].filter(Boolean).forEach(function(id){known.set(id,n);});
+      (n.blocks||[]).forEach(function(b){if(b.fileId)attachments.add(b.fileId);});
+    });
+    var budget=100;
+    var ordered=(scan.files||[]).slice().sort(function(a,b){return Number(/\.md$/i.test(b.name||''))-Number(/\.md$/i.test(a.name||''));});
+    for (var f of ordered) {
+      if(!connected || localOn || folder.id!==rootId)return;
+      var md=/\.md$/i.test(f.name||'');
+      if(isAppFile(f.name)||JUNK_RE.test(f.name)||f.mimeType==='application/vnd.google-apps.shortcut'||(!md&&!isImportable(f)))continue;
+      var n=known.get(f.id);
+      if(n && (n.trashed || n._dirty || n.id===editingId))continue;
+      if(!n && attachments.has(f.id))continue;
+      var stamp=[f.modifiedTime||'',f.name].join('|');
+      if(n && n._driveModified===stamp)continue;
+      if(budget--<=0)break;
+      if(md){
+        var r=await driveFetch('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(f.id)+'?alt=media&supportsAllDrives=true');
+        if(!r.ok)throw new Error('Markdown 읽기 실패 HTTP '+r.status);
+        var parsed=parseFrontMatter(await r.text()), fm=parsed.fm;
+        if(!connected||localOn||folder.id!==rootId)return;
+        // The user may have started editing while the network request was in flight.
+        if(n && (n._dirty || n.id===editingId))continue;
+        if(!n){
+          var id=unquote(fm.id)||'drive:'+f.id;
+          if(tombstones.some(function(t){return t.id===id;})||entries.some(function(x){return x.id===id;}))continue;
+          n={id:id,createdAt:Date.parse(fm.created||f.createdTime)||Date.now(),relations:[],srcId:f.id,driveMirror:true};
+          entries.push(n);known.set(f.id,n);
+        }
+        n.title=unquote(fm.title)||(/^#\s+(.*)$/m.exec(parsed.body)||[])[1]||stemOf(f.name);
+        n.tags=parseListValue(fm.tags);n.mdId=f.id;n.mdName=f.name;
+        n.blocks=bodyToBlocks(parsed.body,(scan.files||[]).filter(function(x){return x._parent===f._parent&&x.id!==f.id;}),null);
+        n.blocks.forEach(function(b){if(b.fileId)attachments.add(b.fileId);});
+      }else if(!n){
+        var id='drive:'+f.id;if(tombstones.some(function(t){return t.id===id;}))continue;
+        n=entryFromFile(f,'');n.id=id;n.driveMirror=true;entries.push(n);known.set(f.id,n);
+      }else if(n.driveMirror&&!n.mdId){
+        var fresh=entryFromFile(f,'');n.title=fresh.title;n.blocks=fresh.blocks;
+      }
+      if(n){n._driveModified=stamp;n._driveRoot=rootId;n.srcPath=(f._path||[]).slice();n.srcFolderId=f._parent===rootId?null:f._parent;
+        n.updatedAt=Date.parse(f.modifiedTime)||n.updatedAt||n.createdAt;delete n._missing;delete n._away;}
+    }
+  }
   function probeFile(id) {
     if (!id) return Promise.resolve(null);
-    return driveJson("https://www.googleapis.com/drive/v3/files/" + id +
-      "?fields=id,name,trashed&supportsAllDrives=true")
-      .then(function (f) { return (f && !f.trashed) ? f : null; })
-      .catch(function () { return null; });   // 404·403 · 정말로 못 여는 것
+    return driveFetch("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(id) +
+      "?fields=id,name,trashed&supportsAllDrives=true").then(function(r){
+        if(r.status===404)return null;
+        if(!r.ok)throw new Error('원본 확인 실패 HTTP '+r.status);
+        return r.json().then(function(f){return f && !f.trashed ? f : null;});
+      });
   }
   function probeStrays(list) {
     if (!list.length || !connected) {
-      list.forEach(function (n) { n._missing = true; });
       return Promise.resolve(0);
     }
-    var ask = list.slice(0, PROBE_MAX), rest = list.slice(PROBE_MAX), alive = 0;
-    rest.forEach(function (n) { n._missing = true; });   // 못 물어본 것은 판단을 미루지 않고 예전처럼 둔다
+    list=list.slice().sort(function(a,b){return (a._probeAt||0)-(b._probeAt||0);});
+    var ask = list.slice(0, PROBE_MAX), rest = list.slice(PROBE_MAX), alive = 0, rootId=folder.id;
+    rest.forEach(function (n) { n._locationUnchecked = true; });
     return ask.reduce(function (chain, n) {
       return chain.then(function () {
         return probeFile(anchorIdOf(n)).then(function (f) {
+          if(folder.id!==rootId||!connected||localOn)return;
+          n._probeAt=Date.now();
           if (!f) { n._missing = true; delete n._away; return; }
           delete n._missing;
-          n._away = true;                    // 살아 있다 · 다만 연결한 폴더 밖이다
+          delete n._away;                    // drive.file 목록 누락만으로 폴더 밖이라 단정하지 않는다
+          n._locationUnchecked = true;
           n._awayName = f.name || "";
           alive++;
-        });
+        }).catch(function(){n._locationUnchecked=true;});
       });
     }, Promise.resolve()).then(function () { return alive; });
   }
@@ -14727,12 +14912,15 @@
     /* 끝까지 다 훑었을 때만 «없다» 고 말할 수 있다.
        한도에 걸려 중간에 멈췄으면 «안 보이는 것» 과 «못 본 것» 을 가릴 수 없다. */
     var complete = !!scan && !scan.truncated;
+    if (complete) driveDirectories = (scan.dirs || []).slice();
     var fixed = 0, strays = [];
     entries.forEach(function (n) {
       var anchor = anchorIdOf(n);
+      if(localIsId(anchor) || n.trashed)return;
       if (!anchor) return;                        // 아직 드라이브에 안 올라간 기록
       var f = byId[anchor];
       if (!f || !f._parent) {
+        delete n._driveRoot;
         /* 연결한 폴더 어디에도 없다. 지워졌거나, 폴더 «밖» 으로 나갔거나 · 아직 모른다.
            여기서 가르지 않는다 · 파일에게 직접 물어본 뒤에 가른다 (probeStrays).
            ⚠️ 이 표시는 색인에 안 적는다. 훑을 때마다 다시 재는 것이라 낡을 일이 없어야 한다. */
@@ -14740,6 +14928,7 @@
         return;
       }
       // 돌아왔다 · 밖에 있다는 표시도 함께 걷는다
+      n._driveRoot = folder.id; delete n._locationUnchecked;
       if (n._missing || n._away) { delete n._missing; delete n._away; delete n._awayName; fixed++; }
       var deep = f._parent !== folder.id;
       var path = (f._path || []).slice();
@@ -14753,7 +14942,7 @@
     /* 못 찾은 것들에게 직접 물어본다. 답이 늦게 오므로 화면은 답이 온 뒤에 한 번 더 그린다.
        ⚠️ 여기서 saveIndex 를 부르지 않는다 · _missing·_away 는 색인에 안 적는 표시다. */
     if (strays.length) {
-      probeStrays(strays).then(function () { render(); }, function () { render(); });
+      driveProbeTask = probeStrays(strays).then(function () { render(); }, function () { render(); });
     }
     return fixed;
   }
@@ -15076,7 +15265,7 @@
           type: typeKey,
           title: title,
           tags: parseListValue(fm.tags),
-          blocks: bodyToBlocks(parsed.body, siblings, parts),
+          blocks: bodyToBlocks(parsed.body, siblings, null),
           relations: [],
           createdAt: created,
           updatedAt: updated,
@@ -16806,6 +16995,7 @@
           r00.appendChild(el("span", "desc", "현재 폴더: " + localName));
         }
         f0.appendChild(r00);
+        f0.appendChild(el("p", "desc", "G: 등 PC 폴더는 직접 선택해 연결하세요. 앱을 열어 둔 동안 약 2초 간격으로 변경을 확인합니다."));
         if (localOn) {
           var r01 = el("div", "row");
           var impL = el("button", "btn", "📥 폴더 훑어서 가져오기");
@@ -16820,6 +17010,7 @@
       }
       var f1 = el("div", "field");
       f1.appendChild(el("label", null, "1단계 구글 로그인"));
+      f1.appendChild(el("p", "desc", "Drive 연결은 앱에 접근 권한이 있는 파일을 약 15초 간격으로 확인합니다. PC에서 Drive로 업로드되는 시간은 별도로 걸립니다."));
       var r0 = el("div", "row");
       var loginBtn = el("button", "btn primary", userEmail ? "다른 계정으로 로그인" : "구글 로그인");
       loginBtn.addEventListener("click", function () {
@@ -17375,6 +17566,7 @@
   function signOut() {
     clearToken();               // 보관해 둔 열쇠까지 확실히 지운다
     connected = false; userEmail = ""; needReconnect = false;
+    driveDirectories=null;driveScanAt=0;desk=null;deskList=[];
     localStorage.removeItem(LS.connected);
     localStorage.removeItem(LS.email);
     updateChrome();
@@ -17526,6 +17718,8 @@
   }
   function syncedAgo() {
     if (!connected) return "";
+    if (indexIncomplete) return '색인 확인 실패 · 다시 시도 필요';
+    if (driveScanIssue) return driveScanIssue;
     if (driveSyncIssue) return driveSyncIssue;
     if (!lastSyncAt) return "";
     var s = Math.round((Date.now() - lastSyncAt) / 1000);
@@ -17541,15 +17735,18 @@
     setSyncPill("↻ 동기화 중…", true);
     return loadIndex()
       .then(function (remote) {
+        if(indexIncomplete)throw new Error('색인 읽기 실패');
         absorbIndex(remote);
         saveLocal(); render();
-        return syncPending();
+        return reconcileDriveFiles(!!force).then(function(checked){return checked ? syncPending() : false;});
       })
       .then(function (saved) {
         if (saved !== false) lastSyncAt = Date.now(); syncing = false; setSyncPill(syncedAgo());
+        return saved !== false;
       })
       .catch(function () {
         syncing = false; setSyncPill("⚠ 동기화 실패");
+        indexStamp=null; return false;
       });
   }
   document.addEventListener("visibilitychange", function () { if (!document.hidden) autoSync(); });
@@ -17574,14 +17771,14 @@
     return indexStampOf(id).then(function (s) { indexStamp = s; }).catch(function () { indexStamp = null; });
   }
   function pollIndexStamp() {
-    if (!connected || localOn || syncing || indexPolling || document.hidden || !navigator.onLine || !indexFileId) return Promise.resolve(false);
+    if (!connected || localOn || syncing || indexPolling || document.hidden || !navigator.onLine) return Promise.resolve(false);
+    if(!indexFileId)return autoSync(true).then(function(){return false;});
     indexPolling = true;
     return indexStampOf(indexFileId)
       .then(function (s) {
-        var changed = !!indexStamp && s !== indexStamp;
-        indexStamp = s;
-        if (!changed) return false;
-        return autoSync(true).then(function () { return true; });
+        var changed = !indexStamp || s !== indexStamp;
+        if (!changed) return reconcileDriveFiles(false).then(function(){return false;});
+        return autoSync(true).then(function (ok) { if(!ok)indexStamp=null; return ok; });
       })
       .catch(function () { return false; })
       .then(function (changed) { indexPolling = false; return changed; });
@@ -17605,7 +17802,7 @@
      색감·밝기·글자는 설정 → 모양에 있다. */
 
   rehydratePending();   // 지난번에 못 올린 사진·파일 되살리기
-  restoreDraft();   // 쓰다 만 내용 되살리기
+  offerStoredDraft();   // 이전 초안은 파일 목록과 분리하고 사용자가 선택해서 복원한다
   intakeShared();   // 밖에서 «공유»·«웹 캡처» 로 보낸 것 받기 (쓰던 글 뒤에 이어 붙는다)
 
   /* ---------- 고정 주소와 배포 판 ----------
@@ -17738,7 +17935,7 @@
       (kept ? Promise.resolve(kept) : requestToken(false)).then(ensureAccount)
         .then(function () { return verifyFolder(folder.id); })
         .then(function (f) {
-          folder = { id: f.id, name: f.name, link: f.link };
+          activateDriveFolder(f);
         driveSyncIssue = readDriveSyncIssue();
           connected = true; updateChrome();
           return loadSettingsRemote();
@@ -17748,9 +17945,10 @@
           return loadIndex();
         })
         .then(function (remote) {
+          if(indexIncomplete)throw new Error('색인 읽기 실패');
           absorbIndex(remote);
           saveLocal(); render(); updateChrome();
-          return syncPending();
+          return reconcileDriveFiles(true).then(function(checked){return checked ? syncPending() : false;});
         })
         .then(function (saved) { if (saved !== false) lastSyncAt = Date.now(); setSyncPill(syncedAgo()); })
         .catch(function () {
