@@ -1,0 +1,19 @@
+{
+  "updated": "2026-09-27",
+  "scope": "아래 상태는 별도 로컬 검토판과 경험 기록 구상 기준입니다. 저장소의 기존 PKOS NEW와 같은 실행본이 아닙니다.",
+  "features": [
+    {"id":"collect","name":"자료 찾기·가져오기","stage":"로컬 검증","screen":"collect","purpose":"PC 파일과 출처를 모아 무엇을 읽었는지 확인합니다.","available":"파일별 가져오기 결과와 내용 해시 중복 확인, 기존 메모 열기","remaining":"노션·블로그·유튜브 전체 자동 수집"},
+    {"id":"convert","name":"문서 변환·원문 대조","stage":"로컬 검증","screen":"record","purpose":"원본과 읽을 수 있는 본문을 나란히 확인합니다.","available":"PDF 본문·쪽, DOCX/PPTX/HWPX 글·이미지 추출과 재변환 비교","remaining":"OCR·구형 HWP·모든 문서의 원본 배치 재현"},
+    {"id":"projects","name":"사업·연도별 활동","stage":"샘플 검증","screen":"projects","purpose":"파일을 사업과 차시별 활동으로 연결합니다.","available":"드론 로컬 샘플의 사업 후보·연도·활동 종류 필터","remaining":"공문 대조·역할·참여자 확정, 기존 앱과 통합"},
+    {"id":"record","name":"내 생각·사실 수정","stage":"로컬 검증","screen":"record","purpose":"당시 기록과 지금의 회고를 구분해 남깁니다.","available":"자료 옆 메모·출처·변경 이력, 샘플 회고와 수정 의견 내보내기","remaining":"사업 회고의 영구 수정 이력·시트 연결"},
+    {"id":"organize","name":"PC 사본·기존 자료 정리","stage":"로컬 검증","screen":"collect","purpose":"원본을 보존하며 같은 사본과 바뀐 자료를 비교합니다.","available":"폴더 내보내기·외부 편집 비교·선택 반영·되돌리기, 이전 형식 가져오기","remaining":"사용자 폴더 권한·임의 폴더 자동 감시·대량 적용"},
+    {"id":"map","name":"자료 연결·지식맵","stage":"로컬 검증","screen":"map","purpose":"함께 볼 이유와 후속 활동을 따라 읽습니다.","available":"직접 연결·이유·숨김·복원, 2D/3D 지도와 계산한 유사도","remaining":"AI 의미 연결·관계 변경의 영구 복구"},
+    {"id":"ai","name":"AI와 자료 읽기","stage":"모의 검증","screen":"ai","purpose":"보낼 자료를 고르고 답변의 근거를 확인합니다.","available":"전송 전 범위 확인·답변 별도 보관·채택·기각·인용 대조","remaining":"실제 유료 호출·응답 품질·비용 운영"},
+    {"id":"backup","name":"백업·복원·충돌 처리","stage":"로컬 검증","screen":"status","purpose":"원본·메모·관계를 묶어 보관하고 다른 저장과의 충돌을 확인합니다.","available":"전체 백업·별도 작업실 복원·오래된 탭 쓰기 차단","remaining":"실물 다른 PC·기기에서의 왕복 검증"},
+    {"id":"drive","name":"Drive 반영 확인","stage":"실계정 확인 전","screen":"status","purpose":"PC 저장, 클라우드 반영, 다른 기기 수신을 따로 확인합니다.","available":"로그인·사본 대조 코드와 모의 검사","remaining":"실제 계정 인증·전체 대조·다른 기기 수신"},
+    {"id":"publish","name":"선택 공개·버전·철회","stage":"로컬 검증","screen":"publish","purpose":"고른 자료만 공유하고 바뀐 공개본을 비교합니다.","available":"HTML/ZIP·공개 버전·고정 경로 준비·갱신과 철회 묶음","remaining":"실제 인터넷 갱신·권한·철회 운영"},
+    {"id":"approval","name":"비공개 시트·관리자 승인","stage":"설계","screen":"publish","purpose":"개인 기록을 비공개로 관리하고 확인한 버전만 승인합니다.","available":"사업·활동·자료·참여자·회고·승인 CSV 구조","remaining":"Google Sheets 연결·서버 인증·권한·버전 승인"},
+    {"id":"rag","name":"출처를 찾는 RAG","stage":"설계","screen":"ai","purpose":"내 기록에서 근거를 찾아 답하고 원문으로 돌아갑니다.","available":"개인 샘플의 출처 구간과 자료 번호 준비","remaining":"검색 서비스·권한별 색인·수정 및 철회 반영"},
+    {"id":"profile","name":"경험 탐색·프로필","stage":"설계","screen":"projects","purpose":"공개한 경험을 따라 배우고 승인한 활동으로 소개를 만듭니다.","available":"연도·주제·활동 종류별 탐색 구조","remaining":"공개 탐색 통합, 프로필 제작·업로드는 마지막"}
+  ]
+}
