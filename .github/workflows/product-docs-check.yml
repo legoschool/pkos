@@ -1,0 +1,29 @@
+name: Check product documentation
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'README.md'
+      - 'AGENTS.md'
+      - 'docs/product/**'
+      - 'docs/mockup/**'
+      - 'scripts/build-product-docs.mjs'
+      - '.github/workflows/product-docs-check.yml'
+  pull_request:
+    paths:
+      - 'README.md'
+      - 'docs/product/**'
+      - 'docs/mockup/**'
+      - 'scripts/build-product-docs.mjs'
+      - '.github/workflows/product-docs-check.yml'
+permissions:
+  contents: read
+jobs:
+  consistency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/build-product-docs.mjs --check
