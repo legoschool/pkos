@@ -2,6 +2,8 @@
 
 내가 해온 일과 그때의 생각을 자료와 함께 남기고, 다음 수업과 AI 협업에 다시 꺼내 씁니다. 경험이 중심입니다.
 
+> **지금 쓰는 서재와 내 주소로 받기:** PKOS · 나의지식서재는 https://legoschool.github.io/pkos-library/ 에서 바로 열립니다([사용 설명서](https://legoschool.github.io/pkos-library/manual/)). 같은 서재를 내 주소로 운영하려면 템플릿 저장소 [legoschool/pkos-library](https://github.com/legoschool/pkos-library)에서 「Use this template」으로 사본을 만듭니다. 이 저장소(legoschool/pkos)는 구글 드라이브에 저장하는 이전판입니다.
+
 <!-- PRODUCT-SHOWCASE:START -->
 ## 전체 기능과 화면 목업
 
@@ -9,7 +11,7 @@
 
 자료를 사업과 실제 경험에 연결하고, 그때의 생각을 다음 수업과 AI 협업에 다시 꺼내 쓰는 지식운영체계를 만들고 있습니다. 경험이 중심입니다. [목적과 사용 방법](docs/experience-records.md)을 읽거나 아래 화면을 눌러 흐름을 살펴볼 수 있습니다.
 
-**[실제 나의지식서재 열기](https://pkem-research-test.legoschool.chatgpt.site/library/)** · [앱 사용 안내·기존 기록 이동](https://pkem-research-test.legoschool.chatgpt.site/library/guide.html)
+**[실제 나의지식서재 열기](https://legoschool.github.io/pkos-library/)** · [앱 사용 안내·기존 기록 이동](https://legoschool.github.io/pkos-library/guide.html)
 
 **[버튼을 눌러 보는 공개 목업](https://legoschool.github.io/pkos/docs/mockup/)** · [전체 기능 상태](docs/product/FEATURES.md) · [앞으로의 갱신 기준](docs/product/MAINTENANCE.md)
 

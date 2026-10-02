@@ -215,7 +215,7 @@ MD/TXT는 본문과 정확한 원본 바이트를 함께 보관합니다. 다른
 
 ## 2026-09-28 온라인 개인 서재
 
-[실제 앱](https://pkem-research-test.legoschool.chatgpt.site/library/) · [사용 방법과 PC 기록 이동](https://pkem-research-test.legoschool.chatgpt.site/library/guide.html). 기존 공개 의견 수집·관리자 화면은 유지합니다. 개인 기록과 첨부는 기기별 브라우저에 저장하며, 온라인 앱으로 자동 전송하거나 기기 간 자동 동기화하지 않습니다. 기존 PC 앱의 .pkem 백업을 내려받아 온라인 앱에서 가져옵니다.
+[실제 앱](https://legoschool.github.io/pkos-library/) · [사용 방법과 PC 기록 이동](https://legoschool.github.io/pkos-library/guide.html). 기존 공개 의견 수집·관리자 화면은 유지합니다. 개인 기록과 첨부는 기기별 브라우저에 저장하며, 온라인 앱으로 자동 전송하거나 기기 간 자동 동기화하지 않습니다. 기존 PC 앱의 .pkem 백업을 내려받아 온라인 앱에서 가져옵니다.
 
 문서 본문 추출은 온라인에서도 브라우저에서 실행합니다. DOCX/PPTX/HWPX/XLSX 본문과 지원 이미지, PDF 쪽별 본문을 별도 기록으로 저장합니다. 스캔 OCR·옛 HWP/XLS·원본 서식 재현·AI/RAG·계정 동기화는 남은 범위입니다.
 
