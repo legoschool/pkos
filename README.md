@@ -2,7 +2,7 @@
 
 내가 해온 일과 그때의 생각을 자료와 함께 남기고, 다음 수업과 AI 협업에 다시 꺼내 씁니다. 경험이 중심입니다.
 
-> **지금 쓰는 서재와 내 주소로 받기:** PKOS · 나의지식서재는 https://legoschool.github.io/pkos-library/ 에서 바로 열립니다([사용 설명서](https://legoschool.github.io/pkos-library/manual/)). 같은 서재를 내 주소로 운영하려면 템플릿 저장소 [legoschool/pkos-library](https://github.com/legoschool/pkos-library)에서 「Use this template」으로 사본을 만듭니다. 이 저장소(legoschool/pkos)는 구글 드라이브에 저장하는 이전판입니다.
+> 이 저장소(legoschool/pkos)는 구글 드라이브에 저장하는 이전판입니다. 지금 쓰는 PKOS · 나의지식서재는 https://legoschool.github.io/pkos-library/ 에서 바로 열리고([사용 설명서](https://legoschool.github.io/pkos-library/manual/)), 템플릿 저장소 [legoschool/pkos-library](https://github.com/legoschool/pkos-library)에서 「Use this template」을 누르면 같은 서재를 내 주소로 운영할 수 있습니다. 세 도구의 사용법은 [PKOS 도구 모음](https://legoschool.github.io/pkos-workshop/)에 모아 두었습니다.
 
 <!-- PRODUCT-SHOWCASE:START -->
 ## 전체 기능과 화면 목업
