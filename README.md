@@ -1,5 +1,7 @@
 # PKOS · 나의지식서재
 
+> **2026-11-10 보관:** 드라이브판 기록장은 나의지식서재 하나로 모았습니다. https://legoschool.github.io/pkos/ 에는 새 기록장으로 가는 안내 페이지만 남겼고, 이 저장소는 보관(읽기 전용)으로 돌렸습니다. 예전 기록은 구글 드라이브의 기록장 폴더에 남아 있으며, 나의지식서재의 「설정 · 백업 → 폴더의 새 파일 가져오기」로 옮길 수 있습니다.
+
 내가 해온 일과 그때의 생각을 자료와 함께 남기고, 다음 수업과 AI 협업에 다시 꺼내 씁니다. 경험이 중심입니다.
 
 > 이 저장소(legoschool/pkos)는 구글 드라이브에 저장하는 이전판입니다. 지금 쓰는 PKOS · 나의지식서재는 https://legoschool.github.io/pkos-library/ 에서 바로 열리고([사용 설명서](https://legoschool.github.io/pkos-library/manual/)), 템플릿 저장소 [legoschool/pkos-library](https://github.com/legoschool/pkos-library)에서 「Use this template」을 누르면 같은 서재를 내 주소로 운영할 수 있습니다. 세 도구의 사용법은 [PKOS 도구 모음](https://legoschool.github.io/pkos-workshop/)에 모아 두었습니다.
